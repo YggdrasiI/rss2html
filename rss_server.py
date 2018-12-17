@@ -16,37 +16,12 @@ from io import BytesIO
 import time
 import locale
 from time import sleep
-from importlib import reload 
+from importlib import reload
 
 from feed import Feed, get_feed, save_history, clear_history
 
-# Default settings
-# Put changes of these variables into settings.py!
-HOST = "localhost"  # "" allows access from everywhere....
-PORT = 8888
-CACHE_EXPIRE_TIME_S = 600
-MAX_FEED_BYTE_SIZE = 10E6
-FEED_FAVORITES = [
-    Feed("example", "http://www.deutschlandfunk.de/podcast-das-war-der-tag.803.de.podcast",
-         "Example Feed (&lt;channel&gt;&lt;title&gt;-value, optional)"),
-]
-
-try:
-    from feed_history import FEED_HISTORY
-except:
-    FEED_HISTORY = []
-
-def load_templates():
-    """ Nested to allow reload of templates. """
-    from templates import gen_html, \
-            TEMPLATE_TITLE_IMG, TEMPLATE_ENTRY_CONTENT, \
-            TEMPLATE_HELP, TEMPLATE_FAVORITE, TEMPLATE_HISTORY, \
-            TEMPLATE_MSG, TEMPLATE_NOCACHE_LINK
-
-    globals().update(locals())
-
-load_templates()
-
+import templates
+import default_settings as settings  # Overriden in load_config()
 
 
 XML_NAMESPACES = {'content': 'http://purl.org/rss/1.0/modules/content/'}
@@ -54,20 +29,72 @@ _CACHE = {}
 
 ORIG_LOCALE = locale.getlocale()
 EN_LOCALE = ("en_US", ORIG_LOCALE[1])
+FEED_HISTORY = []
 
-# Read overrides/settings
-SETTINGS = "settings.py"
-if os.path.exists(SETTINGS):
-    if "." not in sys.path:
-        sys.path.append(".")
-
-    exec(open(os.path.join(SETTINGS)).read())
 
 # ==========================================================
+
+
+def get_config_folder():
+    """ Return desired path depending of os.
+
+    Config folder is used for:
+        settings.py
+        history.py
+    """
+
+    if os.uname()[0].lower().startswith("win"):
+        root_dir = os.getenv('APPDATA')
+    else:
+        root_dir = os.getenv('XDK_CONFIG_HOME')
+        if not root_dir:
+            root_dir = os.path.join(os.getenv('HOME'), '.config')
+
+    config_dir = os.path.join(root_dir, "rss2html")
+    if not os.path.isdir(config_dir):
+        try:
+            os.mkdir(config_dir)
+        except:
+            config_dir = "."
+
+    return config_dir
+
+
+def load_config():
+    config_dir = get_config_folder()
+    if config_dir not in sys.path:
+        sys.path.insert(0, config_dir)
+
+    try:
+        import settings
+
+        # If settings.py not contains a variable name
+        # add the default value from default_settings
+        vars_set = vars(settings)
+        vars_default_set = vars(sys.modules["default_settings"])
+        for s in vars_default_set.keys():
+            if not s.startswith("__"):
+                vars_set[s] = vars_set.get(s, vars_default_set[s])
+
+    except ImportError:
+        pass
+
+    try:
+        from history import FEED_HISTORY
+    except ImportError:
+        FEED_HISTORY = []
+    finally:
+        globals()["FEED_HISTORY"] = FEED_HISTORY
+
+    # Replace 'default_settings' module
+    # Note that here settings is a local variable and != globals()["settings"]
+    globals()["settings"] = settings
+
 
 def check_process_already_running():
     # TODO
     return False
+
 
 def daemon_double_fork():
     # To avoid zombie processes
@@ -81,12 +108,13 @@ def daemon_double_fork():
             sys.stderr = nullsink
             return True  # Continue with second child process
         else:
-            os._exit(0) # Quit first child process
+            os._exit(0)  # Quit first child process
     else:
         # Wait on first child process
         os.waitpid(pid, 0)
 
     return False
+
 
 def parse_pubDate(s):
     """
@@ -104,6 +132,8 @@ def parse_pubDate(s):
         locale.resetlocale(locale.LC_ALL)
     except locale.Error as e:
         print("Can not set locale: %s" % str(e))
+        dt = datetime.strptime(s, "%a, %d %b %Y %H:%M:%S %z")
+        ret = dt.strftime("%d. %B %Y, %H:%M%p")
 
     return ret
 
@@ -136,9 +166,10 @@ def fetch_xml(url):
         try:
             # Content-Length header optional/not set in all cases…
             content_len = int(response.getheader("Content-Length", 0))
-            if content_len > MAX_FEED_BYTE_SIZE:
-                raise Exception("Feed file exceedes maximal size. {0} > {1}" \
-                                "".format(content_len, MAX_FEED_BYTE_SIZE))
+            if content_len > settings.MAX_FEED_BYTE_SIZE:
+                raise Exception("Feed file exceedes maximal size. {0} > {1}"
+                                "".format(content_len,
+                                          settings.MAX_FEED_BYTE_SIZE))
         except ValueError:
             pass
 
@@ -175,7 +206,7 @@ def find_feed_keywords_values(tree, kwdict=None):
     image_title = "" if node is None else node.text
 
     kwdict["FEED_TITLE_IMAGE"] = ("" if not image_url else
-                                  TEMPLATE_TITLE_IMG.format(
+                                  templates.TEMPLATE_TITLE_IMG.format(
                                       IMAGE_URL=image_url,
                                       IMAGE_TITLE=image_title))
 
@@ -190,7 +221,7 @@ def find_feed_keywords_values(tree, kwdict=None):
 
         node = item_node.find('./description')
         content = "" if node is None else node.text
-        entry["ENTRY_CONTENT"] = TEMPLATE_ENTRY_CONTENT.format(
+        entry["ENTRY_CONTENT"] = templates.TEMPLATE_ENTRY_CONTENT.format(
             ENTRY_CONTENT=content)
 
         node = item_node.find('./content:encoded', XML_NAMESPACES)
@@ -256,7 +287,7 @@ def check_cache(key):
     if key in _CACHE:
         now = int(time.time())
         (t, res) = _CACHE.get(key)
-        if (now - t) < CACHE_EXPIRE_TIME_S:
+        if (now - t) < settings.CACHE_EXPIRE_TIME_S:
             print("Use cache")
             return res
 
@@ -265,8 +296,7 @@ def check_cache(key):
 
 class MyHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
-        #reload(sys.modules['templates'])
-        #load_templates()
+        # reload(sys.modules['templates'])
 
         query_components = parse_qs(urlparse(self.path).query)
         feed_feched = False
@@ -277,6 +307,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         if self.path == "/quit":
             ret = self.show_msg("Quit")
+
             def __delayed_shutdown():
                 sleep(1.0)
                 self.server.shutdown()
@@ -288,12 +319,13 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         elif self.path == "/refresh_templates":
             reload(sys.modules['templates'])
-            load_templates()
             return self.show_msg("Templates reloaded")
 
         elif feed_arg:
             try:
-                feed = get_feed(feed_arg[-1], FEED_FAVORITES, FEED_HISTORY)
+                feed = get_feed(feed_arg[-1],
+                                settings.FEED_FAVORITES,
+                                FEED_HISTORY)
                 feed_url = feed.url if feed else feed_arg[-1]
 
                 res = None
@@ -311,16 +343,17 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     if not feed:
                         feed_title = res["FEED_TITLE"]
                         # Add this (new) url to feed history.
-                        FEED_HISTORY.append(Feed(feed_title, feed_url, feed_title))
+                        FEED_HISTORY.append(
+                            Feed(feed_title, feed_url, feed_title))
                         save_history(FEED_HISTORY)
 
                     update_cache(feed_url, res)
                 else:
-                    uncached_url = TEMPLATE_NOCACHE_LINK.format(
+                    uncached_url = templates.TEMPLATE_NOCACHE_LINK.format(
                         ARGS="feed=" + feed_arg[-1])
                     res["NOCACHE_LINK"] = uncached_url
 
-                html = gen_html(res)
+                html = templates.gen_html(res)
 
             except ValueError as e:
                 error_msg = str(e)
@@ -340,7 +373,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     res["FEED_TITLE"])  # Hm, this requires a proper .url value
 
                 # Update cache and history
-                feed = get_feed(res["FEED_TITLE"], FEED_FAVORITES, FEED_HISTORY)
+                feed = get_feed(res["FEED_TITLE"],
+                                settings.FEED_FAVORITES,
+                                FEED_HISTORY)
                 if feed:
                     feed_title = feed.title
                 else:
@@ -351,7 +386,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     save_history(FEED_HISTORY)
 
                 update_cache(feed_title, res)
-                html = gen_html(res)
+                html = templates.gen_html(res)
 
             except ValueError as e:
                 error_msg = str(e)
@@ -385,20 +420,20 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         host = self.headers.get("HOST", "")
         # Gen list of favs.
-        favs = [TEMPLATE_FAVORITE.format(
+        favs = [templates.TEMPLATE_FAVORITE.format(
             TITLE=feed.title if feed.title else feed.url,
             NAME=feed.name, HOST=host)
-                for feed in FEED_FAVORITES]
+            for feed in settings.FEED_FAVORITES]
         favorites = ("<ul><li>{}</li></ul>".format("</li>\n<li>".join(favs))
                      if len(favs) else "—")
         # Gen list of history entries.
-        other_feeds = [TEMPLATE_HISTORY.format(TITLE=feed.title, HOST=host)
+        other_feeds = [templates.TEMPLATE_HISTORY.format(TITLE=feed.title, HOST=host)
                        for feed in FEED_HISTORY]
         history = ("<ul><li>{}</li></ul>".format("</li>\n<li>".join(other_feeds))
-                     if other_feeds else "—")
+                   if other_feeds else "—")
 
         output = BytesIO()
-        output.write(TEMPLATE_HELP.format(
+        output.write(templates.TEMPLATE_HELP.format(
             HOST=host,
             FAVORITES=favorites,
             HISTORY=history,
@@ -412,11 +447,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         output = BytesIO()
         if error:
-            output.write(TEMPLATE_MSG.format(
+            output.write(templates.TEMPLATE_MSG.format(
                 MSG_TYPE="Error",
                 MSG=msg).encode('utf-8'))
         else:
-            output.write(TEMPLATE_MSG.format(
+            output.write(templates.TEMPLATE_MSG.format(
                 MSG_TYPE="Debug Info",
                 MSG=msg).encode('utf-8'))
 
@@ -424,6 +459,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
+    load_config()
 
     if check_process_already_running():
         print("Server process is already running.")
@@ -435,22 +471,22 @@ if __name__ == "__main__":
             os._exit(0)
 
     # Omit display of double entries
-    clear_history(FEED_FAVORITES, FEED_HISTORY)
+    clear_history(settings.FEED_FAVORITES, FEED_HISTORY)
 
     # Syntax not supported in Python < 3.6
-    # with socketserver.TCPServer(("", PORT), MyHandler) as httpd: 
+    # with socketserver.TCPServer(("", settings.PORT), MyHandler) as httpd:
     #    httpd.serve_forever()
 
     try:
-        httpd = socketserver.TCPServer((HOST, PORT), MyHandler)
+        httpd = socketserver.TCPServer((settings.HOST, settings.PORT), MyHandler)
     except OSError:
         # Reset stdout to print messages regardless if daemon or not
         sys.stdout = sys.__stdout__
         sys.stderr = sys.__stderr__
         raise
 
-    print("Serving at port", PORT)
-    print("Use localhost:{0}/?feed=[url] to read feed".format(PORT))
+    print("Serving at port", settings.PORT)
+    print("Use localhost:{0}/?feed=[url] to read feed".format(settings.PORT))
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

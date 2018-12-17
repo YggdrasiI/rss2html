@@ -9,4 +9,4 @@ Terminal=false
 Type=Application
 Icon=bash
 Categories=Viewer;
-MimeType=text/xml;
+MimeType=application/rss+xml;text/xml;

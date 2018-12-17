@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=RSS Reader
+Comment=Convert Rss feed into html page
+Keywords=rss;feed;
+TryExec=/usr/local/bin/rss_reader
+Exec=/usr/local/bin/rss_reader %U
+StartupNotify=true
+Terminal=false
+Type=Application
+Icon=bash
+Categories=Viewer;
+MimeType=text/xml;

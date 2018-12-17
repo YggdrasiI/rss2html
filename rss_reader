@@ -1,0 +1,32 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+
+import sys
+import os
+import os.path
+
+## Default settings
+# Put changes of these variables into settings.py!
+PORT=8888
+RSS_DOMAIN="http://localhost"
+
+# Read overrides/settings
+SETTINGS = "settings.py"
+if os.path.exists(SETTINGS):
+    if "." not in sys.path:
+        sys.path.append(".")
+
+    exec(open(os.path.join(SETTINGS)).read())
+
+if __name__ == "__main__":
+    try:
+        TMP_FILE = sys.argv[1]
+    except IndexError:
+        "No file path given"
+    finally:
+        RSS_FILE = os.path.join(os.path.dirname(TMP_FILE), "rss.tmp")
+        os.rename(TMP_FILE, RSS_FILE)  # Omit deletion of tmp. file by FF ?!
+
+        os.system('firefox "{RSS_DOMAIN}:{PORT}/?file={RSS_FILE}"'.format(
+            RSS_DOMAIN=RSS_DOMAIN, PORT=PORT, RSS_FILE=RSS_FILE)
+        )

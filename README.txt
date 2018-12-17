@@ -25,10 +25,14 @@ Setup:
         from feed import Feed
 
         PORT = 8888
-        FEED_FAVORITES = {
+        FAVORITES = {
             Feed("example", "http://www.deutschlandfunk.de/podcast-das-war-der-tag.803.de.podcast",
                  "Example Feed (&lt;channel&gt;&lt;title&gt;-value, optional)"),
         }
+
+    Place this file in $HOME/.config/rss2html (Linux) or
+                       %APPDATA%/rss2html (Windows) or
+                       this folder
 
 
 1. Start background service: python3 rss_server.py [-d]

@@ -100,8 +100,9 @@ It converts a 2.0 RSS feed into html page (similar looking to FF's version).</p>
 <h2>URI Arguments</h2>
 <p>Prepend feed url by '<i>{HOST}/?feed=</i>' to get a link 
 to the html representation of the feed.</p>
-<p>Add a feed to FEED_FAVORITES in 'settings.py', it's name can be used as
-shortcut: <i>{HOST}/?feed={{name}}</i></p>
+<p>Add a feed to FAVORITES in '{CONFIG_FILE}' to extend above list.
+Its name can be used as shortcut, i.e <i>{HOST}/?feed={{name}}</i>.
+</p>
 <h2>Miscellaneous</h2>
 <ul>
 <li><a href="/quit">Quit daemon</a></li>

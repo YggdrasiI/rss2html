@@ -11,6 +11,7 @@ from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
 from threading import Thread
 import http.server
+import socket
 import socketserver
 from io import BytesIO
 import time
@@ -25,11 +26,11 @@ import default_settings as settings  # Overriden in load_config()
 
 
 XML_NAMESPACES = {'content': 'http://purl.org/rss/1.0/modules/content/'}
-_CACHE = {}
-
 ORIG_LOCALE = locale.getlocale()
 EN_LOCALE = ("en_US", ORIG_LOCALE[1])
-FEED_HISTORY = []
+HISTORY = []
+_CACHE = {}
+_CONFIG_PATH = None
 
 
 # ==========================================================
@@ -42,6 +43,9 @@ def get_config_folder():
         settings.py
         history.py
     """
+
+    if _CONFIG_PATH:
+        return _CONFIG_PATH
 
     if os.uname()[0].lower().startswith("win"):
         root_dir = os.getenv('APPDATA')
@@ -57,6 +61,7 @@ def get_config_folder():
         except:
             config_dir = "."
 
+    globals()["_CONFIG_PATH"] = config_dir
     return config_dir
 
 
@@ -80,11 +85,11 @@ def load_config():
         pass
 
     try:
-        from history import FEED_HISTORY
+        from history import HISTORY
     except ImportError:
-        FEED_HISTORY = []
+        HISTORY = []
     finally:
-        globals()["FEED_HISTORY"] = FEED_HISTORY
+        globals()["HISTORY"] = HISTORY
 
     # Replace 'default_settings' module
     # Note that here settings is a local variable and != globals()["settings"]
@@ -294,10 +299,14 @@ def check_cache(key):
     return None
 
 
+class MyTCPServer(socketserver.TCPServer):
+    def server_bind(self):
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.socket.bind(self.server_address)
+
+
 class MyHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
-        # reload(sys.modules['templates'])
-
         query_components = parse_qs(urlparse(self.path).query)
         feed_feched = False
         error_msg = None
@@ -324,8 +333,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         elif feed_arg:
             try:
                 feed = get_feed(feed_arg[-1],
-                                settings.FEED_FAVORITES,
-                                FEED_HISTORY)
+                                settings.FAVORITES,
+                                HISTORY)
                 feed_url = feed.url if feed else feed_arg[-1]
 
                 res = None
@@ -343,9 +352,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     if not feed:
                         feed_title = res["FEED_TITLE"]
                         # Add this (new) url to feed history.
-                        FEED_HISTORY.append(
+                        HISTORY.append(
                             Feed(feed_title, feed_url, feed_title))
-                        save_history(FEED_HISTORY)
+                        save_history(HISTORY)
 
                     update_cache(feed_url, res)
                 else:
@@ -353,6 +362,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                         ARGS="feed=" + feed_arg[-1])
                     res["NOCACHE_LINK"] = uncached_url
 
+                res["CONFIG_PATH"] = get_config_folder()
                 html = templates.gen_html(res)
 
             except ValueError as e:
@@ -374,16 +384,16 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
                 # Update cache and history
                 feed = get_feed(res["FEED_TITLE"],
-                                settings.FEED_FAVORITES,
-                                FEED_HISTORY)
+                                settings.FAVORITES,
+                                HISTORY)
                 if feed:
                     feed_title = feed.title
                 else:
                     feed_title = res["FEED_TITLE"]
                     # Add this (new) feed to history. Here, we had no clue
                     # about the feed url!
-                    FEED_HISTORY.append(Feed(feed_title, "", feed_title))
-                    save_history(FEED_HISTORY)
+                    HISTORY.append(Feed(feed_title, "", feed_title))
+                    save_history(HISTORY)
 
                 update_cache(feed_title, res)
                 html = templates.gen_html(res)
@@ -423,12 +433,12 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         favs = [templates.TEMPLATE_FAVORITE.format(
             TITLE=feed.title if feed.title else feed.url,
             NAME=feed.name, HOST=host)
-            for feed in settings.FEED_FAVORITES]
+            for feed in settings.FAVORITES]
         favorites = ("<ul><li>{}</li></ul>".format("</li>\n<li>".join(favs))
                      if len(favs) else "—")
         # Gen list of history entries.
         other_feeds = [templates.TEMPLATE_HISTORY.format(TITLE=feed.title, HOST=host)
-                       for feed in FEED_HISTORY]
+                       for feed in HISTORY]
         history = ("<ul><li>{}</li></ul>".format("</li>\n<li>".join(other_feeds))
                    if other_feeds else "—")
 
@@ -437,6 +447,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             HOST=host,
             FAVORITES=favorites,
             HISTORY=history,
+            CONFIG_FILE=os.path.join(_CONFIG_PATH, "settings.py")
         ).encode('utf-8'))
         self.wfile.write(output.getvalue())
 
@@ -471,14 +482,14 @@ if __name__ == "__main__":
             os._exit(0)
 
     # Omit display of double entries
-    clear_history(settings.FEED_FAVORITES, FEED_HISTORY)
+    clear_history(settings.FAVORITES, HISTORY)
 
     # Syntax not supported in Python < 3.6
     # with socketserver.TCPServer(("", settings.PORT), MyHandler) as httpd:
     #    httpd.serve_forever()
 
     try:
-        httpd = socketserver.TCPServer((settings.HOST, settings.PORT), MyHandler)
+        httpd = MyTCPServer((settings.HOST, settings.PORT), MyHandler)
     except OSError:
         # Reset stdout to print messages regardless if daemon or not
         sys.stdout = sys.__stdout__

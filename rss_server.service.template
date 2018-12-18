@@ -1,0 +1,16 @@
+[Unit]
+Description=Starts RSS2HTML daemon as user
+After=network.service
+
+[Service]
+Type=simple
+User={USER}
+Group={USER}
+WorkingDirectory={FOLDER}
+ExecStart={PYTHON_BIN} rss_server.py
+Restart=always
+RestartSec=60
+#TimeoutSec=60
+
+[Install]
+WantedBy=multi-user.target

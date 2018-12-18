@@ -225,12 +225,22 @@ def find_feed_keywords_values(tree, kwdict=None):
         entry["ENTRY_TITLE"] = "Undefined" if node is None else node.text
 
         node = item_node.find('./description')
-        content = "" if node is None else node.text
-        entry["ENTRY_CONTENT"] = templates.TEMPLATE_ENTRY_CONTENT.format(
-            ENTRY_CONTENT=content)
+        content_short = "" if node is None else node.text
 
         node = item_node.find('./content:encoded', XML_NAMESPACES)
-        entry["ENTRY_CONTENT_FULL"] = "Undefined" if node is None else node.text
+        content_full  = "" if node is None else node.text
+
+        if content_short == content_full:  # Remove duplicate info
+            content_full = ""
+
+        if content_short == "":  # Use full directly if <description> was empty
+            content_short, content_full = content_full, ""
+
+        entry["ENTRY_CONTENT"] = templates.TEMPLATE_ENTRY_CONTENT.format(
+            ENTRY_CONTENT_SHORT=content_short,
+            ENTRY_CONTENT_FULL=content_full,
+            ENTRY_CLICKABLE="click_out" if content_full else "",
+        )
 
         node = item_node.find('./pubDate')
         if node is not None:

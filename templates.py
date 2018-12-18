@@ -7,6 +7,7 @@ TEMPLATE_HTML_HEADER = '''<html id="feedHandler" xmlns="http://www.w3.org/1999/x
   <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
   <meta http-equiv="XXXContent-Security-Policy" content="{POLICY}" />
   <link rel="stylesheet" href="subscribe.css" type="text/css" media="all" />
+  <link rel="stylesheet" href="onclick.css" type="text/css" media="all" />
   <title>{{FEED_TITLE}}</title>
 </head><body>
 '''.format(
@@ -67,7 +68,11 @@ TEMPLATE_TITLE_IMG = '''
         <img id="feedTitleImage" src="{IMAGE_URL}"
         title="{IMAGE_TITLE}" />
 '''
-TEMPLATE_ENTRY_CONTENT = '<div class="feedEntryContent">{ENTRY_CONTENT}</div>'
+TEMPLATE_ENTRY_CONTENT = '''<div class="feedEntryContent {ENTRY_CLICKABLE}">
+        <div class="click_in1">{ENTRY_CONTENT_FULL}</div>
+        <div class="click_in2">{ENTRY_CONTENT_SHORT}</div>
+      </div>
+'''
 TEMPLATE_ENTRY_ENCLOSURES = '''
         <div class="enclosures">Medien-Dateien
           {ENTRY_ENCLOSURES}

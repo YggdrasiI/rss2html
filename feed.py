@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
+import os.path
+
 class Feed:
     def __init__(self, name, url, title=None):
         self.name = name
@@ -31,17 +33,21 @@ def get_feed(key, feeds, hist_feeds=None):
     return None
 
 
-def save_history(feeds):
+def save_history(feeds, folder=None):
     """ Writes feeds into feed_history.py """
 
+    path = "history.py"
+    if folder:
+        path = os.path.join(folder, path)
+
     print("Write history with {0} entries.".format(len(feeds)))
-    with open("feed_history.py", "w") as f:
+    with open(path, "w") as f:
         f.write("#!/usr/bin/python3\n")
         f.write("# -*- coding: utf-8 -*-\n\n")
         f.write("from feed import Feed\n")
-        f.write("FEED_HISTORY = [\n")
+        f.write("HISTORY = [\n")
         for feed in feeds:
-            f.write("  {},\n".format(feed))
+            f.write("    {},\n".format(feed))
         f.write("]\n")
 
 

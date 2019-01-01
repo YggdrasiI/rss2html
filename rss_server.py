@@ -126,21 +126,36 @@ def parse_pubDate(s):
     Example input:
         <pubDate>Tue, 04 Dec 2018 06:48:30 +0000</pubDate>
     """
-    try:
-        locale.setlocale(locale.LC_ALL, EN_LOCALE)
-        dt = datetime.strptime(s, "%a, %d %b %Y %H:%M:%S %z")
+    formats = [
+        ("%a, %d %b %Y %H:%M:%S %z", s),
+        ("%a, %d %b %Y %H:%M:%S %Z", s),
+        ("%a, %d %b %Y %H:%M:%S", s[:len(s)+1-s.rfind(" ")]),
+    ]
 
-        # Without this line the locale is ignored...
-        locale.setlocale(locale.LC_ALL, '')
-        ret = dt.strftime("%d. %B %Y, %H:%M%p")
+    ret = None
+    for (f, s2) in formats:
+        try:
+            locale.setlocale(locale.LC_ALL, EN_LOCALE)
+            dt = datetime.strptime(s2, "%a, %d %b %Y %H:%M:%S %z")
 
-        locale.resetlocale(locale.LC_ALL)
-    except locale.Error as e:
-        print("Can not set locale: %s" % str(e))
-        dt = datetime.strptime(s, "%a, %d %b %Y %H:%M:%S %z")
-        ret = dt.strftime("%d. %B %Y, %H:%M%p")
+            # Without this line the locale is ignored...
+            locale.setlocale(locale.LC_ALL, '')
+            ret = dt.strftime("%d. %B %Y, %H:%M%p")
 
-    return ret
+            locale.resetlocale(locale.LC_ALL)
+            break
+        except locale.Error as e:
+            print("Can not set locale: %s" % str(e))
+            dt = datetime.strptime(s2, "%a, %d %b %Y %H:%M:%S %z")
+            ret = dt.strftime("%d. %B %Y, %H:%M%p")
+            break
+        except ValueError:
+            pass
+
+    if ret:
+        return ret
+
+    raise Exception("Can not parse {}".format(s2))
 
 
 def load_xml(filename):
@@ -216,6 +231,7 @@ def find_feed_keywords_values(tree, kwdict=None):
                                       IMAGE_TITLE=image_title))
 
     entries = []
+    entries_len = 0  # To remove ENTRY_CONTENT_FULL for long feeds.
     for item_node in tree.findall('./channel/item'):
         entry = {}
         node = item_node.find('./link')
@@ -236,6 +252,9 @@ def find_feed_keywords_values(tree, kwdict=None):
         if content_short == "":  # Use full directly if <description> was empty
             content_short, content_full = content_full, ""
 
+        if entries_len > settings.CONTENT_FULL_LEN_THRESH:
+            content_full = ""
+
         entry["ENTRY_CONTENT"] = templates.TEMPLATE_ENTRY_CONTENT.format(
             ENTRY_CONTENT_SHORT=content_short,
             ENTRY_CONTENT_FULL=content_full,
@@ -251,6 +270,7 @@ def find_feed_keywords_values(tree, kwdict=None):
         entry["enclosures"] = find_enclosures(item_node)
 
         entries.append(entry)
+        entries_len += len(content_full)
 
     kwdict["entries"] = entries
     return kwdict
@@ -364,7 +384,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                         # Add this (new) url to feed history.
                         HISTORY.append(
                             Feed(feed_title, feed_url, feed_title))
-                        save_history(HISTORY)
+                        save_history(HISTORY, _CONFIG_PATH)
 
                     update_cache(feed_url, res)
                 else:
@@ -372,7 +392,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                         ARGS="feed=" + feed_arg[-1])
                     res["NOCACHE_LINK"] = uncached_url
 
-                res["CONFIG_PATH"] = get_config_folder()
+                #res["CONFIG_FILE"] = get_config_folder()
                 html = templates.gen_html(res)
 
             except ValueError as e:
@@ -403,9 +423,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     # Add this (new) feed to history. Here, we had no clue
                     # about the feed url!
                     HISTORY.append(Feed(feed_title, "", feed_title))
-                    save_history(HISTORY)
+                    save_history(HISTORY, _CONFIG_PATH)
 
                 update_cache(feed_title, res)
+                res["NOCACHE_LINK"] = ""
+                #res["CONFIG_FILE"] = get_config_folder()
                 html = templates.gen_html(res)
 
             except ValueError as e:

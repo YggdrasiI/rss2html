@@ -4,15 +4,22 @@
  *   .out : Fetches click event over :active property.
  *   .in1 : Element with complete content.
  *   .in2 : Element with abstract of content.
- *   
+ *
  *  • Relative Positioning not required due display:none...
  *  • Preferred property: geom_size(.in1) > geom_size(.in2)
+ *
+ * Minimal example:
+      <div class="click_out">
+        <div class="click_in1">Full content<br />more text…</div>
+        <div class="click_in2">Short content</div>
+      </div>
+ *
  */
 
 .click_out {
 }
 
-.click_in1 { 
+.click_out .click_in1 {
   z-index:2;
   display:none;
   width:100%;
@@ -20,18 +27,19 @@
   border-left:1px solid black;
 }
 
-.click_out:active .click_in1, .click_out .click_in1:hover{ 
-  display:inherit;
-}
-
-.click_out:active .click_in2, .click_out .click_in1:hover + .click_in2{ 
-  display:none;
-  /* or */
-  /*visibility:hidden;*/
-}
-
 .click_out .click_in2 {
   z-index:1;
   cursor:pointer;
   width:100%;
 }
+
+.click_out:active .click_in1, .click_out .click_in1:hover{
+  display:inherit;
+}
+
+.click_out:active .click_in2, .click_out .click_in1:hover + .click_in2{
+  display:none;
+  /* or */
+  /*visibility:hidden;*/
+}
+

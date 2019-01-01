@@ -14,3 +14,8 @@ FAVORITES = [
          "Example Feed (&lt;channel&gt;&lt;title&gt;-value, optional)"),
 ]
 
+# Some podcast feeds uses very long <content:encoded>-Tags
+# This could cause issues during the rendering of the page (freezed browser
+# window, high memory usage, etc …)
+# This variable define a limit where the content of above tag will be ignored.
+CONTENT_FULL_LEN_THRESH = 100000

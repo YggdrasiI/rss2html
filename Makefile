@@ -13,14 +13,14 @@ help:
 run:
 	python3 rss_server.py
 
-rss_server.service: create_service_file
-
-create_service_file: rss_server.service.template
+%.service: %.service.template
 	@echo "Create systemd service file for startup."
 	sed -e "s#{USER}#$(USER)#g" \
 		-e "s#{FOLDER}#$(FOLDER)#g" \
 		-e "s#{PYTHON_BIN}#$(PYTHON_BIN)#g" \
 		$< > $(basename $<)
+
+create_service_file: rss_server.service
 
 install_service: rss_server.service
 	sudo systemctl link "$(FOLDER)/$<"

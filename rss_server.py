@@ -23,6 +23,7 @@ from feed import Feed, get_feed, save_history, clear_history, update_favorites
 
 import templates
 import default_settings as settings  # Overriden in load_config()
+import icon_searcher
 
 
 XML_NAMESPACES = {'content': 'http://purl.org/rss/1.0/modules/content/',
@@ -33,70 +34,9 @@ ORIG_LOCALE = locale.getlocale()
 EN_LOCALE = ("en_US", ORIG_LOCALE[1])
 HISTORY = []
 _CACHE = {}
-_CONFIG_PATH = None
 
 
 # ==========================================================
-
-
-def get_config_folder():
-    """ Return desired path depending of os.
-
-    Config folder is used for:
-        settings.py
-        history.py
-    """
-
-    if _CONFIG_PATH:
-        return _CONFIG_PATH
-
-    if os.uname()[0].lower().startswith("win"):
-        root_dir = os.getenv('APPDATA')
-    else:
-        root_dir = os.getenv('XDK_CONFIG_HOME')
-        if not root_dir:
-            root_dir = os.path.join(os.getenv('HOME'), '.config')
-
-    config_dir = os.path.join(root_dir, "rss2html")
-    if not os.path.isdir(config_dir):
-        try:
-            os.mkdir(config_dir)
-        except:
-            config_dir = "."
-
-    globals()["_CONFIG_PATH"] = config_dir
-    return config_dir
-
-
-def load_config():
-    config_dir = get_config_folder()
-    if config_dir not in sys.path:
-        sys.path.insert(0, config_dir)
-
-    try:
-        import settings
-
-        # If settings.py not contains a variable name
-        # add the default value from default_settings
-        vars_set = vars(settings)
-        vars_default_set = vars(sys.modules["default_settings"])
-        for s in vars_default_set.keys():
-            if not s.startswith("__"):
-                vars_set[s] = vars_set.get(s, vars_default_set[s])
-
-    except ImportError:
-        pass
-
-    try:
-        from history import HISTORY
-    except ImportError:
-        HISTORY = []
-    finally:
-        globals()["HISTORY"] = HISTORY
-
-    # Replace 'default_settings' module
-    # Note that here settings is a local variable and != globals()["settings"]
-    globals()["settings"] = settings
 
 
 def check_process_already_running():
@@ -385,8 +325,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     except ValueError:
                         pass
 
-            save_history(HISTORY, _CONFIG_PATH)
-            update_favorites(settings.FAVORITES, _CONFIG_PATH)
+            save_history(HISTORY, settings.get_config_folder())
+            update_favorites(settings.FAVORITES, settings.get_config_folder())
 
         if to_rm:
             show_index = True
@@ -397,14 +337,15 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 if idx == 0:
                     try:
                         settings.FAVORITES.remove(feed)
-                        update_favorites(settings.FAVORITES, _CONFIG_PATH)
+                        update_favorites(settings.FAVORITES,
+                                         settings.get_config_folder())
                     except ValueError:
                         pass
 
                 if idx == 1:
                     try:
                         HISTORY.remove(feed)
-                        save_history(HISTORY, _CONFIG_PATH)
+                        save_history(HISTORY, settings.get_config_folder())
                     except ValueError:
                         pass
 
@@ -449,7 +390,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                         # Add this (new) url to feed history.
                         HISTORY.append(
                             Feed(feed_title, feed_url, feed_title))
-                        save_history(HISTORY, _CONFIG_PATH)
+                        save_history(HISTORY, settings.get_config_folder())
 
                     # Warn if feed url might changes
                     parsed_feed_url = res["FEED_HREF"]
@@ -481,9 +422,10 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     feed.title = res.get("FEED_TITLE", feed.title)
                     # Re-Write this file where the feed was found.
                     if feed in HISTORY:
-                        save_history(HISTORY, _CONFIG_PATH)
+                        save_history(HISTORY, settings.get_config_folder())
                     elif feed in settings.FAVORITES:
-                        update_favorites(settings.FAVORITES, _CONFIG_PATH)
+                        update_favorites(settings.FAVORITES,
+                                         settings.get_config_folder())
 
                 #res["CONFIG_FILE"] = get_config_folder()
                 html = templates.gen_html(res)
@@ -519,7 +461,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     HISTORY.append(Feed(feed_title,
                                         res.get("FEED_HREF", ""),
                                         feed_title))
-                    save_history(HISTORY, _CONFIG_PATH)
+                    save_history(HISTORY, settings.get_config_folder())
 
                 update_cache(feed_title, res)
                 res["NOCACHE_LINK"] = ""
@@ -543,9 +485,20 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             output = BytesIO()
             output.write(html.encode('utf-8'))
             self.wfile.write(output.getvalue())
+        elif self.path.startswith("/icons/system/"):
+            image = icon_searcher.get_cached_file(self.path)
+            if not image:
+                return self.send_error(404)
+
+            self.send_response(200)
+            self.send_header('Content-type', 'image')
+            self.end_headers()
+            output = BytesIO()
+            output.write(image)
+            self.wfile.write(output.getvalue())
         elif self.path == "/" or show_index:
             return self.write_index()
-        elif self.path[-4:] in [".css", ".png", ".jpg"]:
+        elif self.path[-4:] in settings.ALLOWED_FILE_EXTENSIONS:
             return super().do_GET()
         else:
             # return super().do_GET()
@@ -577,7 +530,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             HOST=host,
             FAVORITES=favorites,
             HISTORY=history,
-            CONFIG_FILE=os.path.join(_CONFIG_PATH, "settings.py")
+            CONFIG_FILE=os.path.join(settings.get_config_folder(), "settings.py")
         ).encode('utf-8'))
         self.wfile.write(output.getvalue())
 
@@ -600,7 +553,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    load_config()
+    settings.load_config(globals())
 
     if check_process_already_running():
         print("Server process is already running.")

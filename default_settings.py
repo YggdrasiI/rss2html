@@ -14,8 +14,19 @@ FAVORITES = [
          "Example Feed (&lt;channel&gt;&lt;title&gt;-value, optional)"),
 ]
 
+ALLOWED_FILE_EXTENSIONS = [".css", ".png", ".jpg", ".svg"]
+
 # Some podcast feeds uses very long <content:encoded>-Tags
 # This could cause issues during the rendering of the page (freezed browser
 # window, high memory usage, etc …)
 # This variable define a limit where the content of above tag will be ignored.
 CONTENT_FULL_LEN_THRESH = 100000
+
+
+# ==========================================================
+# Helper function for proper loading of settings. Sketch for proper reading
+# of settings:
+#    import default_settings as settings
+#    settings.load_config(globals())
+#
+from settings_helper import get_config_folder, load_config  #, _CONFIG_PATH

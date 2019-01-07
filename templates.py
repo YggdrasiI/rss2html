@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
+import icon_searcher
+
 # default-src: 'chrome:'; ersetzt...
 TEMPLATE_HTML_HEADER = '''<html id="feedHandler" xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -90,9 +92,10 @@ TEMPLATE_ENTRY_ENCLOSURES = '''
         </div>
 '''
 
+# moz-icon://.?size=16&contentType={ENCLOSURE_TYPE}
 TEMPLATE_ENCLOSURE = '''
           <div class="enclosure">
-             <img class="type-icon" src="moz-icon://.?size=16&contentType={ENCLOSURE_TYPE}" />
+             <img class="type-icon" src="{MIME_ICON}" />
              <a href="{ENCLOSURE_URL}">{ENCLOSURE_FILENAME}</a> ({ENCLOSURE_TYPE}, {ENCLOSURE_LENGTH})
           </div>
 '''
@@ -167,7 +170,9 @@ def gen_html(res):
     for e in res["entries"]:
         sen = []
         for en in e["enclosures"]:
-            sen.append(TEMPLATE_ENCLOSURE.format(**en))
+            icon_path = icon_searcher.get_icon_path(en["ENCLOSURE_TYPE"])
+            sen.append(TEMPLATE_ENCLOSURE.format(
+                **en, MIME_ICON=icon_path))
 
         enclosures = (TEMPLATE_ENTRY_ENCLOSURES.format(
             ENTRY_ENCLOSURES=''.join(sen), **en)

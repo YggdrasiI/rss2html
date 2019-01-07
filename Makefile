@@ -32,7 +32,7 @@ install_service: rss_server.service
 	sudo cp "$(FOLDER)/$<" "$(SYSTEMD_INSTALL_DIR)/$<"
 	sudo systemctl daemon-reload
 	sudo systemctl enable "$<"
-	echo "Service enabled, but not started. " \
+	@echo "Service enabled, but not started. " \
 		"Call 'systemctl start $<' to start service."
 
 uninstall_service: rss_server.service

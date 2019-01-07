@@ -4,13 +4,14 @@
 import icon_searcher
 
 # default-src: 'chrome:'; ersetzt...
-TEMPLATE_HTML_HEADER = '''<html id="feedHandler" xmlns="http://www.w3.org/1999/xhtml">
+TEMPLATE_HTML_HEADER = '''<!DOCTYPE html>
+<html id="feedHandler" xmlns="http://www.w3.org/1999/xhtml" lang="{{FEED_LANG}}">
 <head>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-  <meta http-equiv="XXXContent-Security-Policy" content="{POLICY}" />
+  <meta http-equiv="Content-Security-Policy" content="{POLICY}" />
   <link rel="stylesheet" href="subscribe.css" type="text/css" media="all" />
   <link rel="stylesheet" href="onclick.css" type="text/css" media="all" />
-  <title>{{FEED_TITLE}}</title>
+  <title>Rss Viewer — {{FEED_TITLE}}</title>
 </head><body>
 '''.format(
     POLICY="default-src chrome: 'self'; img-src * chrome:; media-src *; "
@@ -21,16 +22,16 @@ TEMPLATE_HTML_HEADER = '''<html id="feedHandler" xmlns="http://www.w3.org/1999/x
 TEMPLATE_HTML_END = '''</html>'''
 
 TEMPLATE_NOCACHE_LINK = '''
-<a href="/?{ARGS}&cache=0">Uncached Feed</a></h2>'''
+<h2><a href="/?{ARGS}&cache=0">Uncached Feed</a></h2>'''
 
 TEMPLATE_FEED_HEADER = '''
   <div id="feedHeaderContainer" style="width:100%">
-    <div id="feedHeader" dir="ltr" class="feedBackground">
+    <div dir="ltr" class="feedHeader feedBackground">
       <h2><a href="/">Overview</a></h2>
     </div>
     <div id="feedHeaderContainerSpacer"></div>
-    <div id="feedHeader" dir="ltr" class="feedBackground">
-      <h2>{NOCACHE_LINK}</h2>
+    <div dir="ltr" class="feedHeader feedBackground">
+      {NOCACHE_LINK}
     </div>
   </div>
 '''
@@ -69,7 +70,7 @@ TEMPLATE_BODY_END = '''
 TEMPLATE_ENTRY = '''
       <div class="entry">
         <h3><a href="{ENTRY_URL}"><span>{ENTRY_TITLE}</span></a>
-          <div class="lastUpdated">{ENTRY_LAST_UPDATE}</div>
+          <span class="lastUpdated">{ENTRY_LAST_UPDATE}</span>
           </h3>
         {ENTRY_CONTENT}
         {ENTRY_ENCLOSURES}
@@ -95,50 +96,64 @@ TEMPLATE_ENTRY_ENCLOSURES = '''
 # moz-icon://.?size=16&contentType={ENCLOSURE_TYPE}
 TEMPLATE_ENCLOSURE = '''
           <div class="enclosure">
-             <img class="type-icon" src="{MIME_ICON}" />
+             <img class="type-icon" src="{MIME_ICON}" alt="media icon"/>
              <a href="{ENCLOSURE_URL}">{ENCLOSURE_FILENAME}</a> ({ENCLOSURE_TYPE}, {ENCLOSURE_LENGTH})
           </div>
 '''
 
-TEMPLATE_HELP = '''<html id="feedHandler" xmlns="http://www.w3.org/1999/xhtml">
+TEMPLATE_HELP = '''<!DOCTYPE html>
+<html id="feedHandler" xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-  <title>Overview</title>
+  <title>Rss Viewer — Overview</title>
   <link rel="stylesheet" href="subscribe.css" type="text/css" media="all" />
 </head>
 <body>
-<h1>Overview</h1>
-<h2>Description</h2>
-<p>As Firefox 64.0 removes it's internal RSS reader, this script replaces the
-functionality.<br />
-It converts a 2.0 RSS feed into html page (similar looking to FF's version).</p>
-<h2>Favorites</h2>
-<p>{FAVORITES}</p>
-<h2>Other Feeds</h2>
-<p>{HISTORY}</p>
-<h2>URI Arguments</h2>
-<p>Prepend feed url by '<i>{HOST}/?feed=</i>' to get a link
-to the html representation of the feed.</p>
-<p>Add a feed to FAVORITES in '{CONFIG_FILE}' to extend above list.
-Its name can be used as shortcut, i.e <i>{HOST}/?feed={{name}}</i>.
-</p>
-<h2>Miscellaneous</h2>
-<ul>
-<li><a href="/quit">Quit daemon</a></li>
-<li><!----><a href="/refresh_templates">Reload templates variables</a></li>
-</ul>
+  <div id="feedBody">
+    <div id="feedTitle">
+      <a id="feedTitleLink">
+        <img id="feedTitleImage" src="/icons/Feed-icon.svg" alt="Rss feed icon"
+        width="128" height="128" />
+      </a>
+      <div id="feedTitleContainer">
+        <h1 id="feedTitleText">Rss Viewer</h1>
+        <h2 id="feedSubtitleText"> </h2>
+      </div>
+    </div>
+    <div id="feedContent">
+        <h2 id="feedSubtitleText" >Description</h2>
+        <p>As Firefox 64.0 removes it's internal RSS reader, this script replaces the
+        functionality.<br />
+        It converts a 2.0 RSS feed into html page (similar looking to FF's version).</p>
+        <h2 id="feedSubtitleText">Favorites</h2>
+        {FAVORITES}
+        <h2 id="feedSubtitleText">Other Feeds</h2>
+        {HISTORY}
+        <h2 id="feedSubtitleText">URI Arguments</h2>
+        <p>Prepend feed url by '<i>{HOST}/?feed=</i>' to get a link
+        to the html representation of the feed.</p>
+        <p>Add a feed to FAVORITES in '{CONFIG_FILE}' to extend above list.
+        Its name can be used as shortcut, i.e <i>{HOST}/?feed={{name}}</i>.
+        </p>
+        <h2 id="feedSubtitleText">Miscellaneous</h2>
+        <ul>
+        <li><a href="/quit">Quit daemon</a></li>
+        <li><!----><a href="/refresh_templates">Reload templates variables</a></li>
+        </ul>
+    </div>
+</div>
 </body>
 </html>
 '''
 
 TEMPLATE_FAVORITE = '''<span class="reader_favorites">
-<a href="http://{HOST}/?feed={NAME}">{TITLE}</a>
-<a href="http://{HOST}/?rm={NAME}" title="Remove feed">✖</a>
+<a href="http://{HOST}/?feed={QUOTED_NAME}">{TITLE}</a>
+<a href="http://{HOST}/?rm={QUOTED_NAME}" title="Remove feed">✖</a>
 </span>'''
 TEMPLATE_HISTORY = '''<span class="reader_favorites">
-<a href="http://{HOST}/?feed={TITLE}">{TITLE}</a>
-<a href="http://{HOST}/?add_fav={NAME}" title="Add to favorites">➕&#xFE0E;</a>
-<a href="http://{HOST}/?rm={NAME}" title="Remove feed">✖</a>
+<a href="http://{HOST}/?feed={QUOTED_TITLE}">{TITLE}</a>
+<a href="http://{HOST}/?add_fav={QUOTED_NAME}" title="Add to favorites">➕&#xFE0E;</a>
+<a href="http://{HOST}/?rm={QUOTED_NAME}" title="Remove feed">✖</a>
 </span>'''
 
 TEMPLATE_MSG = '''<html id="feedHandler" xmlns="http://www.w3.org/1999/xhtml">

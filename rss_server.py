@@ -6,7 +6,7 @@ import os.path
 from datetime import datetime
 from xml.etree import ElementTree
 
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, quote
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
 from threading import Thread
@@ -157,6 +157,7 @@ def find_feed_keywords_values(tree, kwdict=None):
 
     kwdict.setdefault("FEED_TITLE", "Undefined")
     kwdict.setdefault("FEED_HREF", "")
+    kwdict.setdefault("FEED_LANG", "en")
 
     def search_href():
         if (atom_node.attrib.get("rel") == "self" and
@@ -178,6 +179,10 @@ def find_feed_keywords_values(tree, kwdict=None):
     node = tree.find('./channel/title')
     if node is not None:
         kwdict["FEED_TITLE"] = node.text
+
+    node = tree.find('./channel/language')
+    if node is not None:
+        kwdict["FEED_LANG"] = node.text
 
     node = tree.find('./channel/description')
     kwdict["FEED_SUBTITLE"] = "Undefined" if node is None else node.text
@@ -394,7 +399,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
                     # Warn if feed url might changes
                     parsed_feed_url = res["FEED_HREF"]
-                    if not url_update and  parsed_feed_url and parsed_feed_url != feed_url:
+                    if not url_update and parsed_feed_url and parsed_feed_url != feed_url:
                         res.setdefault("WARNINGS", []).append({
                             "TITLE": "Warning",
                             "MSG": """Feed url difference detected. It might
@@ -404,14 +409,14 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                             Url in feed xml file: {NEW_URL}
                             """.format(OLD_URL=feed_url,
                                        NEW_URL=parsed_feed_url,
-                                       ARGS="feed=" + feed_arg[-1],
+                                       ARGS="feed=" + quote(str(feed_arg[-1])),
                                       )
                         })
 
                     update_cache(feed_url, res)
                 else:
                     uncached_url = templates.TEMPLATE_NOCACHE_LINK.format(
-                        ARGS="feed=" + feed_arg[-1])
+                    ARGS="feed=" + quote(str(feed_arg[-1])))
                     res["NOCACHE_LINK"] = uncached_url
 
 
@@ -445,7 +450,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 tree = load_xml(feed_filepath)
                 res = find_feed_keywords_values(tree)
                 res["FEED_UNCACHED_URL"] = "/?feed={}&cache=0".format(
-                    res["FEED_TITLE"])  # Hm, this requires a proper .url value
+                    quote(res["FEED_TITLE"]))
 
                 # Update cache and history
                 feed = get_feed(res["FEED_TITLE"],
@@ -513,15 +518,19 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         # Gen list of favs.
         favs = [templates.TEMPLATE_FAVORITE.format(
             TITLE=feed.title if feed.title else feed.url,
-            NAME=feed.name, HOST=host)
+            NAME=feed.name, HOST=host,
+            QUOTED_TITLE=quote(str(feed.title)),
+            QUOTED_NAME=quote(str(feed.name)))
             for feed in settings.FAVORITES]
         favorites = ("<ul><li>{}</li></ul>".format("</li>\n<li>".join(favs))
                      if len(favs) else "—")
         # Gen list of history entries. Here, we assume that name isn't defined.
         # Use title value as replacement.
         other_feeds = [templates.TEMPLATE_HISTORY.format(
-            NAME=feed.title, TITLE=feed.title, HOST=host)
-                       for feed in HISTORY]
+            NAME=feed.title, TITLE=feed.title, HOST=host,
+            QUOTED_TITLE=quote(str(feed.title)),
+            QUOTED_NAME=quote(str(feed.name)))
+            for feed in HISTORY]
         history = ("<ul><li>{}</li></ul>".format("</li>\n<li>".join(other_feeds))
                    if other_feeds else "—")
 

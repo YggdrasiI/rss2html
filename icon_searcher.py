@@ -25,11 +25,11 @@ AVAILABLE_PNG = [
 ]
 
 _PATH_CACHE = {}
-
 _FILE_CACHE = {}
 
+
 def cache_local_file(local_path, uri):
-    if uri  in _FILE_CACHE:
+    if uri in _FILE_CACHE:
         return
 
     if os.path.splitext(local_path)[1] not in settings.ALLOWED_FILE_EXTENSIONS:
@@ -38,11 +38,13 @@ def cache_local_file(local_path, uri):
     with open(local_path, "rb") as f:
         _FILE_CACHE[uri] = f.read(-1)
 
+
 def get_cached_file(uri):
     try:
         return _FILE_CACHE[uri]
     except KeyError:
         pass
+
 
 def convert_local_path(local_path):
     """ As file://-urls are not allowed anymore, convert the path into
@@ -53,6 +55,7 @@ def convert_local_path(local_path):
     icon = "/icons/system/{}".format(
         os.path.basename(local_path))
     return icon
+
 
 def get_icon_path_fallback(mimetype, size):
     if size <= 64:
@@ -72,6 +75,7 @@ def get_icon_path_fallback(mimetype, size):
                                  size2, prefix)
 
     return icon
+
 
 if GTK3:
     def get_icon_path_gtk3(mimetype, size):

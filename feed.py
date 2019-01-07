@@ -20,11 +20,11 @@ class Feed:
 
 def get_feed(key, *feed_lists):  # hist_feeds=None):
     """ Search feed in list(s) of Feed-objects.
-    
+
     Return tuple (feed, list_found_index)
     """
     if key == "":
-        return None
+        return (None, -1)
 
     for idx in range(len(feed_lists)):
         feeds = feed_lists[idx]
@@ -33,7 +33,7 @@ def get_feed(key, *feed_lists):  # hist_feeds=None):
                 return (f, idx)
 
     #raise ValueError("No feed found for {}".format(key))
-    return None
+    return (None, -1)
 
 
 def save_history(feeds, folder=None):
@@ -58,7 +58,7 @@ def clear_history(feedsA, feedsB):
     """ Remove feeds from feedsB if similar entry found in feedsA. """
     found = []
     for feed in feedsB:
-        if get_feed(feed.title, feedsA):
+        if get_feed(feed.title, feedsA)[0]:
             found.append(feed)
 
     for feed in found:
@@ -78,7 +78,7 @@ def update_favorites(feeds, folder=None):
 
 from feed import Feed
 
-FAVORITES = [ 
+FAVORITES = [
     {__FAVORITES}
 ]
 """
@@ -105,5 +105,6 @@ FAVORITES = [
         feed_strs = [str(feed) for feed in feeds]
         settings_content = settings_content.format(__FAVORITES=",\n    ".join(feed_strs) + ",\n")
 
+    print("Write settings file with {0} favorite entries.".format(len(feeds)))
     with open(path, "w") as f:
         f.write(settings_content)

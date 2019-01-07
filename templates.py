@@ -128,8 +128,15 @@ Its name can be used as shortcut, i.e <i>{HOST}/?feed={{name}}</i>.
 </html>
 '''
 
-TEMPLATE_FAVORITE = '''<a href="http://{HOST}/?feed={NAME}">{TITLE}</a>'''
-TEMPLATE_HISTORY = '''<a href="http://{HOST}/?feed={TITLE}">{TITLE}</a>'''
+TEMPLATE_FAVORITE = '''<span class="reader_favorites">
+<a href="http://{HOST}/?feed={NAME}">{TITLE}</a>
+<a href="http://{HOST}/?rm={NAME}" title="Remove feed">✖</a>
+</span>'''
+TEMPLATE_HISTORY = '''<span class="reader_favorites">
+<a href="http://{HOST}/?feed={TITLE}">{TITLE}</a>
+<a href="http://{HOST}/?add_fav={NAME}" title="Add to favorites">➕&#xFE0E;</a>
+<a href="http://{HOST}/?rm={NAME}" title="Remove feed">✖</a>
+</span>'''
 
 TEMPLATE_MSG = '''<html id="feedHandler" xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -146,7 +153,7 @@ TEMPLATE_MSG = '''<html id="feedHandler" xmlns="http://www.w3.org/1999/xhtml">
 
 
 def gen_html(res):
-
+    # res["entries"] = res["entries"][:2]  # Debug
     warnings = [TEMPLATE_WARN.format(**warning)
                 for warning in res.setdefault("WARNINGS", [])
                ]

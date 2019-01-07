@@ -191,3 +191,18 @@ a[href] img {
   margin: 0.5em auto;
   background: -moz-Field;
 }
+
+.reader_favorites a:nth-child(n+2) {
+    font-color:black;
+    font-weight:bold;
+    text-decoration:none;
+    font-family: "Segoe UI Symbol"; /* Disable coloured icons due emoji font usage */
+    font-family: "serif"; /* Disable coloured icons due emoji font usage */
+    margin-left:1em;
+}
+
+.reader_favorites a:first-child {
+    display:inline-block;
+    min-width: 60%;
+    margin-right:2em;
+}

@@ -363,10 +363,51 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         query_components = parse_qs(urlparse(self.path).query)
         feed_feched = False
         error_msg = None
+        show_index = False
         feed_arg = query_components.get("feed")  # key, url or feed title
         filepath = query_components.get("file")  # From 'open with' dialog
         nocache = query_components.get("cache", ["1"])[-1] == "0"
         url_update = query_components.get("url_update", ["0"])[-1] != "0"
+        add_favs = query_components.get("add_fav", [])
+        to_rm = query_components.get("rm", [])
+
+
+        if add_favs:
+            show_index = True
+            for feed_key in add_favs:
+                (feed, idx) = get_feed(feed_key,
+                                       settings.FAVORITES,
+                                       HISTORY)
+                if feed and idx > 0:  # Index indicates that feed is in HISTORY
+                    settings.FAVORITES.append(feed)
+                    try:
+                        HISTORY.remove(feed)
+                    except ValueError:
+                        pass
+
+            save_history(HISTORY, _CONFIG_PATH)
+            update_favorites(settings.FAVORITES, _CONFIG_PATH)
+
+        if to_rm:
+            show_index = True
+            for feed_key in to_rm:
+                (feed, idx) = get_feed(feed_key,
+                                       settings.FAVORITES,
+                                       HISTORY)
+                if idx == 0:
+                    try:
+                        settings.FAVORITES.remove(feed)
+                        update_favorites(settings.FAVORITES, _CONFIG_PATH)
+                    except ValueError:
+                        pass
+
+                if idx == 1:
+                    try:
+                        HISTORY.remove(feed)
+                        save_history(HISTORY, _CONFIG_PATH)
+                    except ValueError:
+                        pass
+
 
         if self.path == "/quit":
             ret = self.show_msg("Quit")
@@ -386,9 +427,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         elif feed_arg:
             try:
-                (feed, _) = get_feed(feed_arg[-1],
-                                           settings.FAVORITES,
-                                           HISTORY)
+                feed = get_feed(feed_arg[-1],
+                                settings.FAVORITES,
+                                HISTORY)[0]
                 feed_url = feed.url if feed else feed_arg[-1]
 
                 res = None
@@ -465,9 +506,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     res["FEED_TITLE"])  # Hm, this requires a proper .url value
 
                 # Update cache and history
-                (feed, _) = get_feed(res["FEED_TITLE"],
-                                           settings.FAVORITES,
-                                           HISTORY)
+                feed = get_feed(res["FEED_TITLE"],
+                                settings.FAVORITES,
+                                HISTORY)[0]
                 if feed:
                     feed_title = feed.title
                 else:
@@ -502,15 +543,15 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             output = BytesIO()
             output.write(html.encode('utf-8'))
             self.wfile.write(output.getvalue())
-        elif self.path == "/":
-            return self.show_index()
+        elif self.path == "/" or show_index:
+            return self.write_index()
         elif self.path[-4:] in [".css", ".png", ".jpg"]:
             return super().do_GET()
         else:
             # return super().do_GET()
             return self.send_error(404)
 
-    def show_index(self):
+    def write_index(self):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
@@ -523,8 +564,10 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             for feed in settings.FAVORITES]
         favorites = ("<ul><li>{}</li></ul>".format("</li>\n<li>".join(favs))
                      if len(favs) else "—")
-        # Gen list of history entries.
-        other_feeds = [templates.TEMPLATE_HISTORY.format(TITLE=feed.title, HOST=host)
+        # Gen list of history entries. Here, we assume that name isn't defined.
+        # Use title value as replacement.
+        other_feeds = [templates.TEMPLATE_HISTORY.format(
+            NAME=feed.title, TITLE=feed.title, HOST=host)
                        for feed in HISTORY]
         history = ("<ul><li>{}</li></ul>".format("</li>\n<li>".join(other_feeds))
                    if other_feeds else "—")

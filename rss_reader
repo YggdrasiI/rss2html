@@ -4,29 +4,28 @@
 import sys
 import os
 import os.path
+import webbrowser
 
-## Default settings
-# Put changes of these variables into settings.py!
-PORT=8888
-RSS_DOMAIN="http://localhost"
+if "." not in sys.path:
+    sys.path.append(".")
 
-# Read overrides/settings
-SETTINGS = "settings.py"
-if os.path.exists(SETTINGS):
-    if "." not in sys.path:
-        sys.path.append(".")
-
-    exec(open(os.path.join(SETTINGS)).read())
+import default_settings as settings  # Overriden in load_config()
+RSS_SERVER_URL="http://localhost"
 
 if __name__ == "__main__":
+    settings.load_config(globals())
     try:
         TMP_FILE = sys.argv[1]
     except IndexError:
         "No file path given"
     finally:
+        # Rename to omit spamming browser history
         RSS_FILE = os.path.join(os.path.dirname(TMP_FILE), "rss.tmp")
-        os.rename(TMP_FILE, RSS_FILE)  # Omit deletion of tmp. file by FF ?!
+        os.rename(TMP_FILE, RSS_FILE)
 
-        os.system('firefox "{RSS_DOMAIN}:{PORT}/?file={RSS_FILE}"'.format(
-            RSS_DOMAIN=RSS_DOMAIN, PORT=PORT, RSS_FILE=RSS_FILE)
+        # Open site with default browser
+        webbrowser.open('{DOMAIN}:{PORT}/?file={RSS_FILE}'.format(
+            DOMAIN=RSS_SERVER_URL,
+            PORT=settings.PORT,
+            RSS_FILE=RSS_FILE)
         )

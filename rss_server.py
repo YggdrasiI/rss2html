@@ -19,7 +19,7 @@ import locale
 from time import sleep
 from importlib import reload
 
-from feed import Feed, get_feed, save_history, clear_history
+from feed import Feed, get_feed, save_history, clear_history, update_favorites
 
 import templates
 import default_settings as settings  # Overriden in load_config()
@@ -366,6 +366,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         feed_arg = query_components.get("feed")  # key, url or feed title
         filepath = query_components.get("file")  # From 'open with' dialog
         nocache = query_components.get("cache", ["1"])[-1] == "0"
+        url_update = query_components.get("url_update", ["0"])[-1] != "0"
 
         if self.path == "/quit":
             ret = self.show_msg("Quit")
@@ -385,9 +386,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         elif feed_arg:
             try:
-                feed = get_feed(feed_arg[-1],
-                                settings.FAVORITES,
-                                HISTORY)
+                (feed, _) = get_feed(feed_arg[-1],
+                                           settings.FAVORITES,
+                                           HISTORY)
                 feed_url = feed.url if feed else feed_arg[-1]
 
                 res = None
@@ -411,13 +412,18 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
                     # Warn if feed url might changes
                     parsed_feed_url = res["FEED_HREF"]
-                    if  parsed_feed_url and parsed_feed_url != feed_url:
+                    if not url_update and  parsed_feed_url and parsed_feed_url != feed_url:
                         res.setdefault("WARNINGS", []).append({
                             "TITLE": "Warning",
-                            "MSG": """Feed url difference detected<br /> \
-                            Url in configuration file: {}<br /> \
-                            Url in feed xml: {}
-                            """.format(feed_url, parsed_feed_url)
+                            "MSG": """Feed url difference detected. It might
+                            be useful to <a href="/?{ARGS}&url_update=1">update</a> \
+                            the stored url.<br /> \
+                            Url in config/history file: {OLD_URL}<br /> \
+                            Url in feed xml file: {NEW_URL}
+                            """.format(OLD_URL=feed_url,
+                                       NEW_URL=parsed_feed_url,
+                                       ARGS="feed=" + feed_arg[-1],
+                                      )
                         })
 
                     update_cache(feed_url, res)
@@ -425,6 +431,18 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     uncached_url = templates.TEMPLATE_NOCACHE_LINK.format(
                         ARGS="feed=" + feed_arg[-1])
                     res["NOCACHE_LINK"] = uncached_url
+
+
+                # Replace stored url, if newer value is given.
+                if feed and url_update and res["FEED_HREF"]:
+                    feed_url = feed.url
+                    feed.url = res["FEED_HREF"]
+                    feed.title = res.get("FEED_TITLE", feed.title)
+                    # Re-Write this file where the feed was found.
+                    if feed in HISTORY:
+                        save_history(HISTORY, _CONFIG_PATH)
+                    elif feed in settings.FAVORITES:
+                        update_favorites(settings.FAVORITES, _CONFIG_PATH)
 
                 #res["CONFIG_FILE"] = get_config_folder()
                 html = templates.gen_html(res)
@@ -447,9 +465,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     res["FEED_TITLE"])  # Hm, this requires a proper .url value
 
                 # Update cache and history
-                feed = get_feed(res["FEED_TITLE"],
-                                settings.FAVORITES,
-                                HISTORY)
+                (feed, _) = get_feed(res["FEED_TITLE"],
+                                           settings.FAVORITES,
+                                           HISTORY)
                 if feed:
                     feed_title = feed.title
                 else:

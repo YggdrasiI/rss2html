@@ -33,6 +33,17 @@ TEMPLATE_FEED_HEADER = '''
   </div>
 '''
 
+TEMPLATE_WARN = '''
+  <div id="feedWarn">
+    <div id="feedTitle">
+      <div id="feedTitleContainer">
+        <h1 id="feedTitleText" >{TITLE}</h1>
+        <h2 id="feedSubtitleText" >{MSG}</h2>
+      </div>
+    </div>
+  </div>
+'''
+
 TEMPLATE_BODY = '''
   <div id="feedBody">
     <div id="feedTitle">
@@ -40,7 +51,7 @@ TEMPLATE_BODY = '''
         {FEED_TITLE_IMAGE}
       </a>
       <div id="feedTitleContainer">
-        <h1 id="feedTitleText" >{FEED_TITLE}</h1> 
+        <h1 id="feedTitleText" >{FEED_TITLE}</h1>
         <h2 id="feedSubtitleText" >{FEED_SUBTITLE}</h2>
       </div>
     </div>
@@ -103,7 +114,7 @@ It converts a 2.0 RSS feed into html page (similar looking to FF's version).</p>
 <h2>Other Feeds</h2>
 <p>{HISTORY}</p>
 <h2>URI Arguments</h2>
-<p>Prepend feed url by '<i>{HOST}/?feed=</i>' to get a link 
+<p>Prepend feed url by '<i>{HOST}/?feed=</i>' to get a link
 to the html representation of the feed.</p>
 <p>Add a feed to FAVORITES in '{CONFIG_FILE}' to extend above list.
 Its name can be used as shortcut, i.e <i>{HOST}/?feed={{name}}</i>.
@@ -135,8 +146,15 @@ TEMPLATE_MSG = '''<html id="feedHandler" xmlns="http://www.w3.org/1999/xhtml">
 
 
 def gen_html(res):
+
+    warnings = [TEMPLATE_WARN.format(**warning)
+                for warning in res.setdefault("WARNINGS", [])
+               ]
+
+
     s = [TEMPLATE_HTML_HEADER.format(**res),
          TEMPLATE_FEED_HEADER.format(**res),
+         ''.join(warnings),
          TEMPLATE_BODY.format(**res)]
 
     for e in res["entries"]:

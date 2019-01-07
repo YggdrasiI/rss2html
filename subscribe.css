@@ -183,3 +183,11 @@ a[href] img {
   max-width: 16px;
   max-height: 16px;
 }
+
+#feedWarn {
+  border: 1px solid THreeDShadow;
+  padding: 0.5em;
+  padding-inline-start: 30px;
+  margin: 0.5em auto;
+  background: -moz-Field;
+}

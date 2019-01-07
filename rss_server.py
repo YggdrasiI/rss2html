@@ -25,7 +25,10 @@ import templates
 import default_settings as settings  # Overriden in load_config()
 
 
-XML_NAMESPACES = {'content': 'http://purl.org/rss/1.0/modules/content/'}
+XML_NAMESPACES = {'content': 'http://purl.org/rss/1.0/modules/content/',
+                  'atom': 'http://www.w3.org/2005/AtomX',
+                  'atom10': 'http://www.w3.org/2005/Atom',
+                 }
 ORIG_LOCALE = locale.getlocale()
 EN_LOCALE = ("en_US", ORIG_LOCALE[1])
 HISTORY = []
@@ -177,7 +180,7 @@ def fetch_xml(url):
         """ Content type variates. Some possible values are…
             text/html, application/rss+xml, application/xml
         """
-        if not(content_type.startswith("text/") or 
+        if not(content_type.startswith("text/") or
                "xml" in content_type):
             raise Exception("Wrong Content-Type: '{}'?!".format(
                 content_type))
@@ -212,9 +215,29 @@ def find_feed_keywords_values(tree, kwdict=None):
 
     kwdict = kwdict if kwdict else {}
 
-    # NOTE: 'if node' is False even if it is a node instance.
+    kwdict.setdefault("FEED_TITLE", "Undefined")
+    kwdict.setdefault("FEED_HREF", "")
+
+    def search_href():
+        if (atom_node.attrib.get("rel") == "self" and
+            atom_node.attrib.get("type") in ["application/rss+xml",
+                                                 "application/xml"]
+           ):
+            kwdict["FEED_HREF"] = atom_node.attrib.get("href", "")
+            kwdict["FEED_TITLE"] = atom_node.attrib.get(
+                "title", kwdict["FEED_TITLE"])
+            return True
+
+    for atom_node in tree.findall('./channel/atom10:link', XML_NAMESPACES):
+        if search_href(): break
+
+    for atom_node in tree.findall('./channel/atom:link', XML_NAMESPACES):
+        if search_href(): break
+
+    # ATTENTION: 'if node:' evaluates to False even if node is a 'node instance'!
     node = tree.find('./channel/title')
-    kwdict["FEED_TITLE"] = "Undefined" if node is None else node.text
+    if node is not None:
+        kwdict["FEED_TITLE"] = node.text
 
     node = tree.find('./channel/description')
     kwdict["FEED_SUBTITLE"] = "Undefined" if node is None else node.text
@@ -386,6 +409,17 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                             Feed(feed_title, feed_url, feed_title))
                         save_history(HISTORY, _CONFIG_PATH)
 
+                    # Warn if feed url might changes
+                    parsed_feed_url = res["FEED_HREF"]
+                    if  parsed_feed_url and parsed_feed_url != feed_url:
+                        res.setdefault("WARNINGS", []).append({
+                            "TITLE": "Warning",
+                            "MSG": """Feed url difference detected<br /> \
+                            Url in configuration file: {}<br /> \
+                            Url in feed xml: {}
+                            """.format(feed_url, parsed_feed_url)
+                        })
+
                     update_cache(feed_url, res)
                 else:
                     uncached_url = templates.TEMPLATE_NOCACHE_LINK.format(
@@ -420,9 +454,12 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     feed_title = feed.title
                 else:
                     feed_title = res["FEED_TITLE"]
-                    # Add this (new) feed to history. Here, we had no clue
-                    # about the feed url!
-                    HISTORY.append(Feed(feed_title, "", feed_title))
+                    # Add this (new) feed to history.
+                    # Try to extract feed url from xml data because it is not
+                    # given directly!
+                    HISTORY.append(Feed(feed_title,
+                                        res.get("FEED_HREF", ""),
+                                        feed_title))
                     save_history(HISTORY, _CONFIG_PATH)
 
                 update_cache(feed_title, res)

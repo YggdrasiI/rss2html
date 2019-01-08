@@ -425,12 +425,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     feed_url = feed.url
                     feed.url = res["FEED_HREF"]
                     feed.title = res.get("FEED_TITLE", feed.title)
-                    # Re-Write this file where the feed was found.
-                    if feed in HISTORY:
-                        save_history(HISTORY, settings.get_config_folder())
-                    elif feed in settings.FAVORITES:
-                        update_favorites(settings.FAVORITES,
-                                         settings.get_config_folder())
+                    self.save_feed_change(feed)
 
                 #res["CONFIG_FILE"] = get_config_folder()
                 html = templates.gen_html(res)
@@ -457,18 +452,26 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                                 settings.FAVORITES,
                                 HISTORY)[0]
                 if feed:
-                    feed_title = feed.title
+                    # Currently, the feed title is an unique key.
+                    # Replace feed url if extracted href field
+                    # indicates a newer url for a feed with this title.
+                    parsed_feed_url = res["FEED_HREF"]
+                    if parsed_feed_url and parsed_feed_url != feed.url:
+                        feed.url = parsed_feed_url
+                        self.save_feed_change(feed)
+
                 else:
                     feed_title = res["FEED_TITLE"]
+                    feed = Feed(feed_title,
+                                res.get("FEED_HREF", ""),
+                                feed_title)
                     # Add this (new) feed to history.
                     # Try to extract feed url from xml data because it is not
                     # given directly!
-                    HISTORY.append(Feed(feed_title,
-                                        res.get("FEED_HREF", ""),
-                                        feed_title))
+                    HISTORY.append(feed)
                     save_history(HISTORY, settings.get_config_folder())
 
-                update_cache(feed_title, res)
+                update_cache(feed.title, res)
                 res["NOCACHE_LINK"] = ""
                 #res["CONFIG_FILE"] = get_config_folder()
                 html = templates.gen_html(res)
@@ -560,6 +563,13 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         self.wfile.write(output.getvalue())
 
+    def save_feed_change(self, feed):
+        # Re-write file where this feed was read.
+        if feed in HISTORY:
+            save_history(HISTORY, settings.get_config_folder())
+        elif feed in settings.FAVORITES:
+            update_favorites(settings.FAVORITES,
+                             settings.get_config_folder())
 
 if __name__ == "__main__":
     settings.load_config(globals())

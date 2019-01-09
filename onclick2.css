@@ -1,0 +1,97 @@
+/* Display other element on 'click' event.
+ *
+ * Requires three elements:
+ *   .in1 : Element with complete content.
+ *   .in2 : Element with abstract of content.
+ *
+ *   .in1 label.menu_close2: Label to close complete content display
+ *   .in2 label.menu_open:   Label to open complete content display
+ *
+ *   .menu_close1: Label to close complete content display
+ *
+ * Minimal example:
+
+    <!-- First menu element 'toggle-1' -->
+    <div class="in2"><label for="toggle-1" class="menu_open">Open 1</label>Short content</div>
+    <input type="radio" name="menu" id="toggle-1" class="menu_clickbox">
+    <div class="in1"><label for="toggle-0" class="menu_close2">Close</label>
+      <p>Big Content</p>
+    </div>
+    <!-- More elements with [id|for]=toggle-2, toggle-3,… -->
+
+    <!-- On the same hirarchy level after all elements (or after each element) -->
+    <label for="toggle-0" class="menu_close1"></label>
+
+    <!-- After elements -->
+    <input type="radio" name="menu" id="toggle-0" class="menu_clickbox">
+    <!-- End -->
+ *
+ */
+
+input.menu_clickbox[type=radio] {
+  display:none;
+}
+
+label.menu_open {
+  cursor:pointer;
+
+  float:left;
+  font-family:bold;
+  margin-right:1em;
+}
+
+/* Do unselect radio buttons by clicking nearby window border. */
+label.menu_close1 {
+  display:none;
+  position:fixed;
+  top:0px; left:0px;
+  width:100%;
+  height:100%;
+  cursor:pointer;
+  z-index:1;
+
+  background-color:gray;
+  opacity:0.25;
+}
+
+/* This element will be shown if one of the clickboxes is enabled .*/
+/* Place 'toggle-0' after this one.                                */
+input.menu_clickbox[type=radio]:checked ~ label.menu_close1 {
+  display:inherit;
+}
+
+label.menu_close2 {
+  cursor:pointer;
+  float:right;
+  padding:0.5em;
+}
+
+div.in1 {
+  position:fixed;
+  top:0px; left:0px;
+  width:90%;
+  max-height: 90vh; /* viewport height percent */
+  overflow-y:auto;
+  margin:5vh;
+  z-index:2;
+
+  background: -moz-Field;
+}
+
+div.in1_no_ani {
+  display:none;
+}
+
+/* Toggled State */
+input.menu_clickbox[type=radio]:checked + div.in1_no_ani {
+  display:inherit;
+}
+
+/* Optional animation */
+div.in1_ani {
+  transition: all 0.5s ease-in-out; 
+  clip-path: circle(0% at 50% 50%);
+}
+input.menu_clickbox[type=radio]:checked + div.in1_ani {
+  clip-path: circle(100% at 50% 50%);
+}

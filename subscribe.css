@@ -185,7 +185,7 @@ a[href] img {
   max-height: 16px;
 }
 
-#feedWarn {
+.feedWarn {
   border: 1px solid THreeDShadow;
   padding: 0.5em;
   padding-inline-start: 30px;
@@ -206,4 +206,12 @@ a[href] img {
     display:inline-block;
     min-width: 60%;
     margin-right:2em;
+}
+
+div.in1 {
+  border: 1px solid THreeDShadow;
+  padding: 0.5em;
+  padding-right: 30px;
+  padding-inline-start: 30px;
+  background: -moz-Field;
 }

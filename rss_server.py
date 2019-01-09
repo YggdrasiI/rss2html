@@ -201,6 +201,11 @@ def find_feed_keywords_values(tree, kwdict=None):
     entries = []
     entries_len = 0  # To remove ENTRY_CONTENT_FULL for long feeds.
     for item_node in tree.findall('./channel/item'):
+        entry_id = len(entries)+1
+        if settings.CONTENT_MAX_ENTRIES >= 0:
+            if entry_id >  settings.CONTENT_MAX_ENTRIES:
+                break
+
         entry = {}
         node = item_node.find('./link')
         entry["ENTRY_URL"] = "Undefined" if node is None else node.text
@@ -223,10 +228,29 @@ def find_feed_keywords_values(tree, kwdict=None):
         if entries_len > settings.CONTENT_FULL_LEN_THRESH:
             content_full = ""
 
+        if not settings.DETAIL_PAGE:
+            content_full = ""
+
+        extra_css_class = ("in1_ani"
+                           if settings.DETAIL_PAGE_ANIMATED else
+                           "in1_no_ani")
+
+        if content_full != "":
+            # Prepend opening label 
+            content_short = """\
+            <label for="toggle-{ENTRY_ID}" class="menu_open">Details</label>\
+            {SHORT}""".format(ENTRY_ID=entry_id, SHORT=content_short)
+
+            content_full = """\
+            <label for="toggle-0" class="menu_close2">Close</label>\
+            {FULL}""".format(FULL=content_full)
+
         entry["ENTRY_CONTENT"] = templates.TEMPLATE_ENTRY_CONTENT.format(
             ENTRY_CONTENT_SHORT=content_short,
             ENTRY_CONTENT_FULL=content_full,
             ENTRY_CLICKABLE="click_out" if content_full else "",
+            ENTRY_ID=entry_id,
+            DETAIL_ANI=extra_css_class,
         )
 
         node = item_node.find('./pubDate')

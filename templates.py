@@ -10,7 +10,7 @@ TEMPLATE_HTML_HEADER = '''<!DOCTYPE html>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
   <meta http-equiv="Content-Security-Policy" content="{POLICY}" />
   <link rel="stylesheet" href="subscribe.css" type="text/css" media="all" />
-  <link rel="stylesheet" href="onclick.css" type="text/css" media="all" />
+  <link rel="stylesheet" href="onclick2.css" type="text/css" media="all" />
   <title>Rss Viewer — {{FEED_TITLE}}</title>
 </head><body>
 '''.format(
@@ -37,7 +37,7 @@ TEMPLATE_FEED_HEADER = '''
 '''
 
 TEMPLATE_WARN = '''
-  <div id="feedWarn">
+  <div class="feedWarn">
     <div id="feedTitle">
       <div id="feedTitleContainer">
         <h1 id="feedTitleText" >{TITLE}</h1>
@@ -62,6 +62,9 @@ TEMPLATE_BODY = '''
 '''
 
 TEMPLATE_BODY_END = '''
+      <!-- After elements -->
+      <input type="radio" name="menu" id="toggle-0" class="menu_clickbox">
+      <!-- End -->
     </div>
   </div>
 </body>
@@ -82,10 +85,17 @@ TEMPLATE_TITLE_IMG = '''
         <img id="feedTitleImage" src="{IMAGE_URL}"
         title="{IMAGE_TITLE}" />
 '''
-TEMPLATE_ENTRY_CONTENT = '''<div class="feedEntryContent {ENTRY_CLICKABLE}">
-        <div class="click_in1">{ENTRY_CONTENT_FULL}</div>
-        <div class="click_in2">{ENTRY_CONTENT_SHORT}</div>
-      </div>
+TEMPLATE_ENTRY_CONTENT = '''
+        <div class="feedEntryContent {ENTRY_CLICKABLE}">
+            <div class="in2">
+              {ENTRY_CONTENT_SHORT}
+            </div>
+            <input type="radio" name="menu" id="toggle-{ENTRY_ID}" class="menu_clickbox">
+            <div class="in1 {DETAIL_ANI}">
+              {ENTRY_CONTENT_FULL}
+            </div>
+            <label for="toggle-0" class="menu_close1"></label>
+        </div>
 '''
 TEMPLATE_ENTRY_ENCLOSURES = '''
         <div class="enclosures">Medien-Dateien

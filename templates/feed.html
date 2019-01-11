@@ -8,7 +8,7 @@
     <div id="feedHeaderContainerSpacer"></div>
     <div dir="ltr" class="feedHeader feedBackground">
         {% if nocache_link %}
-        <h2><a href="{{ nocache_link|e }}">{{ _('Uncached Feed') }}</a></h2>
+        <h2><a href="{{ nocache_link|urlencode }}">{{ _('Uncached Feed') }}</a></h2>
         {% endif %}
     </div>
 </div>
@@ -46,7 +46,7 @@
 
 {% macro feed(entry, loop) %}
 <div class="entry">
-    <h3><a href="{{ entry.url }}"><span>{{ entry.title }}</span></a>
+    <h3><a href="{{ entry.url|urlencode }}"><span>{{ entry.title }}</span></a>
         <span class="lastUpdated">{{ entry.last_update }}</span>
     </h3>
     <div class="feedEntryContent {% if entry.content_full %}click_out{% endif %}">

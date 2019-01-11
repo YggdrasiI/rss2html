@@ -47,20 +47,20 @@
 
 {% macro list_favorite(feed, host) -%}
 <span class="reader_favorites">
-  <a href="http://{{ host }}/?feed={{ feed.name|e }}">{{
+    <a href="http://{{ host }}/?feed={{ feed.name|urlencode }}">{{
       feed.title|default(feed.name,True) }}</a>
-  <a href="http://{{ host }}/?rm={{ feed.name|e }}" title="{{
+  <a href="http://{{ host }}/?rm={{ feed.name|urlencode }}" title="{{
       _('Remove feed') }}">✖</a>
 </span>
 {%- endmacro %}
 
 {% macro list_history(feed, host) -%}
 <span class="reader_favorites">
-  <a href="http://{{ host }}/?feed={{ feed.title|e }}">{{
+    <a href="http://{{ host }}/?feed={{ feed.title|urlencode }}">{{
       feed.title|default(feed.name,True) }}</a>
-  <a href="http://{{ host }}/?add_fav={{ feed.name|e }}" title="{{
+  <a href="http://{{ host }}/?add_fav={{ feed.name|urlencode }}" title="{{
       _('Add to favorites') }}">➕&#xFE0E;</a>
-  <a href="http://{{ host }}/?rm={{ feed.name|e }}" title="{{
+  <a href="http://{{ host }}/?rm={{ feed.name|urlencode }}" title="{{
       _('Remove feed') }}">✖</a>
 </span>
 {%- endmacro %}

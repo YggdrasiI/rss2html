@@ -20,6 +20,7 @@ from time import sleep
 # from importlib import reload
 
 from gettext import gettext as _
+# from jina2.utils import unicode_urlencode as urlencode
 
 from feed import Feed, get_feed, save_history, clear_history, update_favorites
 
@@ -260,7 +261,15 @@ def find_enclosures(item_node):
     for e_node in item_node.findall('./enclosure'):
         e = {}
         try:
-            e["enclosure_url"] = e_node.attrib["url"]
+            url = e_node.attrib["url"]
+            """# Escape arguments?!
+            url2 = url.split("?", 1)
+            if len(url2) > 1:
+                url2[1] = urlencode(url2[1])
+
+            url = "?".join(url2)
+            """
+            e["enclosure_url"] = url
         except (AttributeError, KeyError):
             e["enclosure_url"] = "Undefined"
 

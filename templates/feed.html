@@ -26,8 +26,10 @@
             {% endif %}
         </a>
         <div id="feedTitleContainer">
-            <h1 id="feedTitleText" >{{ title }}</h1>
-            <h2 id="feedSubtitleText" >{{ subtitle }}</h2>
+          <h1 id="feedTitleText" >{{ title }}
+            <a id="feedSource" href="{{ href }}">[{{ _('Source') }}]</a>
+          </h1>
+          <h2 id="feedSubtitleText" >{{ subtitle }}</h2>
         </div>
     </div>
     <div id="feedContent">

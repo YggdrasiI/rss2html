@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2019-01-11 01:01+0100\n"
+"POT-Creation-Date: 2019-01-11 16:54+0100\n"
 "PO-Revision-Date: 2019-01-10 20:07+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de_DE\n"
@@ -17,6 +17,10 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.6.0\n"
+
+#: rss_server.py:394
+msgid "Quit"
+msgstr ""
 
 #: templates/base.html:30 templates/index.html:10
 msgid "Rss Viewer"
@@ -30,11 +34,15 @@ msgstr "Übersicht"
 msgid "Uncached Feed"
 msgstr "Ungecachter Feed"
 
-#: templates/feed.html:53
+#: templates/feed.html:30
+msgid "Source"
+msgstr "Quelle"
+
+#: templates/feed.html:55
 msgid "Details"
 msgstr "Details"
 
-#: templates/feed.html:66
+#: templates/feed.html:68
 msgid "media files"
 msgstr "Media-Dateien"
 
@@ -46,15 +54,17 @@ msgstr "Beschreibung"
 msgid ""
 "As Firefox 64.0 removes it's internal RSS reader, this script replaces "
 "the functionality."
-msgstr "Dieses Skript resetzt die Funktionalität des internen RSS-Readers von Firefox,"
-"da diese Funktion ab Version 64.0 entfernt wurde."
+msgstr ""
+"Dieses Skript resetzt die Funktionalität des internen RSS-Readers von "
+"Firefox,da diese Funktion ab Version 64.0 entfernt wurde."
 
 #: templates/index.html:18
 msgid ""
 "It converts a 2.0 RSS feed into html page (similar looking to FF's "
 "version)."
-msgstr "Es wandelt 2.0 RSS-Feeds in HTML-Seiten um, die ähnlich zur "
-"FF-Variante aussehen."
+msgstr ""
+"Es wandelt 2.0 RSS-Feeds in HTML-Seiten um, die ähnlich zur FF-Variante "
+"aussehen."
 
 #: templates/index.html:20
 msgid "Favorites"
@@ -83,13 +93,15 @@ msgid ""
 "Add a feed to %(favvar)s in '%(config_file)s' to extend above\n"
 "    list."
 msgstr ""
-"Füge Feed zu %(favvar)s in '%(config_file)s' hinzu, um obige Liste zu erweitern."
+"Füge Feed zu %(favvar)s in '%(config_file)s' hinzu, um obige Liste zu "
+"erweitern."
 
 #: templates/index.html:37
 #, python-format
 msgid "Its name can be used as shortcut, i.e %(example_url)s."
-msgstr "Statt der Url kann man auch den Feed-Namen als Schlüssel verwenden."
-"z.B. %(example_url)s."
+msgstr ""
+"Statt der Url kann man auch den Feed-Namen als Schlüssel verwenden.z.B. "
+"%(example_url)s."
 
 #: templates/index.html:40
 msgid "Miscellaneous"
@@ -106,5 +118,4 @@ msgstr "Feed entfernen"
 #: templates/index.html:62
 msgid "Add to favorites"
 msgstr "Feed zu Favoriten hinzufügen"
-
 

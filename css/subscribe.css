@@ -197,8 +197,6 @@ a[href] img {
     font-color:black;
     font-weight:bold;
     text-decoration:none;
-    font-family: "Segoe UI Symbol"; /* Disable coloured icons due emoji font usage */
-    font-family: "serif"; /* Disable coloured icons due emoji font usage */
     margin-left:1em;
 }
 
@@ -214,4 +212,10 @@ div.in1 {
   padding-right: 30px;
   padding-inline-start: 30px;
   background: -moz-Field;
+}
+
+a#feedSource {
+    float:right;
+    text-decoration:none;
+    color:inherit;
 }

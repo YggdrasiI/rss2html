@@ -1,0 +1,34 @@
+{#{% load i18n %}#}
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="{{
+    LANGUAGE_CODE|default("en-us",True) }}" {% if LANGUAGE_BIDI %}dir="rtl"{% endif %}>
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src chrome: 'self'; img-src * chrome: moz-icon:; media-src *; script-src 'self'; style-src 'self';" />
+
+  <link rel="shortcut icon" href="icons/Feed-icon.svg">
+  <link rel="icon" sizes="32x32" href="icons/Feed-icon.svg">
+  <link rel="icon" sizes="64x64" href="icons/Feed-icon.svg">
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/Feed-icon.svg">
+  <link rel="icon" type="image/png" sizes="160x160" href="icons/Feed-icon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/Feed-icon.svg">
+  <link rel="icon" type="image/png" sizes="64x64" href="icons/Feed-icon.svg">
+  <link rel="apple-touch-icon" href="icons/Feed-icon.svg">
+  <link rel="apple-touch-icon" sizes="512x512" href="icons/Feed-icon.svg">
+  <link rel="apple-touch-icon" sizes="160x160" href="icons/Feed-icon.svg">
+  <link rel="fluid-icon" title="RSS Viewer" href="icons/Feed-icon.svg">
+
+  <!-- Win >= 8 -->
+  <meta name="msapplication-TileColor" content="#490D03">
+  <meta name="msapplication-TileImage" content="icons/Feed-icon.svg">
+  <meta name="msapplication-config" content="icons/browserconfig.xml">
+
+
+  <link rel="stylesheet" href="css/subscribe.css" type="text/css" media="all" />
+  <link rel="stylesheet" href="css/onclick2.css" type="text/css" media="all" />
+  <title>{{ _('Rss Viewer') }} — {{title}}</title>
+</head><body>
+    {% block content %}{% endblock %}
+</body>
+</html>

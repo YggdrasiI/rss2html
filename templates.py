@@ -14,12 +14,12 @@ TEMPLATE_HTML_HEADER = '''<!DOCTYPE html>
   <title>Rss Viewer — {{FEED_TITLE}}</title>
 </head><body>
 '''.format(
-    POLICY="default-src chrome: 'self'; img-src * chrome:; media-src *; "
-    "script-src 'self'; style-src 'self'; ",
-    # POLICY="default-src chrome:; img-src moz-icon: 'self';"
+    POLICY="default-src chrome: 'self'; img-src * chrome: moz-icon:; "\
+    "media-src *; script-src 'self'; style-src 'self'; ",
 )
 
-TEMPLATE_HTML_END = '''</html>'''
+TEMPLATE_HTML_END = '''</body>
+</html>'''
 
 TEMPLATE_NOCACHE_LINK = '''
 <h2><a href="/?{ARGS}&cache=0">Uncached Feed</a></h2>'''
@@ -67,7 +67,6 @@ TEMPLATE_BODY_END = '''
       <!-- End -->
     </div>
   </div>
-</body>
 '''
 
 TEMPLATE_ENTRY = '''
@@ -94,6 +93,19 @@ TEMPLATE_ENTRY_CONTENT = '''
             <div class="in1 {DETAIL_ANI}">
               {ENTRY_CONTENT_FULL}
             </div>
+            <label for="toggle-0" class="menu_close1"></label>
+        </div>
+'''
+TEMPLATE_ENTRY_CONTENT_TEST = '''
+        <div class="feedEntryContent {ENTRY_CLICKABLE}">
+            <div class="in2">
+              {ENTRY_CONTENT_SHORT}
+            </div>
+            <input type="radio" name="menu" id="toggle-{ENTRY_ID}" class="menu_clickbox">
+            <div class="in1 {DETAIL_ANI}"><iframe
+            src="{{ENTRY_CONTENT_FULL_URL}}" class="content_frame"
+            style="display:none" /></div>
+              {{ENTRY_CONTENT_FULL}}
             <label for="toggle-0" class="menu_close1"></label>
         </div>
 '''
@@ -211,4 +223,30 @@ def gen_html(res):
 
     return ''.join(s)
 
+
+def gen_content_html(res, entryid):
+    s = [TEMPLATE_HTML_HEADER.format(**res),
+         ]
+
+    try:
+        entries = [res["entries"][entryid]]
+    except:
+        entries = []
+
+    for e in entries:
+        sen = []
+        for en in e["enclosures"]:
+            icon_path = icon_searcher.get_icon_path(en["ENCLOSURE_TYPE"])
+            sen.append(TEMPLATE_ENCLOSURE.format(
+                **en, MIME_ICON=icon_path))
+
+        enclosures = (TEMPLATE_ENTRY_ENCLOSURES.format(
+            ENTRY_ENCLOSURES=''.join(sen), **en)
+            if len(sen) else "")
+        s.append(TEMPLATE_ENTRY.format(
+            ENTRY_ENCLOSURES=enclosures, **e)
+        )
+
+    s.append(TEMPLATE_HTML_END.format(**res))
+    return ''.join(s)
 

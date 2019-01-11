@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- For Windows favicon support -->
+<browserconfig>
+    <msapplication>
+        <tile>
+            <square70x70logo src="icons/Feed-icon.svg"/>
+            <square150x150logo src="icons/Feed-icon.svg"/>
+            <square310x310logo src="icons/Feed-icon.svg"/>
+            <TileColor>#490D03</TileColor>
+        </tile>
+    </msapplication>
+</browserconfig>

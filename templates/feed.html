@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div id="feedHeaderContainer" style="width:100%">
+    <div dir="ltr" class="feedHeader feedBackground">
+        <h2><a href="/">{{ _("Overview") }}</a></h2>
+    </div>
+    <div id="feedHeaderContainerSpacer"></div>
+    <div dir="ltr" class="feedHeader feedBackground">
+        {% if nocache_link %}
+        <h2><a href="{{ nocache_link|e }}">{{ _('Uncached Feed') }}</a></h2>
+        {% endif %}
+    </div>
+</div>
+
+{% for entry in warnings %}
+{{ warning(entry.title, entry.msg) }}
+{% endfor %}
+
+<div id="feedBody">
+    <div id="feedTitle">
+        <a id="feedTitleLink">
+            {% if image %}
+            <img id="feedTitleImage" src="{{ image.url }}"
+                                     title="{{ image.title }}" />
+            {% endif %}
+        </a>
+        <div id="feedTitleContainer">
+            <h1 id="feedTitleText" >{{ title }}</h1>
+            <h2 id="feedSubtitleText" >{{ subtitle }}</h2>
+        </div>
+    </div>
+    <div id="feedContent">
+        {% for entry in entries %}
+        {{ feed(entry, loop) }}
+        {% endfor %}
+
+        {# This needs do be defined after above elements #}
+        <input type="radio" name="menu" id="toggle-0" class="menu_clickbox">
+        <!-- End -->
+    </div>
+</div>
+{% endblock %}
+
+{% macro feed(entry, loop) %}
+<div class="entry">
+    <h3><a href="{{ entry.url }}"><span>{{ entry.title }}</span></a>
+        <span class="lastUpdated">{{ entry.entry_last_update }}</span>
+    </h3>
+    <div class="feedEntryContent {% if entry.entry_content_full %}click_out{% endif %}">
+        <div class="in2">
+            {% if entry.content_full %}
+            <label for="toggle-{{ loop.index }}" class="menu_open">{{ _('Details') }}</label>
+            {% endif %}
+            {{ entry.entry_content_short }}
+        </div>
+        <input type="radio" name="menu" id="toggle-{{ loop.index }}" class="menu_clickbox">
+        <div class="in1 {{ extra_css_cls }}">
+            {% if entry.content_full %}
+            <label for="toggle-0" class="menu_close2">Close</label>
+            {% endif %}
+            {{ entry.entry_content_full }}
+        </div>
+        <label for="toggle-0" class="menu_close1"></label>
+        {% if entry.enclosures %}
+        <div class="enclosures">{{ _('media files') }}
+            {% for en in entry.enclosures %}
+            {{ feed_enclosure(en) }}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+<div style="clear: both;"></div>
+{% endmacro %}
+
+{% macro feed_enclosure(en) %}
+<div class="enclosure">
+    <img class="type-icon" src="{{ en.enclosure_type|get_icon }}" alt="media icon"/>
+    <a href="{{ en.enclosure_url }}">{{ en.enclosure_filename }}</a> ({{
+    en.enclosure_type }}, {{ en.enclosure_length }})
+</div>
+{% endmacro %}

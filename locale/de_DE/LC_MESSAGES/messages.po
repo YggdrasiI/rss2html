@@ -1,0 +1,110 @@
+# German (Germany) translations for PROJECT.
+# Copyright (C) 2019 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2019.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2019-01-11 01:01+0100\n"
+"PO-Revision-Date: 2019-01-10 20:07+0100\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: de_DE\n"
+"Language-Team: de_DE <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.6.0\n"
+
+#: templates/base.html:30 templates/index.html:10
+msgid "Rss Viewer"
+msgstr "RSS-Viewer"
+
+#: templates/feed.html:6
+msgid "Overview"
+msgstr "Übersicht"
+
+#: templates/feed.html:11
+msgid "Uncached Feed"
+msgstr "Ungecachter Feed"
+
+#: templates/feed.html:53
+msgid "Details"
+msgstr "Details"
+
+#: templates/feed.html:66
+msgid "media files"
+msgstr "Media-Dateien"
+
+#: templates/index.html:15
+msgid "Description"
+msgstr "Beschreibung"
+
+#: templates/index.html:16
+msgid ""
+"As Firefox 64.0 removes it's internal RSS reader, this script replaces "
+"the functionality."
+msgstr "Dieses Skript resetzt die Funktionalität des internen RSS-Readers von Firefox,"
+"da diese Funktion ab Version 64.0 entfernt wurde."
+
+#: templates/index.html:18
+msgid ""
+"It converts a 2.0 RSS feed into html page (similar looking to FF's "
+"version)."
+msgstr "Es wandelt 2.0 RSS-Feeds in HTML-Seiten um, die ähnlich zur "
+"FF-Variante aussehen."
+
+#: templates/index.html:20
+msgid "Favorites"
+msgstr "Favoriten"
+
+#: templates/index.html:26
+msgid "Other Feeds"
+msgstr "Andere Feeds"
+
+#: templates/index.html:32
+msgid "URI Arguments"
+msgstr "URI-Argumente"
+
+#: templates/index.html:33
+#, python-format
+msgid ""
+"Prepend feed url by '%(url)s' to display feed content by this\n"
+"    rss viewer."
+msgstr ""
+"Um einen Feed mit diesem Programm anzuzeigen muss die Feed-Url um "
+"'%(url)s' ergänzt werden."
+
+#: templates/index.html:35
+#, python-format
+msgid ""
+"Add a feed to %(favvar)s in '%(config_file)s' to extend above\n"
+"    list."
+msgstr ""
+"Füge Feed zu %(favvar)s in '%(config_file)s' hinzu, um obige Liste zu erweitern."
+
+#: templates/index.html:37
+#, python-format
+msgid "Its name can be used as shortcut, i.e %(example_url)s."
+msgstr "Statt der Url kann man auch den Feed-Namen als Schlüssel verwenden."
+"z.B. %(example_url)s."
+
+#: templates/index.html:40
+msgid "Miscellaneous"
+msgstr "Diverses"
+
+#: templates/index.html:42
+msgid "Quit daemon"
+msgstr "Hintergrunddienst beenden"
+
+#: templates/index.html:53 templates/index.html:64
+msgid "Remove feed"
+msgstr "Feed entfernen"
+
+#: templates/index.html:62
+msgid "Add to favorites"
+msgstr "Feed zu Favoriten hinzufügen"
+
+

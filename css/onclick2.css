@@ -95,3 +95,13 @@ div.in1_ani {
 input.menu_clickbox[type=radio]:checked + div.in1_ani {
   clip-path: circle(100% at 50% 50%);
 }
+
+iframe.content_frame {
+    height:100%;
+    width:100%;
+    display:none;
+    border:0px solid transparent;
+}
+input.menu_clickbox[type=radio]:checked + div.in1 iframe.content_frame {
+    display:inherit;
+}

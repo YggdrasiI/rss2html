@@ -7,6 +7,7 @@ import sys
 import os
 
 _CONFIG_PATH = None
+_CONFIG_FILE = None
 
 def get_config_folder():
     """ Return desired path depending of os.
@@ -34,8 +35,15 @@ def get_config_folder():
             config_dir = "."
 
     globals()["_CONFIG_PATH"] = config_dir
+    globals()["_CONFIG_FILE"] = os.path.join(_CONFIG_PATH, "settings.py")
     return config_dir
 
+def get_settings_path():
+    if _CONFIG_FILE:
+        return _CONFIG_FILE
+
+    get_config_folder()
+    return _CONFIG_FILE
 
 def load_config(main_globals):
     config_dir = get_config_folder()

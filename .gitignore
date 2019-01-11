@@ -105,6 +105,8 @@ venv.bak/
 
 # Related to this repo
 settings.py
-feed_history.py
+history.py
 .*
 rss_server.service
+site-packages
+non-public

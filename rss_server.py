@@ -23,7 +23,7 @@ from gettext import gettext as _
 
 from feed import Feed, get_feed, save_history, clear_history, update_favorites
 
-import templates2
+import templates
 import default_settings as settings  # Overriden in load_config()
 import icon_searcher
 
@@ -237,14 +237,14 @@ def find_feed_keyword_values(tree, context=None):
                                          if settings.DETAIL_PAGE_ANIMATED else
                                          "in1_no_ani")
 
-        entry["entry_content_short"] = content_short
-        entry["entry_content_full"] = content_full
+        entry["content_short"] = content_short
+        entry["content_full"] = content_full
 
         node = item_node.find('./pubDate')
         if node is not None:
-            entry["entry_last_update"] = parse_pubDate(node.text)
+            entry["last_update"] = parse_pubDate(node.text)
         else:
-            entry["entry_last_update"] = "Undefined date"
+            entry["last_update"] = "Undefined date"
 
         entry["enclosures"] = find_enclosures(item_node)
 
@@ -315,7 +315,7 @@ def genMyTCPServer():
 
     class _MyTCPServer(socketserver.TCPServer):
         print("Use language {}".format(settings.GUI_LANG))
-        html_renderer = templates2.HtmlRenderer(settings.GUI_LANG)
+        html_renderer = templates.HtmlRenderer(settings.GUI_LANG)
 
         def server_bind(self):
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -445,7 +445,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
                     update_cache(feed_url, res)
                 else:
-                    res["nocache_link"] = "/?feed={}&nocache=1".format(feed_key)
+                    res["nocache_link"] = "/?feed={}&cache=0".format(feed_key)
 
 
                 # Replace stored url, if newer value is given.

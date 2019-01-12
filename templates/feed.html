@@ -34,17 +34,23 @@
     </div>
     <div id="feedContent">
         {% for entry in entries %}
-        {{ feed(entry, loop) }}
+        {{ feed(entry, loop, False) }}
         {% endfor %}
 
         {# This needs do be defined after above elements #}
         <input type="radio" name="menu" id="toggle-0" class="menu_clickbox">
         <!-- End -->
     </div>
+    <div id="fullContents">
+        {% for entry in entries %}
+        {{ feed_full_content(entry, loop) }}
+        {% endfor %}
+        <label for="toggle-0" class="menu_close1"></label>
+    </div>
 </div>
 {% endblock %}
 
-{% macro feed(entry, loop) %}
+{% macro feed(entry, loop, with_content_full) %}
 <div class="entry">
     <h3><a href="{{ entry.url|urlencode }}"><span>{{ entry.title }}</span></a>
         <span class="lastUpdated">{{ entry.last_update }}</span>
@@ -56,14 +62,9 @@
             {% endif %}
             {{ entry.content_short }}
         </div>
-        <input type="radio" name="menu" id="toggle-{{ loop.index }}" class="menu_clickbox">
-        <div class="in1 {{ extra_css_cls }}">
-            {% if entry.content_full %}
-            <label for="toggle-0" class="menu_close2">Close</label>
-            {% endif %}
-            {{ entry.content_full }}
-        </div>
-        <label for="toggle-0" class="menu_close1"></label>
+        {% if with_content_full %}
+        {{ feed_full_content(entry, loop) }}
+        {% endif %}
         {% if entry.enclosures %}
         <div class="enclosures">{{ _('media files') }}
             {% for en in entry.enclosures %}
@@ -74,6 +75,16 @@
     </div>
 </div>
 <div style="clear: both;"></div>
+{% endmacro %}
+
+{% macro feed_full_content(entry, loop) %}
+<input type="radio" name="menu" id="toggle-{{ loop.index }}" class="menu_clickbox">
+<div class="in1 {{ extra_css_cls }}">
+    {% if entry.content_full %}
+    <label for="toggle-0" class="menu_close2">Close</label>
+    {% endif %}
+    {{ entry.content_full }}
+</div>
 {% endmacro %}
 
 {% macro feed_enclosure(en) %}

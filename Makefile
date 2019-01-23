@@ -3,9 +3,12 @@ USER=$(shell whoami)
 PYTHON_BIN=$(shell which python3 || which python)
 SYSTEMD_INSTALL_DIR=/etc/systemd/system
 
+DEBUG?=1
+
 # Fallback position for packages which are not installed.
 SITE_PACKAGES=site-packages
 PIP_PACKAGES='Jinja2>=2.10' \
+			 'httplib2' \
 			 'babel>=2.6' \
 #			 'webassets-babel>=0.3' \
 
@@ -18,9 +21,8 @@ SUPPORTED_LANGS=en_US de_DE  # Space between entries
 # Use installed pybabel if available
 PYBABEL=$(shell which pybabel || echo -n "PYTHONPATH='$(SITE_PACKAGES)' ./site-packages/pybabel")
 
-
 help:
-	@echo "Available targets:\n" \
+	@echo "Common targets:\n" \
 		"make run               -- Start daemon. Quit with Ctl+C.\n" \
 		"make install_service   -- Install systemd service for automatic start\n" \
 		"                          Service will started as user '${USER}'\n" \
@@ -35,6 +37,7 @@ run: check_env
 	sed -e "s#{USER}#$(USER)#g" \
 		-e "s#{FOLDER}#$(FOLDER)#g" \
 		-e "s#{PYTHON_BIN}#$(PYTHON_BIN)#g" \
+		-e "s#{SITE_PACKAGES}#$(SITE_PACKAGES)#g" \
 		$< > $(basename $<)
 
 create_service_file: rss_server.service

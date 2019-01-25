@@ -7,7 +7,7 @@ Type=simple
 User={USER}
 Group={USER}
 WorkingDirectory={FOLDER}
-Environment="PYTHONPATH={SITE_PACKAGES}"
+Environment="PYTHONPATH={SITE_PACKAGES}" "DISPLAY=:0.0"
 ExecStart={PYTHON_BIN} rss_server.py
 Restart=always
 RestartSec=60

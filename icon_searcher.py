@@ -81,6 +81,10 @@ if GTK3:
     def get_icon_path_gtk3(mimetype, size):
         icon = Gio.content_type_get_icon(mimetype)
         theme = Gtk.IconTheme.get_default()
+        if theme is None:
+            # print("No Gtk IconTheme detectable");
+            return None
+
         info = theme.choose_icon(icon.get_names(), -1, 0)
         if info:
             # print(info.get_filename())

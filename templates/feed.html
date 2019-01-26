@@ -8,7 +8,8 @@
     <div id="feedHeaderContainerSpacer"></div>
     <div dir="ltr" class="feedHeader feedBackground">
         {% if nocache_link %}
-        <h2><a href="{{ nocache_link|urlencode }}">{{ _('Uncached Feed') }}</a></h2>
+        <h2><a href="/?feed={{ nocache_link|urlencode }}&cache=0"
+                >{{ _('Ignore feed cache') }}</a></h2>
         {% endif %}
     </div>
 </div>

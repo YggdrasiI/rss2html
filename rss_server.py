@@ -7,14 +7,12 @@ from datetime import datetime
 from xml.etree import ElementTree
 
 from urllib.parse import urlparse, parse_qs, quote
-from urllib.request import Request, urlopen
-from urllib.error import URLError, HTTPError
 from threading import Thread
 import http.server
+import hashlib
 import socket
 import socketserver
 from io import BytesIO
-import time
 import locale
 from time import sleep
 # from importlib import reload
@@ -27,6 +25,7 @@ from feed import Feed, get_feed, save_history, clear_history, update_favorites
 import templates
 import default_settings as settings  # Overriden in load_config()
 import icon_searcher
+import cached_requests
 
 
 XML_NAMESPACES = {'content': 'http://purl.org/rss/1.0/modules/content/',
@@ -36,7 +35,6 @@ XML_NAMESPACES = {'content': 'http://purl.org/rss/1.0/modules/content/',
 ORIG_LOCALE = locale.getlocale()
 EN_LOCALE = ("en_US", ORIG_LOCALE[1])  # second index probably UTF-8
 HISTORY = []
-_CACHE = {}
 
 
 # ==========================================================
@@ -105,53 +103,12 @@ def parse_pubDate(s):
 
 
 def load_xml(filename):
-
     with open(filename, 'rt') as f:
-        tree = ElementTree.parse(f)
+        text = f.read(-1)
+        return text
 
-    return tree
+    return None
 
-
-def fetch_xml(url):
-    tree = None
-    print("Url: " + url)
-    req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-    try:
-        response = urlopen(req, timeout=5)
-        '''
-        content_type = response.getheader('Content-Type','')
-        """ Content type variates. Some possible values are…
-            text/html, application/rss+xml, application/xml
-        """
-        if not(content_type.startswith("text/") or
-               "xml" in content_type):
-            raise Exception("Wrong Content-Type: '{}'?!".format(
-                content_type))
-        '''
-
-        try:
-            # Content-Length header optional/not set in all cases…
-            content_len = int(response.getheader("Content-Length", 0))
-            if content_len > settings.MAX_FEED_BYTE_SIZE:
-                raise Exception("Feed file exceedes maximal size. {0} > {1}"
-                                "".format(content_len,
-                                          settings.MAX_FEED_BYTE_SIZE))
-        except ValueError:
-            pass
-
-    except HTTPError as e:
-        print('The server couldn\'t fulfill the request.')
-        print('Error code: ', e.code)
-    except URLError as e:
-        print('We failed to reach a server.')
-        print('Reason: ', e.reason)
-    else:
-        # everything is fine
-        # data = response.read()
-        # text = data.decode('utf-8')
-        tree = ElementTree.parse(response)
-
-    return tree
 
 
 def find_feed_keyword_values(tree, context=None):
@@ -300,22 +257,6 @@ def find_enclosures(item_node):
     return enclosures
 
 
-def update_cache(key, res):
-    if key == "":
-        return
-    _CACHE[key] = (int(time.time()), res)
-
-
-def check_cache(key):
-    if key in _CACHE:
-        now = int(time.time())
-        (t, res) = _CACHE.get(key)
-        if (now - t) < settings.CACHE_EXPIRE_TIME_S:
-            print("Use cache")
-            return res
-
-    return None
-
 def genMyTCPServer():
     # The definition of the MyTCPServer class is wrapped
     # because settings module only maps to the right module
@@ -378,10 +319,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         show_index = False
         feed_key = query_components.get("feed", [None])[-1]  # key, url or feed title
         filepath = query_components.get("file")  # From 'open with' dialog
-        nocache = query_components.get("cache", ["1"])[-1] == "0"
+        bUseCache = query_components.get("cache", ["1"])[-1] != "0"
         url_update = query_components.get("url_update", ["0"])[-1] != "0"
         add_favs = query_components.get("add_fav", [])
         to_rm = query_components.get("rm", [])
+        etag = None
 
         # entryid=0: Newest entry of feed. Thus, id not stable due feed updates
         try:
@@ -419,42 +361,46 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 feed_url = feed.url if feed else feed_key
 
                 res = None
-                if feed and not nocache:
-                    res = check_cache(feed.title)
-                if not res and not nocache:
-                    res = check_cache(feed_url)
+                (text, code) = cached_requests.fetch_file(settings, feed_url, bUseCache)
+                etag = '"' + hashlib.sha1(text.encode('utf-8')).hexdigest() + '"'
+                # if self.headers.get("If-None-Match", "") == etag:
+                if code == 304 and False:
+                    self.send_response(304)
+                    self.end_headers()
+                    # TODO: Browser shows empty page but not it's internal
+                    #       cache of the requested url.
+                    return None
 
-                if not res:
-                    tree = fetch_xml(feed_url)
-                    res = find_feed_keyword_values(tree)
+                tree = ElementTree.XML(text)
 
-                    # Update cache and history
-                    if not feed:
-                        feed_title = res["title"]
-                        # Add this (new) url to feed history.
-                        HISTORY.append(
-                            Feed(feed_title, feed_url, feed_title))
-                        save_history(HISTORY, settings.get_config_folder())
+                res = find_feed_keyword_values(tree)
 
-                    # Warn if feed url might changes
-                    parsed_feed_url = res["href"]
-                    if not url_update and parsed_feed_url and parsed_feed_url != feed_url:
-                        res.setdefault("warnings", []).append({
-                            "title": "Warning",
-                            "msg": """Feed url difference detected. It might
-                            be useful to <a href="/?{ARGS}&url_update=1">update</a> \
-                            the stored url.<br /> \
-                            Url in config/history file: {OLD_URL}<br /> \
-                            Url in feed xml file: {NEW_URL}
-                            """.format(OLD_URL=feed_url,
-                                       NEW_URL=parsed_feed_url,
-                                       ARGS="feed=" + quote(str(feed_key)),
-                                      )
-                        })
+                # Update cache and history
+                if not feed:
+                    feed_title = res["title"]
+                    # Add this (new) url to feed history.
+                    HISTORY.append(
+                        Feed(feed_title, feed_url, feed_title))
+                    save_history(HISTORY, settings.get_config_folder())
 
-                    update_cache(feed_url, res)
-                else:
-                    res["nocache_link"] = "/?feed={}&cache=0".format(feed_key)
+                # Warn if feed url might changes
+                parsed_feed_url = res["href"]
+                if not url_update and parsed_feed_url and parsed_feed_url != feed_url:
+                    res.setdefault("warnings", []).append({
+                        "title": "Warning",
+                        "msg": """Feed url difference detected. It might
+                        be useful to <a href="/?{ARGS}&url_update=1">update</a> \
+                        the stored url.<br /> \
+                        Url in config/history file: {OLD_URL}<br /> \
+                        Url in feed xml file: {NEW_URL}
+                        """.format(OLD_URL=feed_url,
+                                   NEW_URL=parsed_feed_url,
+                                   ARGS="feed=" + quote(str(feed_key)),
+                                  )
+                    })
+
+                #res["nocache_link"] = "/?feed={}&cache=0".format(feed_key)
+                res["nocache_link"] = feed_key
 
 
                 # Replace stored url, if newer value is given.
@@ -481,10 +427,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             try:
                 feed_filepath = filepath[-1]
                 print("Read " + feed_filepath)
-                tree = load_xml(feed_filepath)
+                text = load_xml(feed_filepath)
+                tree = ElementTree.XML(text)
+
                 res = find_feed_keyword_values(tree)
-                res["nocache_link"] = "/?feed={}&cache=0".format(
-                    quote(res["title"]))
+                res["nocache_link"] = res["title"]
 
                 # Update cache and history
                 feed = get_feed(res["title"],
@@ -510,7 +457,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     HISTORY.append(feed)
                     save_history(HISTORY, settings.get_config_folder())
 
-                update_cache(feed.title, res)
+                cached_requests.update_cache(feed.title, res, {})
                 html = self.server.html_renderer.run("feed.html", res)
 
             except ValueError as e:
@@ -525,6 +472,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         elif feed_feched:
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
+            if etag:
+                self.send_header('ETag', etag)
             self.end_headers()
 
             output = BytesIO()

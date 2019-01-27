@@ -43,8 +43,10 @@ run: check_env
 create_service_file: rss_server.service
 
 check_env:
-	PYTHONPATH='$(SITE_PACKAGES)' $(PYTHON_BIN) -c "import jinja2; import babel" \
-			   || make install_deps_local
+	@PYTHONPATH='$(SITE_PACKAGES)' $(PYTHON_BIN) -c "import jinja2; import babel" \
+						2>/dev/null \
+						|| make install_deps_local \
+						|| make print_pip_upgrade 
 	@echo "Python dependencies found."
 
 install_service: rss_server.service
@@ -110,3 +112,7 @@ locale/messages.pot:
 %.mo: %.po
 	$(PYBABEL) compile -l $(word 2, $(subst /, ,$@)) -d ./locale -i "$(@:.mo=.po)" 
 	
+print_pip_upgrade:
+	@echo "Installing of packages failed. Maybe your pip version is outdated?!"
+	@/bin/echo -e "Update it with\n\tsudo python3 -m pip install --upgrade pip"
+	@false

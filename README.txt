@@ -7,6 +7,7 @@ Info:
 
 Requires:
         Python >= 3.4
+        pip >= 18.0
         Python packages Jinja>=2.10 babel>=2.6
 
 

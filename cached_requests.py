@@ -26,6 +26,21 @@ def check_cache(settings, key):
     return None
 """
 
+def fetch_from_cache(feed):
+    try:
+        (_, res, _) = _CACHE[feed.url]
+        return res
+    except KeyError:
+        pass
+
+    try:
+        (_, res, _) = _CACHE[feed.title]
+        return res
+    except KeyError:
+        pass
+
+    return None
+
 def fetch_file(settings, url, bCache=True):
     print("Url: " + url)
 

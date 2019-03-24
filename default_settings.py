@@ -35,6 +35,19 @@ CONTENT_MAX_ENTRIES = -1
 # This variable define a limit where the content of above tag will be ignored.
 CONTENT_FULL_LEN_THRESH = 1E5
 
+# ==========================================================
+DOWNLOAD_DIR = "$HOME/Downloads"
+
+ACTIONS = [
+    {"title": "play in browser", "icon": None,
+     "can_handle": None,
+     "handler": None,
+    },
+    {"title": "download", "icon": None,
+     "can_handle": "can_download",
+     "handler": "download",
+    }
+]
 
 # ==========================================================
 # Helper function for proper loading of settings. Sketch for proper reading

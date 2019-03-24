@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2019-01-11 16:54+0100\n"
+"POT-Creation-Date: 2019-03-24 12:06+0100\n"
 "PO-Revision-Date: 2019-01-10 20:07+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de_DE\n"
@@ -18,31 +18,39 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.6.0\n"
 
-#: rss_server.py:394
+#: rss_server.py:346
 msgid "Quit"
-msgstr ""
+msgstr "Beenden"
+
+#: rss_server.py:532
+msgid "Error"
+msgstr "Fehler"
+
+#: rss_server.py:536
+msgid "Debug Info"
+msgstr "Debugging-Informationen"
 
 #: templates/base.html:30 templates/index.html:10
 msgid "Rss Viewer"
 msgstr "RSS-Viewer"
 
-#: templates/feed.html:6
+#: templates/feed.html:6 templates/message.html:6
 msgid "Overview"
 msgstr "Übersicht"
 
-#: templates/feed.html:11
-msgid "Uncached Feed"
-msgstr "Ungecachter Feed"
+#: templates/feed.html:12 templates/message.html:12
+msgid "Ignore feed cache"
+msgstr "Ignoriere Feed-Cache"
 
-#: templates/feed.html:30
+#: templates/feed.html:31
 msgid "Source"
 msgstr "Quelle"
 
-#: templates/feed.html:55
+#: templates/feed.html:62
 msgid "Details"
 msgstr "Details"
 
-#: templates/feed.html:68
+#: templates/feed.html:70
 msgid "media files"
 msgstr "Media-Dateien"
 
@@ -55,7 +63,7 @@ msgid ""
 "As Firefox 64.0 removes it's internal RSS reader, this script replaces "
 "the functionality."
 msgstr ""
-"Dieses Skript resetzt die Funktionalität des internen RSS-Readers von "
+"Dieses Skript ersetzt die Funktionalität des internen RSS-Readers von "
 "Firefox,da diese Funktion ab Version 64.0 entfernt wurde."
 
 #: templates/index.html:18
@@ -118,4 +126,7 @@ msgstr "Feed entfernen"
 #: templates/index.html:62
 msgid "Add to favorites"
 msgstr "Feed zu Favoriten hinzufügen"
+
+#~ msgid "Uncached Feed"
+#~ msgstr "Ungecachter Feed"
 

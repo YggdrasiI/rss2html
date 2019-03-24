@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2019-01-11 16:54+0100\n"
+"POT-Creation-Date: 2019-03-24 12:06+0100\n"
 "PO-Revision-Date: 2019-01-10 20:07+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en_US\n"
@@ -18,31 +18,39 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.6.0\n"
 
-#: rss_server.py:394
+#: rss_server.py:346
 msgid "Quit"
+msgstr ""
+
+#: rss_server.py:532
+msgid "Error"
+msgstr ""
+
+#: rss_server.py:536
+msgid "Debug Info"
 msgstr ""
 
 #: templates/base.html:30 templates/index.html:10
 msgid "Rss Viewer"
 msgstr "RSS Viewer"
 
-#: templates/feed.html:6
+#: templates/feed.html:6 templates/message.html:6
 msgid "Overview"
 msgstr ""
 
-#: templates/feed.html:11
-msgid "Uncached Feed"
+#: templates/feed.html:12 templates/message.html:12
+msgid "Ignore feed cache"
 msgstr ""
 
-#: templates/feed.html:30
+#: templates/feed.html:31
 msgid "Source"
 msgstr ""
 
-#: templates/feed.html:55
+#: templates/feed.html:62
 msgid "Details"
 msgstr ""
 
-#: templates/feed.html:68
+#: templates/feed.html:70
 msgid "media files"
 msgstr ""
 
@@ -110,5 +118,8 @@ msgid "Add to favorites"
 msgstr ""
 
 #~ msgid "Medien-Dateien"
+#~ msgstr ""
+
+#~ msgid "Uncached Feed"
 #~ msgstr ""
 

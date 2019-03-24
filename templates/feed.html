@@ -88,6 +88,17 @@
 </div>
 {% endmacro %}
 
+{% macro warning(title, msg) %}
+<div class="feedWarn">
+    <div id="feedTitle">
+        <div id="feedTitleContainer">
+            <h1 id="feedTitleText" >{{ title }}</h1>
+            <h2 id="feedSubtitleText" >{{ msg }}</h2>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
 {% macro feed_enclosure(en) %}
 <div class="enclosure">
     <img class="type-icon" src="{{ en.enclosure_type|get_icon }}" alt="media icon"/>

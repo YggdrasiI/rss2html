@@ -26,6 +26,7 @@ import templates
 import default_settings as settings  # Overriden in load_config()
 import icon_searcher
 import cached_requests
+import actions
 
 
 XML_NAMESPACES = {'content': 'http://purl.org/rss/1.0/modules/content/',
@@ -353,6 +354,12 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             t.start()
             return ret
 
+        elif self.path == "/action":
+            try:
+                self.handle_action(query_components)
+            except Exception as e:
+                error_msg = str(e)
+
         elif feed_key:
             try:
                 feed = get_feed(feed_key,
@@ -522,11 +529,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         output = BytesIO()
         if error:
-            res = {"msg_type": "_('Error')",
+            res = {"msg_type": _("Error"),
                    "msg": msg}
             html = self.server.html_renderer.run("message.html", res)
         else:
-            res = {"msg_type": "_('Debug Info')",
+            res = {"msg_type": _("Debug Info"),
                    "msg": msg}
             html = self.server.html_renderer.run("message.html", res)
 
@@ -540,6 +547,13 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         elif feed in settings.FAVORITES:
             update_favorites(settings.FAVORITES,
                              settings.get_config_folder())
+
+    def handle_action(self, query_components):
+        try:
+            action = actions.ACTIONS(query_components["title"])
+            action["handler"]
+        except KeyError:
+                raise Exception("Action not defined")
 
 if __name__ == "__main__":
     settings.load_config(globals())

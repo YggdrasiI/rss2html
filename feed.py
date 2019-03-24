@@ -108,3 +108,5 @@ FAVORITES = [
     print("Write settings file with {0} favorite entries.".format(len(feeds)))
     with open(path, "w") as f:
         f.write(settings_content)
+
+

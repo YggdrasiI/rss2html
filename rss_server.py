@@ -70,18 +70,19 @@ def parse_pubDate(s):
     """
     Example input:
         <pubDate>Tue, 04 Dec 2018 06:48:30 +0000</pubDate>
+        <pubDate>Fri, 15 Mar 2019 18:00:00 GMT</pubDate>
     """
     formats = [
         ("%a, %d %b %Y %H:%M:%S %z", s),
         ("%a, %d %b %Y %H:%M:%S %Z", s),
-        ("%a, %d %b %Y %H:%M:%S", s[:len(s)+1-s.rfind(" ")]),
+        ("%a, %d %b %Y %H:%M:%S", s[:s.rfind(" ")-len(s)]),
     ]
 
     ret = None
     for (f, s2) in formats:
         try:
             locale.setlocale(locale.LC_ALL, EN_LOCALE)
-            dt = datetime.strptime(s2, "%a, %d %b %Y %H:%M:%S %z")
+            dt = datetime.strptime(s2, f)
 
             # Without this line the locale is ignored...
             locale.setlocale(locale.LC_ALL, '')
@@ -91,7 +92,7 @@ def parse_pubDate(s):
             break
         except locale.Error as e:
             print("Can not set locale: %s" % str(e))
-            dt = datetime.strptime(s2, "%a, %d %b %Y %H:%M:%S %z")
+            dt = datetime.strptime(s2, f)
             ret = dt.strftime("%d. %B %Y, %H:%M%p")
             break
         except ValueError:
@@ -100,7 +101,7 @@ def parse_pubDate(s):
     if ret:
         return ret
 
-    raise Exception("Can not parse {}".format(s2))
+    raise Exception("Can not parse '{}'".format(s))
 
 
 def load_xml(filename):

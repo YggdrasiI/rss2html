@@ -370,7 +370,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
                 res = None
                 (text, code) = cached_requests.fetch_file(settings, feed_url, bUseCache)
-                etag = '"' + hashlib.sha1(text.encode('utf-8')).hexdigest() + '"'
+                etag = '"' + hashlib.sha1(
+                    text.encode('utf-8') if text is not None else ""
+                ).hexdigest() + '"'
                 # if self.headers.get("If-None-Match", "") == etag:
                 if code == 304 and False:
                     self.send_response(304)

@@ -267,7 +267,8 @@ def genMyTCPServer():
 
     class _MyTCPServer(socketserver.TCPServer):
         print("Use language {}".format(settings.GUI_LANG))
-        html_renderer = templates.HtmlRenderer(settings.GUI_LANG)
+        html_renderer = templates.HtmlRenderer(settings.GUI_LANG,
+                                               settings.CSS_STYLE)
 
         def server_bind(self):
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -411,7 +412,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
                 #res["nocache_link"] = "/?feed={}&cache=0".format(feed_key)
                 res["nocache_link"] = feed_key
-
 
                 # Replace stored url, if newer value is given.
                 if feed and url_update and res["href"]:

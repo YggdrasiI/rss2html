@@ -25,7 +25,7 @@ class HtmlRenderer:
     extensions = ['jinja2.ext.i18n', 'jinja2.ext.with_', 'jinja2.ext.autoescape']
     # bcc = FileSystemBytecodeCache('/tmp', '%s.cache')
 
-    def __init__(self, lang="en"):
+    def __init__(self, lang="en", css_style=None):
         if lang not in HtmlRenderer.list_of_available_locales:
             print("Fallback on default language. '{}' is not "
                   "in list of available locales.".format(lang))
@@ -43,10 +43,17 @@ class HtmlRenderer:
             self.translations)
 
         self.env.filters['get_icon'] = get_icon_for_mimetype
+        
+        self.extra_context = {"user_css_style": css_style}
 
 
     def run(self, filename="base.html", context=None):
         template = self.env.get_template(filename)
+
+        for k in self.extra_context:
+            if k not in context:
+                context[k] = self.extra_context[k]
+
         return template.render(context)
 
 

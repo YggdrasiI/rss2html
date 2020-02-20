@@ -15,6 +15,10 @@ HOST = "localhost"  # "" allows access from everywhere....
 PORT = 8888
 GUI_LANG = "en" 
 
+# User defined css-file.
+#             Available: "dark.css"
+CSS_STYLE = None
+
 CACHE_EXPIRE_TIME_S = 600
 MAX_FEED_BYTE_SIZE = 1E7
 ALLOWED_FILE_EXTENSIONS = [".css", ".png", ".jpg", ".svg"]

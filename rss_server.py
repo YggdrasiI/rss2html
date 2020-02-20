@@ -37,6 +37,10 @@ ORIG_LOCALE = locale.getlocale()
 EN_LOCALE = ("en_US", ORIG_LOCALE[1])  # second index probably UTF-8
 HISTORY = []
 
+CSS_STYLES = {
+    None: _("Default theme"),
+    "dark.css": _("Dark theme"),
+}
 
 # ==========================================================
 
@@ -356,6 +360,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             t.start()
             return ret
 
+        elif self.path.startswith("/change_style"):
+            self.handle_change_css_style(query_components)
+            return self.write_index()
         elif self.path == "/action":
             try:
                 self.handle_action(query_components)
@@ -518,6 +525,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             "CONFIG_FILE": settings.get_settings_path(),
             "favorites": settings.FAVORITES,
             "history": HISTORY,
+            "css_styles": CSS_STYLES
         }
 
         html = self.server.html_renderer.run("index.html", context)
@@ -550,6 +558,20 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         elif feed in settings.FAVORITES:
             update_favorites(settings.FAVORITES,
                              settings.get_config_folder())
+
+    def handle_change_css_style(self, query_components):
+        try:
+            css_style = query_components.get("css_style", [None])[-1]
+            if not css_style in CSS_STYLES: # for "None" and wrong values
+                css_style = None
+
+            # Note: This saves not the values permanently, but for this
+            # instance.
+            self.server.html_renderer.extra_context["user_css_style"] = \
+                    css_style
+
+        except KeyError:
+                raise Exception("CSS style with this name not defined")
 
     def handle_action(self, query_components):
         try:

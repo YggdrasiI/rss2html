@@ -100,7 +100,7 @@ body {
   padding: 0 3em;
   color: -moz-fieldText;
   font: message-box;
-  filter: invert(100%);
+  filter: invert(85%);
 }
 img {
     filter: invert(100%);
@@ -223,4 +223,9 @@ a#feedSource {
     float:right;
     text-decoration:none;
     color:inherit;
+}
+
+.css_style_list {
+    display:inline-block;
+    vertical-align: top;
 }

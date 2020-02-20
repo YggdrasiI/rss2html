@@ -40,6 +40,15 @@
 	<h2 id="feedSubtitleText">{{ _('Miscellaneous') }}</h2>
 	<ul>
 	  <li><a href="/quit">{{ _('Quit daemon') }}</a></li>
+	  {% if css_styles %}
+    <li>{{ _('Styles:') }}
+    <ul class="css_style_list">
+	  {% for style in css_styles %}
+    <li><a href="/change_style?css_style={{ style }}">{{ _(css_styles[style]) }}</a></li>
+	  {% endfor %}
+    </ul>
+    </li>
+	  {% endif %}
 	</ul>
   </div>
 </div>

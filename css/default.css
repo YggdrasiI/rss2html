@@ -219,3 +219,8 @@ a#feedSource {
     text-decoration:none;
     color:inherit;
 }
+
+.css_style_list {
+    display:inline-block;
+    vertical-align: top;
+}

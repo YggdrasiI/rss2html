@@ -263,13 +263,14 @@ def find_enclosures(item_node):
     return enclosures
 
 
-def genMyTCPServer():
+def genMyHTTPServer():
     # The definition of the MyTCPServer class is wrapped
     # because settings module only maps to the right module
     # at runtime (after load_config() call).
     # Before it maps on default_settings.
 
-    class _MyTCPServer(socketserver.TCPServer):
+    # class _MyHTTPServer(socketserver.TCPServer):
+    class _MyHTTPServer(http.server.ThreadingHTTPServer):
         print("Use language {}".format(settings.GUI_LANG))
         html_renderer = templates.HtmlRenderer(settings.GUI_LANG,
                                                settings.CSS_STYLE)
@@ -278,10 +279,16 @@ def genMyTCPServer():
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.socket.bind(self.server_address)
 
-    return _MyTCPServer
+    return _MyHTTPServer
 
 
 class MyHandler(http.server.SimpleHTTPRequestHandler):
+    server_version = "RSS_Server/0.1"
+
+    # Note: ETag ignored for 1.0, but protcol version 1.1
+    # requires header 'Content-Lenght' for all requests. Otherwise,
+    # the browsers will wait forever for more data...
+    protocol_version = "HTTP/1.1"
 
     def do_add_favs(self, add_favs):
         for feed_key in add_favs:
@@ -378,15 +385,22 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
                 res = None
                 (text, code) = cached_requests.fetch_file(settings, feed_url, bUseCache)
-                etag = '"' + hashlib.sha1(
-                    text.encode('utf-8') if text is not None else ""
-                ).hexdigest() + '"'
-                # if self.headers.get("If-None-Match", "") == etag:
-                if code == 304 and False:
+                etag = '"{}"'.format(
+                    hashlib.sha1(text.encode('utf-8') if text is not None \
+                                 else "").hexdigest())
+                print("Eval ETag '{}'".format(etag))
+                print("Browser ETag '{}'".format(self.headers.get("If-None-Match", "")))
+                print("All headers:")
+                print(self.headers)
+
+                # If feed is unchanged and tags match return nothing, but 304.
+                if code == 304 and self.headers.get("If-None-Match", "") == etag:
                     self.send_response(304)
+                    self.send_header('ETag', etag)
+                    self.send_header('Cache-Control', "public, max-age=10, ")
+                            # "must-revalidate, post-check=0, pre-check=0")
+                    self.send_header('Vary', "ETag, User-Agent")
                     self.end_headers()
-                    # TODO: Browser shows empty page but not it's internal
-                    #       cache of the requested url.
                     return None
 
                 tree = ElementTree.XML(text)
@@ -489,24 +503,45 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         elif feed_feched:
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
+            self.send_header('Cache-Control', "public, max-age=10, ")
             if etag:
+                print("Add ETag '{}'".format(etag))
                 self.send_header('ETag', etag)
-            self.end_headers()
+                self.send_header('Vary', "ETag, User-Agent")
 
             output = BytesIO()
             output.write(html.encode('utf-8'))
+            output.seek(0, os.SEEK_END)
+            self.send_header('Content-Length', output.tell())
+            self.end_headers()
+
             self.wfile.write(output.getvalue())
+
         elif self.path.startswith("/icons/system/"):
             image = icon_searcher.get_cached_file(self.path)
             if not image:
                 return self.send_error(404)
 
             self.send_response(200)
-            self.send_header('Content-type', 'image')
-            self.end_headers()
+            if self.path.endswith(".svg"):
+                self.send_header('Content-type', 'text/xml')
+            else:
+                self.send_header('Content-type', 'image')
+
+            self.send_header('Cache-Control', "public, max-age=86000, ")
+            # self.send_header('last-modified', self.date_time_string())
+            self.send_header('Last-Modified', "Wed, 21 Oct 2019 07:28:00 GMT")
+            self.send_header('Vary', "User-Agent")
+            # TODO: Image not cached :-(
+
             output = BytesIO()
             output.write(image)
+            output.seek(0, os.SEEK_END)
+            self.send_header('Content-Length', output.tell())
+            self.end_headers()
+
             self.wfile.write(output.getvalue())
+
         elif self.path == "/" or show_index:
             return self.write_index()
         elif self.path[-4:] in settings.ALLOWED_FILE_EXTENSIONS:
@@ -516,9 +551,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             return self.send_error(404)
 
     def write_index(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html')
-        self.end_headers()
 
         context = {
             "host": self.headers.get("HOST", ""),
@@ -529,14 +561,55 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         }
 
         html = self.server.html_renderer.run("index.html", context)
+
         output = BytesIO()
         output.write(html.encode('utf-8'))
+        output.seek(0, os.SEEK_END)  # As reminder…
+
+        # Etag
+        etag = '"{}"'.format( hashlib.sha1(output.getvalue()).hexdigest())
+
+        browser_etag = self.headers.get("If-None-Match", "")
+        if etag == browser_etag:
+            self.send_response(304)
+            self.send_header('ETag', etag)
+            self.send_header('Cache-Control', "public, max-age=10, ")
+                            # "must-revalidate, post-check=0, pre-check=0")
+            self.send_header('Content-Location', "/index.html")
+            self.send_header('Vary', "ETag, User-Agent")
+            # self.send_header('Expires', "Wed, 21 Oct 2021 07:28:00 GMT")
+            self.end_headers()
+            return None
+
+        self.send_response(200)
+
+        # Preparation for 304 replys....
+        # Note that this currently only works with Chromium, but not FF
+        #
+        # Regarding to
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/304
+        # Following headers are required in the 200-response
+        # Cache-Control, Content-Location, Date (is already included),
+        # ETag, Expires (overwritten by max-age, but still required?!)
+        # and Vary.
+        self.send_header('ETag', etag)
+        self.send_header('Cache-Control', "public, max-age=10, ")
+                        # "must-revalidate, post-check=0, pre-check=0")
+        self.send_header('Content-Location', "/index.html")
+        self.send_header('Vary', "ETag, User-Agent")
+        # self.send_header('Expires', "Wed, 21 Oct 2021 07:28:00 GMT")  # Won't help in FF
+        # self.send_header('Last-Modified', "Wed, 21 Oct 2019 07:28:00 GMT")  # Won't help in FF
+
+        # Other headers
+        self.send_header('Content-Length', output.tell())
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+
         self.wfile.write(output.getvalue())
 
     def show_msg(self, msg, error=False):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
-        self.end_headers()
 
         output = BytesIO()
         if error:
@@ -549,6 +622,10 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             html = self.server.html_renderer.run("message.html", res)
 
         output.write(html.encode('utf-8'))
+        output.seek(0, os.SEEK_END)
+        self.send_header('Content-Length', output.tell())
+        self.end_headers()
+
         self.wfile.write(output.getvalue())
 
     def save_feed_change(self, feed):
@@ -600,7 +677,7 @@ if __name__ == "__main__":
     #    httpd.serve_forever()
 
     try:
-        httpd = genMyTCPServer()((settings.HOST, settings.PORT), MyHandler, settings)
+        httpd = genMyHTTPServer()((settings.HOST, settings.PORT), MyHandler, settings)
     except OSError:
         # Reset stdout to print messages regardless if daemon or not
         sys.stdout = sys.__stdout__

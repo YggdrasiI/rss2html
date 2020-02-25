@@ -64,15 +64,18 @@ def clear_history(feedsA, feedsB):
     for feed in found:
         feedsB.remove(feed)
 
-def update_favorites(feeds, folder=None):
-    """ Updates FAVORITES variable into settings.py """
+def update_favorites(feeds, folder=None, path="favorites.py"):
+    """ Updates FAVORITES variable into favorites.py
+    
+    Function do not alter other parts of given config file.
+    (Note: Previous versions saves favarites directly in settings.py)
+    """
 
-    path = "settings.py"
     if folder:
         path = os.path.join(folder, path)
 
     if not os.path.exists(path):
-        settings_content = """
+        config_file_content = """
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
@@ -84,29 +87,31 @@ FAVORITES = [
 """
     else:
         with open(path, "r") as f:
-            settings_content = f.read(-1)
+            config_file_content = f.read(-1)
             # Remove content of FAVORITES list
             search = re.search("\nFAVORITES\s*=\s\[[^]]*]",
-                                       settings_content)
-            favs_substring = settings_content[search.start()+1:search.end()]
+                                       config_file_content)
+            favs_substring = config_file_content[search.start()+1:search.end()]
             # Check if regex search return valid substring.
             try:
                 compile(favs_substring, "favs_list", "exec")
             except SyntaxError:
-                raise Exception("Abort writing of settings.py. Search for "
-                                "FAVORITES list failed.")
+                raise Exception("Abort writing of '{path}'. Search for " \
+                                "FAVORITES list failed.".format(path=path))
 
             # Replace string of current favorites list with dummy.
-            settings_content = settings_content[:search.start()+1] \
+            config_file_content = config_file_content[:search.start()+1] \
                     + "FAVORITES = [\n    {__FAVORITES}\n]" \
-                    + settings_content[search.end():]
+                    + config_file_content[search.end():]
 
-        # Fill in new feed list
-        feed_strs = [str(feed) for feed in feeds]
-        settings_content = settings_content.format(__FAVORITES=",\n    ".join(feed_strs) + ",\n")
+    # Fill in new feed list
+    feed_strs = [str(feed) for feed in feeds]
+    config_file_content = config_file_content.format(
+        __FAVORITES=",\n    ".join(feed_strs) \
+        + ",\n" if len(feed_strs) else "")
 
     print("Write settings file with {0} favorite entries.".format(len(feeds)))
     with open(path, "w") as f:
-        f.write(settings_content)
+        f.write(config_file_content)
 
 

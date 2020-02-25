@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-02-20 21:12+0100\n"
+"POT-Creation-Date: 2020-02-27 00:49+0100\n"
 "PO-Revision-Date: 2019-01-10 20:07+0100\n"
 "Last-Translator: Olaf Schulz <olaf_schulz+rss2html@posteo.de>\n"
 "Language: en_US\n"
@@ -18,24 +18,54 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.8.0\n"
 
-#: rss_server.py:41
+#: default_settings.py:82
+msgid "Download file"
+msgstr ""
+
+#: default_settings.py:88
+msgid "Play file with external program"
+msgstr ""
+
+#: rss_server.py:40
 msgid "Default theme"
 msgstr ""
 
-#: rss_server.py:42
+#: rss_server.py:41
 msgid "Dark theme"
 msgstr ""
 
-#: rss_server.py:352
+#: rss_server.py:387
 msgid "Quit"
 msgstr ""
 
-#: rss_server.py:543
+#: rss_server.py:647
 msgid "Error"
 msgstr ""
 
-#: rss_server.py:547
+#: rss_server.py:651
 msgid "Debug Info"
+msgstr ""
+
+#: rss_server.py:690
+msgid "URI arguments wrong."
+msgstr ""
+
+#: rss_server.py:696
+msgid "Wrong hash for this url argument."
+msgstr ""
+
+#: rss_server.py:705
+msgid "Action not allowed for this file."
+msgstr ""
+
+#: rss_server.py:713
+msgid ""
+"Running of handler for \"{action_name}\" failed. Exception was: "
+"\"{exception}\"."
+msgstr ""
+
+#: rss_server.py:719
+msgid "Running of \"{action_name}\" for \"{url}\" started."
 msgstr ""
 
 #: templates/base.html:33 templates/index.html:10

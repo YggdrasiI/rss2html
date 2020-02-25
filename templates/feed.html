@@ -104,5 +104,13 @@
     <img class="type-icon" src="{{ en.enclosure_type|get_icon }}" alt="media icon"/>
     <a href="{{ en.enclosure_url }}">{{ en.enclosure_filename }}</a> ({{
     en.enclosure_type }}, {{ en.enclosure_length }})
+    <span class="enclosure_actions">
+    {% for action in en.actions %}
+    <a href="{{ action.url }}"><img src="{{ action.icon }}"
+                                    class="enclosure_actions_icon"
+                                    title="{{ action.title }}"
+                                    alt="[{{ action.title }}]"></a>
+    {% endfor %}
+    </span>
 </div>
 {% endmacro %}

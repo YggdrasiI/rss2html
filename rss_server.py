@@ -15,6 +15,7 @@ import socketserver
 from io import BytesIO
 import locale
 from time import sleep
+from random import randint
 # from importlib import reload
 
 from gettext import gettext as _
@@ -26,7 +27,6 @@ import templates
 import default_settings as settings  # Overriden in load_config()
 import icon_searcher
 import cached_requests
-import actions
 
 
 XML_NAMESPACES = {'content': 'http://purl.org/rss/1.0/modules/content/',
@@ -35,7 +35,6 @@ XML_NAMESPACES = {'content': 'http://purl.org/rss/1.0/modules/content/',
                  }
 ORIG_LOCALE = locale.getlocale()
 EN_LOCALE = ("en_US", ORIG_LOCALE[1])  # second index probably UTF-8
-HISTORY = []
 
 CSS_STYLES = {
     None: _("Default theme"),
@@ -258,16 +257,43 @@ def find_enclosures(item_node):
         except (AttributeError, KeyError, ValueError):
             e["enclosure_length"] = "0"
 
+        # Extend by dict with actions
+        add_enclosure_actions(e)
+
         enclosures.append(e)
 
     return enclosures
 
+def add_enclosure_actions(e):
+    # Add dict with possible actions for this media element
+    # The hash is added to prevent change of url. (No user authentication...)
+
+    url = e["enclosure_url"]
+    url_hash = '{}'.format( hashlib.sha3_224(
+        (settings.ACTION_SECRET + url).encode('utf-8')).hexdigest())
+    e["actions"] = []
+
+    for (aname, action) in settings.ACTIONS.items():
+        if action.get("check"):
+            if not action["check"](url, settings):
+                continue
+
+        a = {
+            "url": "/action?a={}&s={}&url={}".format(
+                aname,
+                url_hash, url),
+            "title": action["title"],
+            "icon": action["icon"],
+        }
+        e["actions"].append(a)
+
+
 
 def genMyHTTPServer():
-    # The definition of the MyTCPServer class is wrapped
-    # because settings module only maps to the right module
-    # at runtime (after load_config() call).
-    # Before it maps on default_settings.
+# The definition of the MyTCPServer class is wrapped
+# because settings module only maps to the right module
+# at runtime (after load_config() call).
+# Before it maps on default_settings.
 
     # class _MyHTTPServer(socketserver.TCPServer):
     class _MyHTTPServer(http.server.ThreadingHTTPServer):
@@ -288,21 +314,23 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
     # Note: ETag ignored for 1.0, but protcol version 1.1
     # requires header 'Content-Lenght' for all requests. Otherwise,
     # the browsers will wait forever for more data...
-    protocol_version = "HTTP/1.1"
+    #
+    # ETag in FF still ignored
+    ## protocol_version = "HTTP/1.1"
 
     def do_add_favs(self, add_favs):
         for feed_key in add_favs:
             (feed, idx) = get_feed(feed_key,
                                    settings.FAVORITES,
-                                   HISTORY)
+                                   settings.HISTORY)
             if feed and idx > 0:  # Index indicates that feed not in FAVORITES
                 settings.FAVORITES.append(feed)
                 try:
-                    HISTORY.remove(feed)
+                    settings.HISTORY.remove(feed)
                 except ValueError:
                     pass
 
-        save_history(HISTORY, settings.get_config_folder())
+        save_history(settings.HISTORY, settings.get_config_folder())
         update_favorites(settings.FAVORITES, settings.get_config_folder())
 
 
@@ -310,7 +338,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         for feed_key in to_rm:
             (feed, idx) = get_feed(feed_key,
                                    settings.FAVORITES,
-                                   HISTORY)
+                                   settings.HISTORY)
             if idx == 0:
                 try:
                     settings.FAVORITES.remove(feed)
@@ -321,8 +349,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
             if idx == 1:
                 try:
-                    HISTORY.remove(feed)
-                    save_history(HISTORY, settings.get_config_folder())
+                    settings.HISTORY.remove(feed)
+                    save_history(settings.HISTORY, settings.get_config_folder())
                 except ValueError:
                     pass
 
@@ -370,17 +398,19 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path.startswith("/change_style"):
             self.handle_change_css_style(query_components)
             return self.write_index()
-        elif self.path == "/action":
+        elif self.path.startswith("/action"):
             try:
-                self.handle_action(query_components)
+                ret = self.handle_action(query_components)
             except Exception as e:
                 error_msg = str(e)
+            else:
+                return ret
 
         elif feed_key:
             try:
                 feed = get_feed(feed_key,
                                 settings.FAVORITES,
-                                HISTORY)[0]
+                                settings.HISTORY)[0]
                 feed_url = feed.url if feed else feed_key
 
                 res = None
@@ -411,9 +441,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 if not feed:
                     feed_title = res["title"]
                     # Add this (new) url to feed history.
-                    HISTORY.append(
+                    settings.HISTORY.append(
                         Feed(feed_title, feed_url, feed_title))
-                    save_history(HISTORY, settings.get_config_folder())
+                    save_history(settings.HISTORY, settings.get_config_folder())
 
                 # Warn if feed url might changes
                 parsed_feed_url = res["href"]
@@ -450,7 +480,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 error_msg = str(e)
             except:
                 raise
-            finally:
+            else:
                 feed_feched = True
 
         elif filepath:
@@ -467,7 +497,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 # Update cache and history
                 feed = get_feed(res["title"],
                                 settings.FAVORITES,
-                                HISTORY)[0]
+                                settings.HISTORY)[0]
                 if feed:
                     # Currently, the feed title is an unique key.
                     # Replace feed url if extracted href field
@@ -485,8 +515,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     # Add this (new) feed to history.
                     # Try to extract feed url from xml data because it is not
                     # given directly!
-                    HISTORY.append(feed)
-                    save_history(HISTORY, settings.get_config_folder())
+                    settings.HISTORY.append(feed)
+                    save_history(settings.HISTORY, settings.get_config_folder())
 
                 cached_requests.update_cache(feed.title, res, {})
                 html = self.server.html_renderer.run("feed.html", res)
@@ -495,7 +525,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 error_msg = str(e)
             except:
                 raise
-            finally:
+            else:
                 feed_feched = True
 
         if error_msg:
@@ -544,7 +574,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         elif self.path == "/" or show_index:
             return self.write_index()
-        elif self.path[-4:] in settings.ALLOWED_FILE_EXTENSIONS:
+        elif self.path[self.path.rfind("."):] in \
+                settings.ALLOWED_FILE_EXTENSIONS:
             return super().do_GET()
         else:
             # return super().do_GET()
@@ -556,7 +587,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             "host": self.headers.get("HOST", ""),
             "CONFIG_FILE": settings.get_settings_path(),
             "favorites": settings.FAVORITES,
-            "history": HISTORY,
+            "history": settings.HISTORY,
             "css_styles": CSS_STYLES
         }
 
@@ -630,8 +661,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
     def save_feed_change(self, feed):
         # Re-write file where this feed was read.
-        if feed in HISTORY:
-            save_history(HISTORY, settings.get_config_folder())
+        if feed in settings.HISTORY:
+            save_history(settings.HISTORY, settings.get_config_folder())
         elif feed in settings.FAVORITES:
             update_favorites(settings.FAVORITES,
                              settings.get_config_folder())
@@ -652,10 +683,42 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
     def handle_action(self, query_components):
         try:
-            action = actions.ACTIONS(query_components["title"])
-            action["handler"]
+            action = settings.ACTIONS[query_components["a"][-1]]
+            url = query_components["url"][-1]
+            url_hash = query_components["s"][-1]
+        except (KeyError, IndexError):
+            error_msg = _('URI arguments wrong.')
+            return self.show_msg(error_msg, True)
+
+        url_hash2 = '{}'.format( hashlib.sha3_224(
+            (settings.ACTION_SECRET + url).encode('utf-8')).hexdigest())
+        if url_hash != url_hash2:
+            error_msg = _('Wrong hash for this url argument.')
+            return self.show_msg(error_msg, True)
+
+        # Strip quotes and double quotes from user input
+        # for security reasons
+        url = url.replace("'","").replace('"','').replace('\\', '')
+
+        if action["check"] is not None:
+            if not action["check"](url, settings):
+                error_msg = _('Action not allowed for this file.')
+                return self.show_msg(error_msg, True)
+
+        try:
+            action["handler"](url, settings)
         except KeyError:
                 raise Exception("Action not defined")
+        except Exception as e:
+            error_msg = _('Running of handler for "{action_name}" failed. ' \
+                          'Exception was: "{exception}".')\
+                    .format(action_name=action, exception=str(e))
+            return self.show_msg(error_msg, True)
+
+        # Handling sucessful
+        msg = _('Running of "{action_name}" for "{url}" started.') \
+                .format(action_name=action["title"], url=url)
+        return self.show_msg(msg)
 
 if __name__ == "__main__":
     settings.load_config(globals())
@@ -669,8 +732,12 @@ if __name__ == "__main__":
             # Only continue in forked process..
             os._exit(0)
 
+    # Generate secret token if none is given
+    if settings.ACTION_SECRET is None:
+        settings.ACTION_SECRET = str(randint(0, 9999999999999))
+
     # Omit display of double entries
-    clear_history(settings.FAVORITES, HISTORY)
+    clear_history(settings.FAVORITES, settings.HISTORY)
 
     # Syntax not supported in Python < 3.6
     # with socketserver.TCPServer(("", settings.PORT), MyHandler) as httpd:

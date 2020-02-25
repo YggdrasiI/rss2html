@@ -14,6 +14,7 @@ def get_config_folder():
 
     Config folder is used for:
         settings.py
+        favorites.py
         history.py
     """
 
@@ -64,12 +65,23 @@ def load_config(main_globals):
     except ImportError:
         pass
 
+    # Read FAVORITES from favorites.py
+    # Use as fallback value from settings.py.
+    try:
+        from favorites import FAVORITES
+    except ImportError:
+        FAVORITES = settings.FAVORITES if \
+                hasattr(settings, "FAVORITES") else []
+    finally:
+        settings.FAVORITES = FAVORITES
+
+    # Read HISTORY from history.py
     try:
         from history import HISTORY
     except ImportError:
         HISTORY = []
     finally:
-        main_globals["HISTORY"] = HISTORY
+        settings.HISTORY = HISTORY
 
     # Replace 'default_settings' module
     # Note that here settings is a local variable and != main_globals["settings"]

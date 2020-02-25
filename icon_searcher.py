@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
+import sys
 import os.path
 import default_settings as settings  # Overriden in load_config()
 
@@ -121,3 +122,8 @@ if __name__ == "__main__":
     print(get_icon_path("audio/ogg;codecs=opus"))
     print(get_icon_path("audio/ogg", 64))
     print(get_icon_path("foobar/ogg", 64))
+    for arg in sys.argv[1:]:
+        print("Arg {} => {}".format(
+            arg,
+            get_icon_path("foobar/ogg", 64),
+        ))

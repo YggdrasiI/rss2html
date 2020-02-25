@@ -180,6 +180,14 @@ a[href] img {
   margin-left: 2px;
 }
 
+.enclosure_actions {
+}
+
+.enclosure_actions_icon {
+ height:1em;
+ vertical-align: bottom;
+}
+
 .handlersMenuList > .menulist-label-box > .menulist-icon {
   max-width: 16px;
   max-height: 16px;

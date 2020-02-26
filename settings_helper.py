@@ -62,6 +62,10 @@ def load_config(main_globals):
             if not s.startswith("__"):
                 vars_set[s] = vars_set.get(s, vars_default_set[s])
 
+        # Replace 'default_settings' module
+        # Note that here settings is a local variable
+        # and != main_globals["settings"]
+        main_globals["settings"] = settings
     except ImportError:
         pass
 
@@ -82,10 +86,5 @@ def load_config(main_globals):
         HISTORY = []
     finally:
         settings.HISTORY = HISTORY
-
-    # Replace 'default_settings' module
-    # Note that here settings is a local variable and != main_globals["settings"]
-    main_globals["settings"] = settings
-
 
 

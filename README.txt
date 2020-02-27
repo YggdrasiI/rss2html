@@ -53,7 +53,7 @@ Setup:
         FAVORITES = [
             Feed("example",
                  "http://www.deutschlandfunk.de/podcast-das-war-der-tag.803.de.podcast",
-                 "Example Feed (&lt;channel&gt;&lt;title&gt;-value, optional)"),
+                 "Example Feed"),
         ]
 
 

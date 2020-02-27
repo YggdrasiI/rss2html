@@ -586,6 +586,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         context = {
             "host": self.headers.get("HOST", ""),
             "CONFIG_FILE": settings.get_settings_path(),
+            "FAVORITES_FILE": settings.get_favorites_path(),
             "favorites": settings.FAVORITES,
             "history": settings.HISTORY,
             "css_styles": CSS_STYLES
@@ -735,6 +736,12 @@ if __name__ == "__main__":
     # Generate secret token if none is given
     if settings.ACTION_SECRET is None:
         settings.ACTION_SECRET = str(randint(0, 9999999999999))
+
+
+    # Create empty favorites files if none exists
+    if not os.path.lexists(settings.get_favorites_path()):
+        update_favorites(settings.FAVORITES,
+                         settings.get_config_folder())
 
     # Omit display of double entries
     clear_history(settings.FAVORITES, settings.HISTORY)

@@ -37,7 +37,10 @@ def get_config_folder():
 
     globals()["_CONFIG_PATH"] = config_dir
     globals()["_CONFIG_FILE"] = os.path.join(_CONFIG_PATH, "settings.py")
+    globals()["_FAVORITES_FILE"] = os.path.join(_CONFIG_PATH, "favorites.py")
+    globals()["_HISTORY_FILE"] = os.path.join(_CONFIG_PATH, "history.py")
     return config_dir
+
 
 def get_settings_path():
     if _CONFIG_FILE:
@@ -45,6 +48,15 @@ def get_settings_path():
 
     get_config_folder()
     return _CONFIG_FILE
+
+
+def get_favorites_path():
+    if _FAVORITES_FILE:
+        return _FAVORITES_FILE
+
+    get_config_folder()
+    return _FAVORITES_FILE
+
 
 def load_config(main_globals):
     config_dir = get_config_folder()
@@ -67,7 +79,7 @@ def load_config(main_globals):
         # and != main_globals["settings"]
         main_globals["settings"] = settings
     except ImportError:
-        pass
+        settings = main_globals.get("settings")
 
     # Read FAVORITES from favorites.py
     # Use as fallback value from settings.py.

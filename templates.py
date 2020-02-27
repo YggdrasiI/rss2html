@@ -11,6 +11,18 @@ import icon_searcher
 def get_icon_for_mimetype(mime):
     return icon_searcher.get_icon_path(mime)
 
+def get_clipped_media_name(media_name, max_len):
+    if len(media_name) <= max_len:
+        return media_name
+
+    last_dot = media_name.rfind(".")
+    if last_dot == -1 or max_len < 10:
+        return media_name[:max_len] + "…"
+
+    return "{}…{}".format(
+        media_name[:max_len - (len(media_name) - last_dot)],
+        media_name[last_dot+1:]
+    )
 
 # @babel.localeselector
 def get_locale():
@@ -43,6 +55,7 @@ class HtmlRenderer:
             self.translations)
 
         self.env.filters['get_icon'] = get_icon_for_mimetype
+        self.env.filters['clipped_media_name'] = get_clipped_media_name
         
         self.extra_context = {"user_css_style": css_style}
 

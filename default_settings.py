@@ -9,8 +9,9 @@ import actions
 # Default favorites.
 # Put override of this variable into favorites.py!
 FAVORITES = [
-    Feed("example", "http://www.deutschlandfunk.de/podcast-das-war-der-tag.803.de.podcast",
-         "Example Feed (&lt;channel&gt;&lt;title&gt;-value, optional)"),
+    Feed("example",
+         "http://www.deutschlandfunk.de/podcast-das-war-der-tag.803.de.podcast",
+         "Example Feed"),
 ]
 
 # Default settings
@@ -96,4 +97,5 @@ ACTIONS = {
 #    import default_settings as settings
 #    settings.load_config(globals())
 #
-from settings_helper import get_config_folder, load_config, get_settings_path
+from settings_helper import get_config_folder, load_config, \
+        get_settings_path, get_favorites_path

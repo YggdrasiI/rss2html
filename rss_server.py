@@ -506,9 +506,14 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
                 res = None
                 (text, code) = cached_requests.fetch_file(settings, feed_url, bUseCache)
+
+                if text is None:
+                    error_msg = _('No feed found for this URI arguments.')
+                    return self.show_msg(error_msg, True)
+
                 etag = '"{}"'.format(
-                    hashlib.sha1(text.encode('utf-8') if text is not None \
-                                 else "").hexdigest())
+                    hashlib.sha1((text if text is not None \
+                                 else "").encode('utf-8')).hexdigest())
                 print("Eval ETag '{}'".format(etag))
                 print("Browser ETag '{}'".format(self.headers.get("If-None-Match", "")))
                 print("All headers:")
@@ -585,8 +590,22 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             try:
                 feed_filepath = filepath[-1]
                 print("Read " + feed_filepath)
-                text = load_xml(feed_filepath)
-                tree = ElementTree.XML(text)
+
+                try:
+                    text = load_xml(feed_filepath)
+                    tree = ElementTree.XML(text)
+                except FileNotFoundError:
+                    error_msg = _("Feed XML document '{}' does not " \
+                                  "exists.".format(feed_filepath))
+                    return self.show_msg(error_msg, True)
+                except ElementTree.ParseError:
+                    error_msg = _("Parsing of feed XML document '{}' " \
+                                  "failed.".format(feed_filepath))
+                    return self.show_msg(error_msg, True)
+                except:
+                    error_msg = _("Loading of feed XML document '{}' " \
+                                  "failed.".format(feed_filepath))
+                    return self.show_msg(error_msg, True)
 
                 res = find_feed_keyword_values(tree)
                 res["nocache_link"] = res["title"]
@@ -990,12 +1009,12 @@ if __name__ == "__main__":
     if settings.LOGIN_TYPE == "single_user":
         print( _("Warning: Without definition of users, everyone " \
                  "with access to this page can add feeds or trigger " \
-                 "the associated actions. " )
-              + _("This could be dangerous if you use user defined actions."))
+                 "the associated actions." )
+              + _("This could be dangerous if you use user defined actions. "))
 
     if settings.LOGIN_TYPE in ["users", "pam"] and not settings.SSL:
         print( _("Warning: Without SSL login credentials aren't encrypted. ")
-              + _("This could be dangerous if you use user defined actions."))
+              + _("This could be dangerous if you use user defined actions. "))
 
     print("Serving at port", settings.PORT)
     print("Use {host}:{port}/?feed=[url] to view feed".format(

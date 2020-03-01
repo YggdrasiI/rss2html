@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-03-01 19:10+0100\n"
+"POT-Creation-Date: 2020-03-01 20:34+0100\n"
 "PO-Revision-Date: 2019-01-10 20:07+0100\n"
 "Last-Translator: Olaf Schulz <olaf_schulz+rss2html@posteo.de>\n"
 "Language: en_US\n"
@@ -38,84 +38,92 @@ msgstr ""
 msgid "Quit"
 msgstr ""
 
-#: rss_server.py:770 rss_server.py:799
+#: rss_server.py:511
+msgid "No feed found for this URI arguments."
+msgstr ""
+
+#: rss_server.py:599
+msgid "Feed XML document '{}' does not exists."
+msgstr ""
+
+#: rss_server.py:603
+msgid "Parsing of feed XML document '{}' failed."
+msgstr ""
+
+#: rss_server.py:607
+msgid "Loading of feed XML document '{}' failed."
+msgstr ""
+
+#: rss_server.py:789 rss_server.py:818
 msgid "Error"
 msgstr ""
 
-#: rss_server.py:773
+#: rss_server.py:792
 msgid "Debug Info"
 msgstr ""
 
-#: rss_server.py:801
+#: rss_server.py:820
 msgid "Info"
 msgstr ""
 
-#: rss_server.py:859
+#: rss_server.py:878
 msgid "URI arguments wrong."
 msgstr ""
 
-#: rss_server.py:863
+#: rss_server.py:882
 msgid "Action requires login. "
 msgstr ""
 
-#: rss_server.py:865
+#: rss_server.py:884
 msgid ""
 "Define LOGIN_TYPE in 'settings.py'. Proper values can be found in "
 "'default_settings.py'. "
 msgstr ""
 
-#: rss_server.py:873
+#: rss_server.py:892
 msgid "Wrong hash for this url argument."
 msgstr ""
 
-#: rss_server.py:882
+#: rss_server.py:901
 msgid "Action not allowed for this file."
 msgstr ""
 
-#: rss_server.py:890
+#: rss_server.py:909
 msgid ""
 "Running of handler for \"{action_name}\" failed. Exception was: "
 "\"{exception}\"."
 msgstr ""
 
-#: rss_server.py:896
+#: rss_server.py:915
 msgid "Running of \"{action_name}\" for \"{url}\" started."
 msgstr ""
 
-#: rss_server.py:908
+#: rss_server.py:927
 msgid "Login has failed."
 msgstr ""
 
-#: rss_server.py:988
+#: rss_server.py:1007
 msgid ""
 "Note: Actions for enclosured media files are disabled because LOGIN_TYPE "
 "is None."
 msgstr ""
 
-#: rss_server.py:991
+#: rss_server.py:1010
 msgid ""
 "Warning: Without definition of users, everyone with access to this page "
-"can add feeds or trigger the associated actions. "
+"can add feeds or trigger the associated actions."
 msgstr ""
 
-#: rss_server.py:994 rss_server.py:998
-msgid "This could be dangerous if you use user defined actions."
+#: rss_server.py:1013 rss_server.py:1017
+msgid "This could be dangerous if you use user defined actions. "
 msgstr ""
 
-#: rss_server.py:997
+#: rss_server.py:1016
 msgid "Warning: Without SSL login credentials aren't encrypted. "
 msgstr ""
 
 #: templates/base.html:36 templates/index.html:10
 msgid "RSS Viewer"
-msgstr ""
-
-#: templates/base.html:39 templates/index.html:55
-msgid "User:"
-msgstr ""
-
-#: templates/base.html:40 templates/index.html:56
-msgid "Logout"
 msgstr ""
 
 #: templates/feed.html:6 templates/login.html:6 templates/message.html:6
@@ -201,6 +209,14 @@ msgstr ""
 msgid "Miscellaneous"
 msgstr ""
 
+#: templates/index.html:55
+msgid "User:"
+msgstr ""
+
+#: templates/index.html:56
+msgid "Logout"
+msgstr ""
+
 #: templates/index.html:59
 msgid "Styles:"
 msgstr ""
@@ -254,4 +270,20 @@ msgstr ""
 
 #~ msgid "Rss Viewer"
 #~ msgstr "RSS Viewer"
+
+#~ msgid "Login has failed."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Warning: Without definition of users, "
+#~ "everyone with access to this page "
+#~ "can add feeds or trigger the "
+#~ "associated actions. "
+#~ msgstr ""
+
+#~ msgid "Warning: Without SSL login credentials aren't encrypted. "
+#~ msgstr ""
+
+#~ msgid "This could be dangerous if you use user defined actions."
+#~ msgstr ""
 

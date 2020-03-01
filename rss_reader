@@ -9,23 +9,45 @@ import webbrowser
 if "." not in sys.path:
     sys.path.append(".")
 
-import default_settings as settings  # Overriden in load_config()
 
 if __name__ == "__main__":
-    settings.load_config(globals())
+
+    # Load settings from config, if possible
+    # Otherwise fall back on some default values.
+    try:
+        import default_settings as settings  # Overriden in load_config()
+    except:
+        port = "8888"
+        host = "localhost"
+        protocol = "https"
+    else:
+        settings.load_config(globals())
+        port = settings.PORT
+        host = settings.HOST
+        protocol = "https" if settings.SSL else "http"
+
+
     try:
         tmp_file = sys.argv[1]
     except IndexError:
-        "No file path given"
-    finally:
+        print("No file path or url given.")
+        os._exit(-1)
+
+    # Check if argument is file or url
+    if os.path.exists(tmp_file):
         # Rename to omit spamming browser history
         rss_file = os.path.join(os.path.dirname(tmp_file), "rss.tmp")
         os.rename(tmp_file, rss_file)
 
-        # Open site with default browser
-        webbrowser.open('{protocol}://{domain}:{port}/?file={rss_file}'.format(
-            protocol= "https" if settings.SSL else "http",
-            domain=settings.HOST,
-            port=settings.PORT,
-            rss_file=rss_file)
-        )
+        uri_arguments = "?file={}".format(rss_file)
+    elif tmp_file.strip().startswith("http"):
+        uri_arguments = "?feed={}".format(tmp_file)
+    else:
+        print("Input argument is no existing file or url.")
+        os._exit(-2)
+
+    # Open site with default browser
+    webbrowser.open('{protocol}://{domain}:{port}/{args}'.format(
+        protocol=protocol, domain=host, port=port,
+        args=uri_arguments)
+    )

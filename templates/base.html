@@ -34,12 +34,15 @@
   {% endif %}
   <link rel="stylesheet" href="css/onclick2.css" type="text/css" media="all" />
   <title>{{ _('RSS Viewer') }} — {{title}}</title>
-</head><body>
+</head>
+<body>
+  {% block content %}{% endblock %}
+  {#
   {% if session_user %}
   <span class="session">{{ _('User:') }} {{ session_user }}
     <a href="/logout">{{ _('Logout') }}</a></span>
   {% endif %}
-    {% block content %}{% endblock %}
+  #}
 </body>
 </html>
 

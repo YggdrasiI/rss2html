@@ -112,6 +112,8 @@ babel_update: babel_prepare
 	@for SLANG in $(SUPPORTED_LANGS) ; do \
 		$(PYBABEL) update -l $${SLANG} -d ./locale -i ./locale/messages.pot ;\
 		done
+	@echo "Now, 'git diff locale' show the differences."
+	@echo "Update locale/*/LC_MESSAGES/*.po and finally run 'make babel_complie'"
 
 babel_compile:
 	@for SLANG in $(SUPPORTED_LANGS) ; do \

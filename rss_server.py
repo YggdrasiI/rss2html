@@ -905,7 +905,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         if self.session.init(user, password=password, settings=settings):
             return self.session_redirect('/')
         else:
-            error_msg = _('Login failed.')
+            error_msg = _('Login has failed.')
             return self.show_login(user, error_msg, True)
 
     def handle_logout(self, query_components):
@@ -937,8 +937,8 @@ def wrap_SSL(httpd):
     ssl_path = "."
     httpd.socket = ssl.wrap_socket (
         httpd.socket, server_side=True,
-        keyfile=os.path.join(ssl_path, "ssl_rss_server_localhost.key"),
-        certfile=os.path.join(ssl_path, "ssl_rss_server_localhost.crt"),
+        keyfile=os.path.join(ssl_path, "ssl_rss_server.key"),
+        certfile=os.path.join(ssl_path, "ssl_rss_server.crt"),
     )
 
 
@@ -990,11 +990,11 @@ if __name__ == "__main__":
     if settings.LOGIN_TYPE == "single_user":
         print( _("Warning: Without definition of users, everyone " \
                  "with access to this page can add feeds or trigger " \
-                 " the associated actions." )
+                 "the associated actions. " )
               + _("This could be dangerous if you use user defined actions."))
 
     if settings.LOGIN_TYPE in ["users", "pam"] and not settings.SSL:
-        print( _("Warning: Without SLL login credentials aren't encrypted. ")
+        print( _("Warning: Without SSL login credentials aren't encrypted. ")
               + _("This could be dangerous if you use user defined actions."))
 
     print("Serving at port", settings.PORT)

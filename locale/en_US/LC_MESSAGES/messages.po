@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-02-27 00:49+0100\n"
+"POT-Creation-Date: 2020-03-01 19:10+0100\n"
 "PO-Revision-Date: 2019-01-10 20:07+0100\n"
 "Last-Translator: Olaf Schulz <olaf_schulz+rss2html@posteo.de>\n"
 "Language: en_US\n"
@@ -18,65 +18,111 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.8.0\n"
 
-#: default_settings.py:82
+#: default_settings.py:101
 msgid "Download file"
 msgstr ""
 
-#: default_settings.py:88
+#: default_settings.py:107
 msgid "Play file with external program"
 msgstr ""
 
-#: rss_server.py:40
+#: rss_server.py:50
 msgid "Default theme"
 msgstr ""
 
-#: rss_server.py:41
+#: rss_server.py:51
 msgid "Dark theme"
 msgstr ""
 
-#: rss_server.py:387
+#: rss_server.py:468
 msgid "Quit"
 msgstr ""
 
-#: rss_server.py:647
+#: rss_server.py:770 rss_server.py:799
 msgid "Error"
 msgstr ""
 
-#: rss_server.py:651
+#: rss_server.py:773
 msgid "Debug Info"
 msgstr ""
 
-#: rss_server.py:690
+#: rss_server.py:801
+msgid "Info"
+msgstr ""
+
+#: rss_server.py:859
 msgid "URI arguments wrong."
 msgstr ""
 
-#: rss_server.py:696
+#: rss_server.py:863
+msgid "Action requires login. "
+msgstr ""
+
+#: rss_server.py:865
+msgid ""
+"Define LOGIN_TYPE in 'settings.py'. Proper values can be found in "
+"'default_settings.py'. "
+msgstr ""
+
+#: rss_server.py:873
 msgid "Wrong hash for this url argument."
 msgstr ""
 
-#: rss_server.py:705
+#: rss_server.py:882
 msgid "Action not allowed for this file."
 msgstr ""
 
-#: rss_server.py:713
+#: rss_server.py:890
 msgid ""
 "Running of handler for \"{action_name}\" failed. Exception was: "
 "\"{exception}\"."
 msgstr ""
 
-#: rss_server.py:719
+#: rss_server.py:896
 msgid "Running of \"{action_name}\" for \"{url}\" started."
 msgstr ""
 
-#: templates/base.html:33 templates/index.html:10
-msgid "Rss Viewer"
-msgstr "RSS Viewer"
+#: rss_server.py:908
+msgid "Login has failed."
+msgstr ""
 
-#: templates/feed.html:6 templates/message.html:6
+#: rss_server.py:988
+msgid ""
+"Note: Actions for enclosured media files are disabled because LOGIN_TYPE "
+"is None."
+msgstr ""
+
+#: rss_server.py:991
+msgid ""
+"Warning: Without definition of users, everyone with access to this page "
+"can add feeds or trigger the associated actions. "
+msgstr ""
+
+#: rss_server.py:994 rss_server.py:998
+msgid "This could be dangerous if you use user defined actions."
+msgstr ""
+
+#: rss_server.py:997
+msgid "Warning: Without SSL login credentials aren't encrypted. "
+msgstr ""
+
+#: templates/base.html:36 templates/index.html:10
+msgid "RSS Viewer"
+msgstr ""
+
+#: templates/base.html:39 templates/index.html:55
+msgid "User:"
+msgstr ""
+
+#: templates/base.html:40 templates/index.html:56
+msgid "Logout"
+msgstr ""
+
+#: templates/feed.html:6 templates/login.html:6 templates/message.html:6
 msgid "Overview"
 msgstr ""
 
-#: templates/feed.html:12 templates/message.html:12
+#: templates/feed.html:12 templates/login.html:12 templates/message.html:12
 msgid "Ignore feed cache"
 msgstr ""
 
@@ -92,71 +138,99 @@ msgstr ""
 msgid "media files"
 msgstr ""
 
-#: templates/index.html:15
+#: templates/index.html:16 templates/login.html:23 templates/macros.html:7
+msgid "Login"
+msgstr ""
+
+#: templates/index.html:21
 msgid "Description"
 msgstr ""
 
-#: templates/index.html:16
+#: templates/index.html:22
 msgid ""
 "As Firefox 64.0 removes it's internal RSS reader, this script replaces "
 "the functionality."
 msgstr ""
 
-#: templates/index.html:18
+#: templates/index.html:24
 msgid ""
 "It converts a 2.0 RSS feed into html page (similar looking to FF's "
 "version)."
 msgstr ""
 
-#: templates/index.html:20
+#: templates/index.html:26
 msgid "Favorites"
 msgstr ""
 
-#: templates/index.html:26
+#: templates/index.html:31
+msgid "List of favorite feeds is empty."
+msgstr ""
+
+#: templates/index.html:34
 msgid "Other Feeds"
 msgstr ""
 
-#: templates/index.html:32
+#: templates/index.html:39
+msgid "History of visited feeds is empty."
+msgstr ""
+
+#: templates/index.html:42
 msgid "URI Arguments"
 msgstr ""
 
-#: templates/index.html:33
+#: templates/index.html:43
 #, python-format
 msgid ""
 "Prepend feed url by '%(url)s' to display feed content by this\n"
 "    rss viewer."
 msgstr ""
 
-#: templates/index.html:35
+#: templates/index.html:46
 #, python-format
 msgid ""
 "Add a feed to %(favvar)s in '%(config_file)s' to extend above\n"
 "    list."
 msgstr ""
 
-#: templates/index.html:37
+#: templates/index.html:48
 #, python-format
 msgid "Its name can be used as shortcut, i.e %(example_url)s."
 msgstr ""
 
-#: templates/index.html:40
+#: templates/index.html:52
 msgid "Miscellaneous"
 msgstr ""
 
-#: templates/index.html:42
-msgid "Quit daemon"
-msgstr ""
-
-#: templates/index.html:44
+#: templates/index.html:59
 msgid "Styles:"
 msgstr ""
 
-#: templates/index.html:62 templates/index.html:72
+#: templates/index.html:67
+msgid "Reload favorites from disk"
+msgstr ""
+
+#: templates/index.html:68
+msgid "Quit daemon"
+msgstr ""
+
+#: templates/index.html:79 templates/index.html:89
 msgid "Remove feed"
 msgstr ""
 
-#: templates/index.html:70
+#: templates/index.html:87
 msgid "Add to favorites"
+msgstr ""
+
+#: templates/macros.html:17 templates/macros.html:24
+msgid "No login required."
+msgstr ""
+
+#: templates/macros.html:19
+msgid "Every user in 'settings.USERS' can log in."
+msgstr ""
+
+#: templates/macros.html:21
+msgid "Every user on this system can log in."
 msgstr ""
 
 #~ msgid "Medien-Dateien"
@@ -164,4 +238,20 @@ msgstr ""
 
 #~ msgid "Uncached Feed"
 #~ msgstr ""
+
+#~ msgid "Login failed."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Warning: Without definition of users, "
+#~ "everyone with access to this page "
+#~ "can add feeds or trigger  the "
+#~ "associated actions."
+#~ msgstr ""
+
+#~ msgid "Warning: Without SLL login credentials aren't encrypted. "
+#~ msgstr ""
+
+#~ msgid "Rss Viewer"
+#~ msgstr "RSS Viewer"
 

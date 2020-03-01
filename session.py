@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from http import cookies
-from hashlib import sha3_224, sha1
+from hashlib import sha224, sha1
 from random import randint
 from subprocess import Popen, PIPE, TimeoutExpired
 
@@ -30,7 +30,7 @@ class Session():
         if user != "":
             session_id = str(randint(0, 1E15))
 
-            session_hash = sha3_224(
+            session_hash = sha224(
                 (self.secret + session_id + user).encode('utf-8')
             ).hexdigest()
 
@@ -106,7 +106,7 @@ class Session():
             session_hash = self.get("session_hash", "-1")
 
             # Check cookie
-            session_hash2 = sha3_224(
+            session_hash2 = sha224(
                 (self.secret + session_id  + user).encode('utf-8')
             ).hexdigest()
 

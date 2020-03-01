@@ -14,6 +14,7 @@ import socket
 import socketserver
 from io import BytesIO
 import locale
+from subprocess import Popen, PIPE
 from time import sleep
 from random import randint
 # from importlib import reload
@@ -43,8 +44,20 @@ XML_NAMESPACES = {'content': 'http://purl.org/rss/1.0/modules/content/',
                   'atom': 'http://www.w3.org/2005/AtomX',
                   'atom10': 'http://www.w3.org/2005/Atom',
                  }
-ORIG_LOCALE = locale.getlocale()
-EN_LOCALE = ("en_US", ORIG_LOCALE[1])  # second index probably UTF-8
+ORIG_LOCALE = locale.getlocale()  # running user might be non-english
+
+# Find installed EN locale. en_US or en_GB in most cases
+try:
+    (out, err) = Popen(['locale', '-a'], stdout=PIPE).communicate()
+    avail_locales = out.decode('utf-8').split("\n")
+    for l in avail_locales:
+        if l.startswith("en_"):
+            EN_LOCALE = tuple(l.split("."))
+            print("Use {} for english date strings".format(l))
+            break
+except Exception as e:
+    print(e)
+    EN_LOCALE = ("en_US", ORIG_LOCALE[1])  # second index probably UTF-8
 
 CSS_STYLES = {
     "default.css": _("Default theme"),
@@ -279,7 +292,7 @@ def add_enclosure_actions(e):
     # The hash is added to prevent change of url. (No user authentication...)
 
     url = e["enclosure_url"]
-    url_hash = '{}'.format( hashlib.sha3_224(
+    url_hash = '{}'.format( hashlib.sha224(
         (settings.ACTION_SECRET + url).encode('utf-8')).hexdigest())
     e["actions"] = []
 
@@ -305,8 +318,12 @@ def genMyHTTPServer():
 # at runtime (after load_config() call).
 # Before it maps on default_settings.
 
-    # class _MyHTTPServer(socketserver.TCPServer):
-    class _MyHTTPServer(http.server.ThreadingHTTPServer):
+    if hasattr(http.server, "ThreadingHTTPServer"):
+        ServerClass = http.server.ThreadingHTTPServer
+    else:
+        ServerClass = socketserver.TCPServer
+
+    class _MyHTTPServer(ServerClass):
         print("Use language {}".format(settings.GUI_LANG))
         html_renderer = templates.HtmlRenderer(settings.GUI_LANG,
                                                settings.CSS_STYLE)
@@ -886,7 +903,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                                "'default_settings.py'. ")
             return self.show_msg(error_msg, True)
 
-        url_hash2 = '{}'.format( hashlib.sha3_224(
+        url_hash2 = '{}'.format( hashlib.sha224(
             (settings.ACTION_SECRET + url).encode('utf-8')).hexdigest())
         if url_hash != url_hash2:
             error_msg = _('Wrong hash for this url argument.')

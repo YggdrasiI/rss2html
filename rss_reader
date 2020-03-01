@@ -10,22 +10,22 @@ if "." not in sys.path:
     sys.path.append(".")
 
 import default_settings as settings  # Overriden in load_config()
-RSS_SERVER_URL="http://localhost"
 
 if __name__ == "__main__":
     settings.load_config(globals())
     try:
-        TMP_FILE = sys.argv[1]
+        tmp_file = sys.argv[1]
     except IndexError:
         "No file path given"
     finally:
         # Rename to omit spamming browser history
-        RSS_FILE = os.path.join(os.path.dirname(TMP_FILE), "rss.tmp")
-        os.rename(TMP_FILE, RSS_FILE)
+        rss_file = os.path.join(os.path.dirname(tmp_file), "rss.tmp")
+        os.rename(tmp_file, rss_file)
 
         # Open site with default browser
-        webbrowser.open('{DOMAIN}:{PORT}/?file={RSS_FILE}'.format(
-            DOMAIN=RSS_SERVER_URL,
-            PORT=settings.PORT,
-            RSS_FILE=RSS_FILE)
+        webbrowser.open('{protocol}://{domain}:{port}/?file={rss_file}'.format(
+            protocol= "https" if settings.SSL else "http",
+            domain=settings.HOST,
+            port=settings.PORT,
+            rss_file=rss_file)
         )

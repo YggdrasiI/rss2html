@@ -130,8 +130,8 @@ msgid ""
 "Prepend feed url by '%(url)s' to display feed content by this\n"
 "    rss viewer."
 msgstr ""
-"Um einen Feed mit diesem Programm anzuzeigen muss die Feed-Url um "
-"'%(url)s' ergänzt werden."
+"Um einen Feed mit diesem Programm anzuzeigen, setze vor die Url des Feed folgenden String: "
+"'%(url)s', damit er von diesem RSS-Viewer geladen wird."
 
 #: templates/index.html:35
 #, python-format

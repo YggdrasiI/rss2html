@@ -57,7 +57,7 @@ class HtmlRenderer:
         self.env.filters['get_icon'] = get_icon_for_mimetype
         self.env.filters['clipped_media_name'] = get_clipped_media_name
         
-        self.extra_context = {"user_css_style": css_style}
+        self.extra_context = {"system_css_style": css_style}
 
 
     def run(self, filename="base.html", context=None):

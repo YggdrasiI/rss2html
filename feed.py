@@ -36,14 +36,13 @@ def get_feed(key, *feed_lists):  # hist_feeds=None):
     return (None, -1)
 
 
-def save_history(feeds, folder=None):
-    """ Writes feeds into history.py """
+def save_history(feeds, folder="", filename="history.py"):
+    """ Writes feeds into history.py (or explict given filename)"""
 
-    path = "history.py"
-    if folder:
-        path = os.path.join(folder, path)
+    path = os.path.join(folder, filename)
 
-    print("Write history with {0} entries.".format(len(feeds)))
+    print("Write history file '{1}' with {0} entries.".format(
+        len(feeds), filename))
     with open(path, "w") as f:
         f.write("#!/usr/bin/python3\n")
         f.write("# -*- coding: utf-8 -*-\n\n")
@@ -64,15 +63,14 @@ def clear_history(feedsA, feedsB):
     for feed in found:
         feedsB.remove(feed)
 
-def update_favorites(feeds, folder=None, path="favorites.py"):
-    """ Updates FAVORITES variable into favorites.py
-    
+def update_favorites(feeds, folder="", filename="favorites.py"):
+    """ Updates FAVORITES variable into favorites.py (or explict given filename)
+
     Function do not alter other parts of given config file.
-    (Note: Previous versions saves favarites directly in settings.py)
+    (Note: Previous versions saves favorites directly in settings.py)
     """
 
-    if folder:
-        path = os.path.join(folder, path)
+    path = os.path.join(folder, filename)
 
     if not os.path.exists(path):
         config_file_content = """
@@ -110,7 +108,8 @@ FAVORITES = [
         __FAVORITES=",\n    ".join(feed_strs) \
         + ",\n" if len(feed_strs) else "")
 
-    print("Write settings file with {0} favorite entries.".format(len(feeds)))
+    print("Write favorites file '{1}' with {0} entries.".format(
+        len(feeds), filename))
     with open(path, "w") as f:
         f.write(config_file_content)
 

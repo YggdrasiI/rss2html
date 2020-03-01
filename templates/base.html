@@ -1,4 +1,5 @@
 {#{% load i18n %}#}
+{% import 'macros.html' as macros %}
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="{{
     LANGUAGE_CODE|default("en-us",True) }}" {% if LANGUAGE_BIDI %}dir="rtl"{% endif %}>
@@ -26,12 +27,19 @@
 
   {% if user_css_style %}
   <link rel="stylesheet" href="css/{{ user_css_style }}" type="text/css" media="all" />
+  {% elif system_css_style %}
+  <link rel="stylesheet" href="css/{{ system_css_style }}" type="text/css" media="all" />
   {% else %}
   <link rel="stylesheet" href="css/default.css" type="text/css" media="all" />
   {% endif %}
   <link rel="stylesheet" href="css/onclick2.css" type="text/css" media="all" />
   <title>{{ _('Rss Viewer') }} — {{title}}</title>
 </head><body>
+  {% if session_user %}
+  <span class="session">{{ _('User:') }} {{ session_user }}
+    <a href="/logout">{{ _('Logout') }}</a></span>
+  {% endif %}
     {% block content %}{% endblock %}
 </body>
 </html>
+

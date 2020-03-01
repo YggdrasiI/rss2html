@@ -12,34 +12,49 @@
     </div>
   </div>
   <div id="feedContent">
+    {% if not session_user and login_type and login_type != "single_user" %}
+    <h2>{{ _('Login') }}</h2>
+    <div class="clearfix">
+    {{ macros.login_form(user) }}
+    </div>
+    {% endif %}
     <h2 id="feedSubtitleText" >{{ _('Description') }}</h2>
     <p>{{ _("As Firefox 64.0 removes it's internal RSS reader, this script replaces the functionality.") }}
     <br />
     {{ _("It converts a 2.0 RSS feed into html page (similar looking to FF's version).") }}
     </p>
     <h2 id="feedSubtitleText">{{ _('Favorites') }}</h2>
-    <ul>
+    <ul class="feed_list">
       {% for fav in favorites %}
       <li>{{ list_favorite(fav, host) }}</li>
+      {% else %}
+      {{ _('List of favorite feeds is empty.') }}
       {% endfor %}
     </ul>
     <h2 id="feedSubtitleText">{{ _('Other Feeds') }}</h2>
-    <ul>
+    <ul class="feed_list">
       {% for fav in history %}
       <li>{{ list_history(fav, host) }}</li>
+      {% else %}
+      {{ _('History of visited feeds is empty.') }}
       {% endfor %}
     </ul>
     <h2 id="feedSubtitleText">{{ _('URI Arguments') }}</h2>
     <p>{{ _("Prepend feed url by '%(url)s' to display feed content by this
-    rss viewer.")|format(url="<i>%(host)s/?feed=</i>")|format(host=host) }}</p>
+    rss viewer.")|format(url="<i>%(protocol)s%(host)s/?feed=</i>")|format(
+    host=host, protocol=protocol) }}</p>
     <p>{{ _("Add a feed to %(favvar)s in '%(config_file)s' to extend above
     list.")|format(favvar="FAVORITES", config_file=FAVORITES_FILE) }}
     {{ _("Its name can be used as shortcut, i.e %(example_url)s.")|format(
-    example_url="<i>%(host)s/?feed={name}</i>")|format(host=host) }}
+    example_url="<i>%(protocol)s%(host)s/?feed={name}</i>")|format(
+    host=host, protocol=protocol) }}
     </p>
     <h2 id="feedSubtitleText">{{ _('Miscellaneous') }}</h2>
-    <ul>
-      <li><a href="/quit">{{ _('Quit daemon') }}</a></li>
+    <ul class="misc_list">
+      {% if session_user and session_user != "default" %}
+      <li><span class="session">{{ _('User:') }} {{ session_user }}
+          <a href="/logout">{{ _('Logout') }}</a></span></li>
+      {% endif %}
       {% if css_styles %}
       <li>{{ _('Styles:') }}
         <ul class="css_style_list">
@@ -49,6 +64,8 @@
         </ul>
       </li>
       {% endif %}
+      <li><a href="/reload">{{ _('Reload favorites from disk') }}</a></li>
+      <li><a href="/quit">{{ _('Quit daemon') }}</a></li>
     </ul>
   </div>
 </div>
@@ -56,20 +73,20 @@
 
 {% macro list_favorite(feed, host) -%}
 <span class="reader_favorites">
-  <a href="http://{{ host }}/?feed={{ feed.name|urlencode }}">{{
+  <a href="//{{ host }}/?feed={{ feed.name|urlencode }}">{{
     feed.title|default(feed.name,True) }}</a>
-  <a href="http://{{ host }}/?rm={{ feed.name|urlencode }}" title="{{
+  <a href="//{{ host }}/?rm={{ feed.name|urlencode }}" title="{{
   _('Remove feed') }}">✖</a>
 </span>
 {%- endmacro %}
 
 {% macro list_history(feed, host) -%}
 <span class="reader_favorites">
-  <a href="http://{{ host }}/?feed={{ feed.title|urlencode }}">{{
+  <a href="//{{ host }}/?feed={{ feed.title|urlencode }}">{{
     feed.title|default(feed.name,True) }}</a>
-  <a href="http://{{ host }}/?add_fav={{ feed.name|urlencode }}" title="{{
+  <a href="//{{ host }}/?add_fav={{ feed.name|urlencode }}" title="{{
   _('Add to favorites') }}">➕&#xFE0E;</a>
-  <a href="http://{{ host }}/?rm={{ feed.name|urlencode }}" title="{{
+  <a href="//{{ host }}/?rm={{ feed.name|urlencode }}" title="{{
   _('Remove feed') }}">✖</a>
 </span>
 {%- endmacro %}

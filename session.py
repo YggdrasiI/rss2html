@@ -1,0 +1,216 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+
+from http import cookies
+from hashlib import sha3_224, sha1
+from random import randint
+from subprocess import Popen, PIPE, TimeoutExpired
+
+"""
+try:
+    from pam import pam
+    PAM=True
+except ImportError:
+    PAM=False
+"""
+
+
+class Session():
+    def __init__(self, request, secret):
+        self.request = request
+        self.secret = secret
+        self.c = cookies.SimpleCookie()
+        self.login_ok = False
+
+    def is_logged_in(self):
+        return self.login_ok
+
+    def init(self, user, **kwargs):
+
+        if user != "":
+            session_id = str(randint(0, 1E15))
+
+            session_hash = sha3_224(
+                (self.secret + session_id + user).encode('utf-8')
+            ).hexdigest()
+
+            self.c["user"] = user
+            self.c["session_id"] = session_id
+            self.c["session_hash"] = session_hash
+
+            self.add_cookie_derectives()
+            self.login_ok = True
+
+            return True
+
+        return False
+
+    def uninit(self):
+        self.c["session_id"] = "-1"
+        self.c["session_hash"] = "-1"
+        self.c["session_id"]["max-age"] = -1  # triggers deletion
+        self.c["session_hash"]["max-age"] = -1
+        self.login_ok = False
+
+    def clear(self):
+        # Remove login releated values from cookies.
+        # self.c.pop("user", None)
+        self.c.pop("session_id", None)
+        self.c.pop("session_hash", None)
+        self.login_ok = False
+
+    def add_cookie_derectives(self):
+        # Metadata
+        self.c["user"]["max-age"] = 31536000        # year
+        self.c["session_id"]["max-age"] = 604800    # week
+        self.c["session_hash"]["max-age"] = 604800
+
+        try:
+            self.c["user"]["samesite"] = "Strict"
+            self.c["session_id"]["samesite"] = "Strict"
+            self.c["session_hash"]["samesite"] = "Strict"
+        except cookies.CookieError:
+            pass  # Requires Python >= 3.8
+
+        self.c["session_id"]["httponly"] = True
+        self.c["session_hash"]["httponly"] = True
+
+        # Browser only sends them over https
+        # self.c["session_id"]["secure"] = True
+        # self.c["session_hash"]["secure"] = True
+
+
+    def get(self, key, default=""):
+        # Return value of Morsel object
+        try:
+            val = self.c[key].value
+        except KeyError:
+            val = default
+
+        return val
+
+    def get_logged_in(self, key, default=""):
+        if not self.is_logged_in():
+            return default
+
+        return self.get(key, default)
+
+    def load(self):
+        self.c.load(self.request.headers.get("Cookie", ""))
+        user = self.get("user", "")
+        session_id = self.get("session_id", "-1")
+
+        if session_id != "-1":
+            print("Session User:" + user)
+            print("Session Id:" + session_id)
+            session_hash = self.get("session_hash", "-1")
+
+            # Check cookie
+            session_hash2 = sha3_224(
+                (self.secret + session_id  + user).encode('utf-8')
+            ).hexdigest()
+
+            if not session_hash == session_hash2:
+                print("Hey, session params not match!")
+                # self.c.clear()  # Deletes too much
+                self.clear()
+                self.login_ok = False
+            else:
+                self.login_ok = True
+
+        else:
+            # self.c.clear()  # Deletes too much
+            self.clear()
+
+            print("User (not logged in): " + self.get("user"))
+
+
+    def save(self):
+        print("Session Type: " + str(type(self)))
+        print("Save cookies")
+        print(self.c.output())
+        self.request.send_header(
+            "Set-Cookie", self.c.output(header="",
+                                        sep="\r\nSet-Cookie:"))
+        # Less ugly, but this does not work:
+        # self.request.wfile.write(self.c.output().encode('utf-8'))
+
+
+# Login everyone as "default" user
+class LoginFreeSession(Session):
+    # def __init__(self, request, secret):
+    #     super().__init__(request, secret)
+
+    def init(self, user, **kwargs):
+        self.c["user"] = user
+        # self.c["session_id"] = "0"
+        self.c["session_id"] = str(randint(0, 1E15))
+        self.c["session_hash"] = "0"
+        self.add_cookie_derectives()
+        self.login_ok = True
+
+        return True
+
+    def load(self):
+        self.c.load(self.request.headers.get("Cookie", ""))
+        # user, session_id and session_hash are arbitary
+        self.login_ok = True
+
+
+# Check agains explicit list of users from settings.py
+class ExplicitSession(Session):
+    def init(self, user, password, settings, **kwargs):
+        if not hasattr(settings, "USERS"):
+            return False
+
+        if not user in settings.USERS:
+            return False
+
+        user_settings = settings.USERS[user]
+        if "password" in user_settings and \
+           password == user_settings["password"]:
+            return super().init(user, **kwargs)
+
+        if "hash" in user_settings and \
+           sha1(password.encode('utf-8')).hexdigest() == user_settings["hash"]:
+            return super().init(user, **kwargs)
+
+        return False
+
+
+# Verify users over pam
+class PamSession(Session):
+    def init(self, user, password, **kwargs):
+        self.login_ok = False
+
+        """
+        if not PAM:
+            print("PAM login not available. Install python-pam.")
+            return False
+
+        # Requires read access on /etc/shadow
+        p = pam()
+        if p.authenticate(user, password):
+            return super().init(user, **kwargs)
+
+        print("PAM login failed for '{}'.".format(user))
+        return False
+        """
+
+        # Try out password over su-call
+        check_cmd=("su", "-c true", user)
+        su_proc = Popen(check_cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        su_proc.communicate(password.encode('utf-8'))
+        try:
+            su_proc.wait(2.0)  # Hm, limits brute force waiting time…
+        except TimeoutExpired:
+            return False
+
+        exit_code = su_proc.poll()
+        print("Exit_code: " + str(exit_code))
+        if (exit_code == 0):
+            return super().init(user, **kwargs)
+
+        return False
+
+

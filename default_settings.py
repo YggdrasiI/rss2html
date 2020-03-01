@@ -6,25 +6,40 @@ from gettext import gettext as _
 from feed import Feed
 import actions
 
-# Default favorites.
-# Put override of this variable into favorites.py!
-FAVORITES = [
-    Feed("example",
-         "http://www.deutschlandfunk.de/podcast-das-war-der-tag.803.de.podcast",
-         "Example Feed"),
-]
-
 # Default settings
 # Put overrides of these variables into settings.py!
 
 HOST = "localhost"  # "" allows access from everywhere....
 PORT = 8888
+SSL = True          # HTTPS
+
 GUI_LANG = "en"
 
-# User defined css-file.
-#             Available: "dark.css"
-CSS_STYLE = None  # None => default.css
+# ==========================================================
+DOWNLOAD_DIR = "$HOME/Downloads"
 
+# ==========================================================
+# LOGIN_TYPE
+#
+# Possible values:
+#                  None: Do not use session cookies.
+#         "single_user": Auto-login every user as "default"
+#                        Attention, in this case, everyone can
+#                        trigger all actions, defined below.
+#                        Use None if you do not want this.
+#               "users": Use USER-dict, below.
+#                 "pam": Allow login for every account on this
+#                        machine. Do NOT use this without SSL!
+LOGIN_TYPE = None
+
+# User list, used for LOGIN_TYPE == "list"
+USERS = {
+    "example_user1": {"password": ""},
+    "example_user2": {"hash":  # sha1-hash
+                      "da39a3ee5e6b4b0d3255bfef95601890afd80709"},
+}
+
+# ==========================================================
 CACHE_EXPIRE_TIME_S = 600
 MAX_FEED_BYTE_SIZE = 1E7
 ALLOWED_FILE_EXTENSIONS = [".css", ".png", ".jpg", ".svg"]
@@ -45,8 +60,11 @@ CONTENT_MAX_ENTRIES = -1
 # This variable define a limit where the content of above tag will be ignored.
 CONTENT_FULL_LEN_THRESH = 1E5
 
-# ==========================================================
-DOWNLOAD_DIR = "$HOME/Downloads"
+# Default css-file.
+#             Available: "default.css", "dark.css"
+#
+# User can override this value by the cookie 'style_css'
+CSS_STYLE = None  # None => default.css
 
 # ==========================================================
 ACTION_SECRET = None  # None => Random value at each start.
@@ -91,11 +109,30 @@ ACTIONS = {
     },
 }
 
+# Default favorites.
+# Will copied if users logs in first time and will
+# be displayd if user is not logged in.
+#
+# Update 'favorites.py' to override this value.
+FAVORITES = [
+    Feed("example",
+         "http://www.deutschlandfunk.de/" \
+         "podcast-das-war-der-tag.803.de.podcast.xml",
+         "Example Feed"),
+]
+
+# New approach distinct between users.
+USER_FAVORITES = {
+    "default": FAVORITES,  # username in LoginFreeSession-case
+}
+
 # ==========================================================
 # Helper function for proper loading of settings. Sketch for proper reading
 # of settings:
 #    import default_settings as settings
 #    settings.load_config(globals())
 #
-from settings_helper import get_config_folder, load_config, \
+from settings_helper import get_config_folder, \
+        load_config, load_default_favs, load_users, \
+        get_favorites_filename, get_history_filename, \
         get_settings_path, get_favorites_path

@@ -28,7 +28,7 @@
         </a>
         <div id="feedTitleContainer">
           <h1 id="feedTitleText" >{{ title }}
-            <a id="feedSource" href="{{ href|urlencode }}">[{{ _('Source') }}]</a>
+            <a id="feedSource" href="{{ href }}">[{{ _('Source') }}]</a>
           </h1>
           <h2 id="feedSubtitleText" >{{ subtitle }}</h2>
         </div>
@@ -53,7 +53,7 @@
 
 {% macro feed(entry, loop, with_content_full) %}
 <div class="entry">
-    <h3><a href="{{ entry.url|urlencode }}"><span>{{ entry.title }}</span></a>
+    <h3><a href="{{ entry.url }}"><span>{{ entry.title }}</span></a>
         <span class="lastUpdated">{{ entry.last_update }}</span>
     </h3>
     <div class="feedEntryContent {% if entry.content_full %}click_out{% endif %}">
@@ -102,7 +102,7 @@
 {% macro feed_enclosure(en) %}
 <div class="enclosure">
     <img class="type-icon" src="{{ en.enclosure_type|get_icon }}" alt="media icon"/>
-    <a href="{{ en.enclosure_url|urlencode }}">{{
+    <a href="{{ en.enclosure_url }}">{{
         en.enclosure_filename|clipped_media_name(40) }}</a> ({{
     en.enclosure_type }}, {{ en.enclosure_length }})
     <span class="enclosure_actions">

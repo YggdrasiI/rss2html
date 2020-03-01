@@ -3,6 +3,9 @@ USER=$(shell whoami)
 PYTHON_BIN=$(shell which python3 || which python)
 SYSTEMD_INSTALL_DIR=/etc/systemd/system
 
+# To use subcommand output as file [ cat <(echo "Test") ]
+SHELL=/bin/bash
+
 DEBUG?=1
 
 # Fallback position for packages which are not installed.
@@ -10,6 +13,7 @@ SITE_PACKAGES=site-packages
 PIP_PACKAGES='Jinja2>=2.10' \
 			 'httplib2' \
 			 'babel>=2.6' \
+#			 'python-pam' \
 #			 'webassets-babel>=0.3' \
 
 # Template releated
@@ -22,11 +26,20 @@ SUPPORTED_LANGS=en_US de_DE  # Space between entries
 PYBABEL=$(shell which pybabel || echo -n "PYTHONPATH='$(SITE_PACKAGES)' ./site-packages/pybabel")
 
 help:
-	@echo "Common targets:\n" \
-		"make run               -- Start daemon. Quit with Ctl+C.\n" \
-		"make install_service   -- Install systemd service for automatic start\n" \
-		"                          Service will started as user '${USER}'\n" \
-		"make uninstall_service -- Uninstall systemd service\n" \
+	@echo -e "Common targets:\n" \
+		"make run                 -- Start daemon. Quit with Ctl+C.\n" \
+		"make install_service     -- Install systemd service for automatic start\n" \
+		"                            Service will started as user '${USER}'\n" \
+		"make uninstall_service   -- Uninstall systemd service\n" \
+		"make install_deps_local  -- Install dependencies locally for this user\n" \
+		"make install_deps_global -- Install dependencies global on system\n" \
+		"\n" \
+		"    For developpers: \n" \
+		"make babel_update        -- Localization: Apply source code changes in po-Files\n" \
+		"make ssl                 -- Generate self signed certificates to test HTTPS.\n" \
+		"                            This certicate is self-signed, thus the browers\n" \
+		"                            will warns the users. If needed, replace\n" \
+		"                            ssl_rss_server.[key|crt] by better ones. " \
 		"" \
 
 run: check_env
@@ -43,7 +56,8 @@ run: check_env
 create_service_file: rss_server.service
 
 check_env:
-	@PYTHONPATH='$(SITE_PACKAGES)' $(PYTHON_BIN) -c "import jinja2; import babel" \
+	@PYTHONPATH='$(SITE_PACKAGES)' $(PYTHON_BIN) \
+		-c "import jinja2; import babel" \
 						2>/dev/null \
 						|| make install_deps_local \
 						|| make print_pip_upgrade 
@@ -65,6 +79,8 @@ start_service: rss_server.service
 	sudo systemctl start "$<"
 
 build: check_env babel_compile
+
+ssl: ssl_rss_server.key ssl_rss_server.crt
 
 # ====================================================
 clean:
@@ -92,7 +108,7 @@ babel_init:
 		make locale/$${SLANG}/LC_MESSAGES/messages.po ;\
 		done
 
-babel_update:
+babel_update: babel_prepare
 	@for SLANG in $(SUPPORTED_LANGS) ; do \
 		$(PYBABEL) update -l $${SLANG} -d ./locale -i ./locale/messages.pot ;\
 		done
@@ -116,3 +132,12 @@ print_pip_upgrade:
 	@echo "Installing of packages failed. Maybe your pip version is outdated?!"
 	@/bin/echo -e "Update it with\n\tsudo python3 -m pip install --upgrade pip"
 	@false
+
+ssl_rss_server.key:
+	openssl req -x509 -newkey rsa:2048 -nodes -sha256 \
+		-out ssl_rss_server.crt \
+		-keyout ssl_rss_server.key \
+		-subj '/CN=localhost' -extensions EXT \
+		-config <( \
+		printf "[dn]\nCN=localhost\n[req]\ndistinguished_name = dn\n[EXT]\nsubjectAltName=DNS:localhost\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth")
+

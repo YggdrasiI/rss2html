@@ -232,3 +232,37 @@ a#feedSource {
     display:inline-block;
     vertical-align: top;
 }
+
+.misc_list li{
+  padding-bottom: 0.5em;
+}
+
+.feed_list li{
+  padding-bottom: 0.1em;
+}
+
+.feed_list li a{
+  text-decoration: none;
+}
+
+.feed_list li a:hover{
+  color: #AA0044;
+}
+
+form.login_form {
+  float:left;
+  margin-bottom: 0.5em;
+}
+form.login_form input{
+  display: inline;
+  max-width:7em;
+}
+
+.login_desc {
+  float:left;
+  width:45%;
+  padding-left:1em;
+}
+.clearfix {
+  overflow: auto;
+}

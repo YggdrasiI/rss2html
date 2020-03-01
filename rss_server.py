@@ -17,6 +17,7 @@ import locale
 from time import sleep
 from random import randint
 # from importlib import reload
+import ssl
 
 from gettext import gettext as _
 # from jina2.utils import unicode_urlencode as urlencode
@@ -28,6 +29,15 @@ import default_settings as settings  # Overriden in load_config()
 import icon_searcher
 import cached_requests
 
+from session import LoginFreeSession, ExplicitSession, PamSession
+
+SESSION_TYPES = {
+    None: LoginFreeSession,
+    "single_user": LoginFreeSession,
+    "users": ExplicitSession,
+    "pam": PamSession,
+}
+
 
 XML_NAMESPACES = {'content': 'http://purl.org/rss/1.0/modules/content/',
                   'atom': 'http://www.w3.org/2005/AtomX',
@@ -37,7 +47,7 @@ ORIG_LOCALE = locale.getlocale()
 EN_LOCALE = ("en_US", ORIG_LOCALE[1])  # second index probably UTF-8
 
 CSS_STYLES = {
-    None: _("Default theme"),
+    "default.css": _("Default theme"),
     "dark.css": _("Dark theme"),
 }
 
@@ -301,6 +311,12 @@ def genMyHTTPServer():
         html_renderer = templates.HtmlRenderer(settings.GUI_LANG,
                                                settings.CSS_STYLE)
 
+
+        def __init__(self, *largs, **kwargs):
+            super().__init__(*largs, **kwargs)
+            self.html_renderer.extra_context["login_type"] = \
+                    settings.LOGIN_TYPE
+
         def server_bind(self):
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.socket.bind(self.server_address)
@@ -318,43 +334,108 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
     # ETag in FF still ignored
     ## protocol_version = "HTTP/1.1"
 
+    def __init__(self, *largs, **kwargs):
+        Session = SESSION_TYPES.get(settings.LOGIN_TYPE, ExplicitSession)
+        self.session = Session(self, settings.ACTION_SECRET)
+
+        # Flag to send session cookies without login form.
+        # The header info will send for visit of index- or feed-page.
+        self.save_session = False
+        self.context = {}
+
+        super().__init__(*largs, **kwargs)
+
+    def get_favorites(self):
+        session_user = self.session.get_logged_in("user")
+        return settings.USER_FAVORITES.get(session_user,
+                                           settings.FAVORITES)
+
+    def get_history(self):
+        session_user = self.session.get_logged_in("user")
+        return settings.USER_HISTORY.get(session_user,
+                                         settings.HISTORY)
+
     def do_add_favs(self, add_favs):
+        session_user = self.session.get_logged_in("user")
+        favs = self.get_favorites()
+        hist = self.get_history()
         for feed_key in add_favs:
-            (feed, idx) = get_feed(feed_key,
-                                   settings.FAVORITES,
-                                   settings.HISTORY)
+            (feed, idx) = get_feed(feed_key, favs, hist)
             if feed and idx > 0:  # Index indicates that feed not in FAVORITES
-                settings.FAVORITES.append(feed)
+                favs.append(feed)
                 try:
-                    settings.HISTORY.remove(feed)
+                    hist.remove(feed)
                 except ValueError:
                     pass
 
-        save_history(settings.HISTORY, settings.get_config_folder())
-        update_favorites(settings.FAVORITES, settings.get_config_folder())
+        save_history(hist, settings.get_config_folder(),
+                     settings.get_history_filename(session_user))
+        update_favorites(favs, settings.get_config_folder(),
+                         settings.get_favorites_filename(user))
 
 
     def do_rm_feed(self, to_rm):
+        session_user = self.session.get_logged_in("user")
+        favs = self.get_favorites()
+        hist = self.get_history()
         for feed_key in to_rm:
-            (feed, idx) = get_feed(feed_key,
-                                   settings.FAVORITES,
-                                   settings.HISTORY)
+            (feed, idx) = get_feed(feed_key, favs, hist)
+
             if idx == 0:
                 try:
-                    settings.FAVORITES.remove(feed)
-                    update_favorites(settings.FAVORITES,
-                                     settings.get_config_folder())
+                    favs.remove(feed)
+                    update_favorites(
+                        favs, settings.get_config_folder(),
+                        settings.get_favorites_filename(session_user))
                 except ValueError:
                     pass
 
             if idx == 1:
                 try:
-                    settings.HISTORY.remove(feed)
-                    save_history(settings.HISTORY, settings.get_config_folder())
+                    hist.remove(feed)
+                    save_history(
+                        hist, settings.get_config_folder(),
+                        settings.get_history_filename(session_user))
                 except ValueError:
                     pass
 
+    def do_POST(self):
+        content_length = int(self.headers['Content-Length'])
+        content = self.rfile.read(content_length).decode('utf-8')
+        query_components = parse_qs(content)
+
+        if self.path == "/login" or \
+           "login" in query_components.get("form_id"):
+            return self.handle_login(query_components)
+
+        if self.path == "/logout" or \
+           "logout" in query_components.get("form_id"):
+            return self.handle_logout(query_components)
+
+        msg = 'Post values: {}'.format(str(query_components))
+        return self.show_msg(msg)
+
+
     def do_GET(self):
+
+        self.session.load()
+        self.save_session = False  # To send session headers without login form.
+
+        if settings.LOGIN_TYPE is "single_user" and \
+           not self.session.get("user"):
+            print("Generate new ID for default user!")
+            # Login as "default" user and trigger send of headers
+            if self.session.init(user="default"):
+                # return self.session_redirect(self.path)
+                self.save_session = True
+
+        session_user = self.session.get_logged_in("user")
+
+        # User CSS-Style can overwrite server value
+        user_css_style = self.session.get("css_style")
+        if user_css_style and user_css_style in CSS_STYLES:
+            self.context["user_css_style"] = user_css_style
+
         query_components = parse_qs(urlparse(self.path).query)
         feed_feched = False
         error_msg = None
@@ -395,9 +476,19 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             t.start()
             return ret
 
+        elif self.path == "/reload":
+            self.reload_favs()
+            return self.session_redirect('/')
+        elif self.path.startswith("/login?"):
+            return self.handle_login(query_components)
+        elif self.path == "/login":
+            return self.show_login()
+        elif self.path ==  "/logout":
+            return self.handle_logout(query_components)
         elif self.path.startswith("/change_style"):
             self.handle_change_css_style(query_components)
-            return self.write_index()
+            return self.session_redirect('/')
+            # return self.write_index()
         elif self.path.startswith("/action"):
             try:
                 ret = self.handle_action(query_components)
@@ -409,8 +500,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         elif feed_key:
             try:
                 feed = get_feed(feed_key,
-                                settings.FAVORITES,
-                                settings.HISTORY)[0]
+                                self.get_favorites(),
+                                self.get_history())[0]
                 feed_url = feed.url if feed else feed_key
 
                 res = None
@@ -443,7 +534,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     # Add this (new) url to feed history.
                     settings.HISTORY.append(
                         Feed(feed_title, feed_url, feed_title))
-                    save_history(settings.HISTORY, settings.get_config_folder())
+                    save_history(settings.HISTORY, settings.get_config_folder(),
+                                 settings.get_history_filename(session_user))
 
                 # Warn if feed url might changes
                 parsed_feed_url = res["href"]
@@ -463,6 +555,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
                 #res["nocache_link"] = "/?feed={}&cache=0".format(feed_key)
                 res["nocache_link"] = feed_key
+                res["session_user"] = session_user
 
                 # Replace stored url, if newer value is given.
                 if feed and url_update and res["href"]:
@@ -474,7 +567,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 if entryid:
                     html = "TODO"
                 else:
-                    html = self.server.html_renderer.run("feed.html", res)
+                    context = {}
+                    context.update(self.context)
+                    context.update(res)
+                    html = self.server.html_renderer.run(
+                        "feed.html", context)
 
             except ValueError as e:
                 error_msg = str(e)
@@ -493,11 +590,12 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
                 res = find_feed_keyword_values(tree)
                 res["nocache_link"] = res["title"]
+                res["session_user"] = session_user
 
                 # Update cache and history
                 feed = get_feed(res["title"],
-                                settings.FAVORITES,
-                                settings.HISTORY)[0]
+                                self.get_favorites(),
+                                self.get_history())[0]
                 if feed:
                     # Currently, the feed title is an unique key.
                     # Replace feed url if extracted href field
@@ -516,10 +614,14 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     # Try to extract feed url from xml data because it is not
                     # given directly!
                     settings.HISTORY.append(feed)
-                    save_history(settings.HISTORY, settings.get_config_folder())
+                    save_history(settings.HISTORY, settings.get_config_folder(),
+                                 settings.get_history_filename(session_user))
 
                 cached_requests.update_cache(feed.title, res, {})
-                html = self.server.html_renderer.run("feed.html", res)
+                context = {}
+                context.update(self.context)
+                context.update(res)
+                html = self.server.html_renderer.run("feed.html", context)
 
             except ValueError as e:
                 error_msg = str(e)
@@ -538,6 +640,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 print("Add ETag '{}'".format(etag))
                 self.send_header('ETag', etag)
                 self.send_header('Vary', "ETag, User-Agent")
+
+            if self.save_session:
+                self.session.save()
 
             output = BytesIO()
             output.write(html.encode('utf-8'))
@@ -573,6 +678,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(output.getvalue())
 
         elif self.path == "/" or show_index:
+            # self.session.load(self)
             return self.write_index()
         elif self.path[self.path.rfind("."):] in \
                 settings.ALLOWED_FILE_EXTENSIONS:
@@ -582,17 +688,23 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             return self.send_error(404)
 
     def write_index(self):
+        session_user = self.session.get_logged_in("user")
+        user = self.session.get("user")
 
-        context = {
+        self.context.update({
             "host": self.headers.get("HOST", ""),
+            "protocol": "https://" if settings.SSL else "http://",
+            "session_user": session_user,
+            "user": user,
             "CONFIG_FILE": settings.get_settings_path(),
-            "FAVORITES_FILE": settings.get_favorites_path(),
-            "favorites": settings.FAVORITES,
-            "history": settings.HISTORY,
-            "css_styles": CSS_STYLES
-        }
+            "FAVORITES_FILE": settings.get_favorites_path(user),
+            "favorites": self.get_favorites(),
+            "history": self.get_history(),
+            "css_styles": CSS_STYLES,
+        })
 
-        html = self.server.html_renderer.run("index.html", context)
+        print("Input headers: " + str(self.headers))
+        html = self.server.html_renderer.run("index.html", self.context)
 
         output = BytesIO()
         output.write(html.encode('utf-8'))
@@ -602,10 +714,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         etag = '"{}"'.format( hashlib.sha1(output.getvalue()).hexdigest())
 
         browser_etag = self.headers.get("If-None-Match", "")
-        if etag == browser_etag:
+        if etag == browser_etag and not self.save_session:
             self.send_response(304)
             self.send_header('ETag', etag)
-            self.send_header('Cache-Control', "public, max-age=10, ")
+            # self.send_header('Cache-Control', "public, max-age=10, ")
+            self.send_header('Cache-Control', "public, max-age=0, ")
                             # "must-revalidate, post-check=0, pre-check=0")
             self.send_header('Content-Location', "/index.html")
             self.send_header('Vary', "ETag, User-Agent")
@@ -632,6 +745,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         # self.send_header('Expires', "Wed, 21 Oct 2021 07:28:00 GMT")  # Won't help in FF
         # self.send_header('Last-Modified', "Wed, 21 Oct 2019 07:28:00 GMT")  # Won't help in FF
 
+        if self.save_session:
+            self.session.save()
+
         # Other headers
         self.send_header('Content-Length', output.tell())
         self.send_header('Content-type', 'text/html')
@@ -643,15 +759,48 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
 
+        self.context.update({
+            "msg": msg,
+        })
+
+        self.context["session_user"] = self.session.get_logged_in("user")
+
         output = BytesIO()
         if error:
-            res = {"msg_type": _("Error"),
-                   "msg": msg}
-            html = self.server.html_renderer.run("message.html", res)
+            self.context["msg_type"] = _("Error")
+            html = self.server.html_renderer.run("message.html", self.context)
         else:
-            res = {"msg_type": _("Debug Info"),
-                   "msg": msg}
-            html = self.server.html_renderer.run("message.html", res)
+            self.context["msg_type"] = _("Debug Info")
+            html = self.server.html_renderer.run("message.html", self.context)
+
+        output.write(html.encode('utf-8'))
+        output.seek(0, os.SEEK_END)
+        self.send_header('Content-Length', output.tell())
+        self.end_headers()
+
+        self.wfile.write(output.getvalue())
+
+    def show_login(self, user=None, msg=None, error=False):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+
+        output = BytesIO()
+
+        if user is None:
+            user = self.session.get("user")
+
+        self.context.update({"user": user,
+               "msg": msg})
+
+        self.context["session_user"] = self.session.get_logged_in("user")
+        self.context["user"] = self.session.get("user")
+
+        if error:
+            self.context["msg_type"] = _("Error")
+        else:
+            self.context["msg_type"] = _("Info")
+
+        html = self.server.html_renderer.run("login.html", self.context)
 
         output.write(html.encode('utf-8'))
         output.seek(0, os.SEEK_END)
@@ -662,11 +811,16 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
     def save_feed_change(self, feed):
         # Re-write file where this feed was read.
-        if feed in settings.HISTORY:
-            save_history(settings.HISTORY, settings.get_config_folder())
-        elif feed in settings.FAVORITES:
-            update_favorites(settings.FAVORITES,
-                             settings.get_config_folder())
+        session_user = self.session.get_logged_in("user")
+        hist = self.get_history()
+        favs = self.get_favorites()
+        if feed in hist:
+            save_history(hist, settings.get_config_folder(),
+                         settings.get_history_filename(session_user))
+        elif feed in favs:
+            update_favorites(favs,
+                             settings.get_config_folder(),
+                             settings.get_favorites_filename(session_user))
 
     def handle_change_css_style(self, query_components):
         try:
@@ -674,13 +828,27 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             if not css_style in CSS_STYLES: # for "None" and wrong values
                 css_style = None
 
-            # Note: This saves not the values permanently, but for this
-            # instance.
-            self.server.html_renderer.extra_context["user_css_style"] = \
-                    css_style
+            if settings.LOGIN_TYPE is None:
+                # Note: This saves not the values permanently, but for this
+                # instance. It will be used if no user cookie overwrites the value.
+                self.server.html_renderer.extra_context["system_css_style"] = \
+                        css_style
+
+            # Use value in this request
+            self.context["user_css_style"] = css_style
+
+            # Store value in Cookie for further requests
+            self.session.c["css_style"] = css_style
+            if not css_style:
+                self.session.c["css_style"]["max-age"] = -1
+            self.save_session = True
 
         except KeyError:
                 raise Exception("CSS style with this name not defined")
+
+    def reload_favs(self):
+        settings.load_default_favs(globals())
+        settings.load_users(globals())
 
     def handle_action(self, query_components):
         try:
@@ -689,6 +857,14 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             url_hash = query_components["s"][-1]
         except (KeyError, IndexError):
             error_msg = _('URI arguments wrong.')
+            return self.show_msg(error_msg, True)
+
+        if self.session.get_logged_in("user") == "":
+            error_msg = _('Action requires login. ')
+            if settings.LOGIN_TYPE is None:
+                error_msg += _("Define LOGIN_TYPE in 'settings.py'. " \
+                               "Proper values can be found in " \
+                               "'default_settings.py'. ")
             return self.show_msg(error_msg, True)
 
         url_hash2 = '{}'.format( hashlib.sha3_224(
@@ -721,8 +897,55 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 .format(action_name=action["title"], url=url)
         return self.show_msg(msg)
 
+    def handle_login(self, query_components):
+        user = query_components.get("user", [""])[-1]
+        password = query_components.get("password", [""])[-1]
+        print("User: '{}'".format(user))
+
+        if self.session.init(user, password=password, settings=settings):
+            return self.session_redirect('/')
+        else:
+            error_msg = _('Login failed.')
+            return self.show_login(user, error_msg, True)
+
+    def handle_logout(self, query_components):
+        self.session.uninit()
+        return self.session_redirect('/')
+
+    def session_redirect(self, location):
+        # Saves login session cookies
+
+        self.send_response(303)
+        # self.send_header('Content-type', 'text/html')
+        self.session.save()
+
+        self.send_header('Content-Length', 0)
+        self.send_header('Location', location)  # Last header!
+
+        """
+        output = BytesIO()
+        output.write(html.encode('utf-8'))
+        output.seek(0, os.SEEK_END)
+        self.send_header('Content-Length', output.tell())
+        """
+        self.end_headers()
+
+        # self.wfile.write(output.getvalue())
+
+# Call 'make ssl' to generate local test certificates.
+def wrap_SSL(httpd):
+    ssl_path = "."
+    httpd.socket = ssl.wrap_socket (
+        httpd.socket, server_side=True,
+        keyfile=os.path.join(ssl_path, "ssl_rss_server_localhost.key"),
+        certfile=os.path.join(ssl_path, "ssl_rss_server_localhost.crt"),
+    )
+
+
+
 if __name__ == "__main__":
     settings.load_config(globals())
+    settings.load_users(globals())
 
     if check_process_already_running():
         print("Server process is already running.")
@@ -735,7 +958,7 @@ if __name__ == "__main__":
 
     # Generate secret token if none is given
     if settings.ACTION_SECRET is None:
-        settings.ACTION_SECRET = str(randint(0, 9999999999999))
+        settings.ACTION_SECRET = str(randint(0, 1E15))
 
 
     # Create empty favorites files if none exists
@@ -758,8 +981,25 @@ if __name__ == "__main__":
         sys.stderr = sys.__stderr__
         raise
 
+    if settings.SSL:
+        wrap_SSL(httpd)
+
+    if settings.LOGIN_TYPE is None:
+        print( _("Note: Actions for enclosured media files are disabled because LOGIN_TYPE is None."))
+
+    if settings.LOGIN_TYPE == "single_user":
+        print( _("Warning: Without definition of users, everyone " \
+                 "with access to this page can add feeds or trigger " \
+                 " the associated actions." )
+              + _("This could be dangerous if you use user defined actions."))
+
+    if settings.LOGIN_TYPE in ["users", "pam"] and not settings.SSL:
+        print( _("Warning: Without SLL login credentials aren't encrypted. ")
+              + _("This could be dangerous if you use user defined actions."))
+
     print("Serving at port", settings.PORT)
-    print("Use localhost:{0}/?feed=[url] to read feed".format(settings.PORT))
+    print("Use {host}:{port}/?feed=[url] to view feed".format(
+        host=settings.HOST, port=settings.PORT))
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

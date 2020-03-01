@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div id="feedHeaderContainer" style="width:100%">
+    <div dir="ltr" class="feedHeader feedBackground">
+        <h2><a href="/">{{ _("Overview") }}</a></h2>
+    </div>
+    <div id="feedHeaderContainerSpacer"></div>
+    <div dir="ltr" class="feedHeader feedBackground">
+        {% if nocache_link %}
+        <h2><a href="/?feed={{ nocache_link|urlencode }}&cache=0"
+                >{{ _('Ignore feed cache') }}</a></h2>
+        {% endif %}
+    </div>
+</div>
+
+<div id="feedBody">
+  {% if msg %}
+  <h1>{{ msg_type }}</h1>
+  <p>{{ msg }}</p>
+  {% endif %}
+
+  <h1>{{ _('Login') }}</h1> 
+  <div class="clearfix">
+    {{ macros.login_form(user) }}{{ macros.login_form_desc(login_type) }}
+  </div>
+</div>
+{% endblock %}

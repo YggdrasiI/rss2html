@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 html {
-  background: -moz-Dialog;
+  background: Dialog;
   font: 3mm tahoma,arial,helvetica,sans-serif;
 }
 
@@ -26,7 +26,7 @@ html {
   padding: 3em;
   padding-inline-start: 30px;
   margin: 2em auto;
-  background: -moz-Field;
+  background: Field;
 }
 
 #feedHeaderContainer {
@@ -34,7 +34,7 @@ html {
   border-radius: 10px;
   margin: -1em auto 0 auto;
   background-color: #F2DC95; /*InfoBackground not defined anymore*/
-  -moz-appearance: -moz-gtk-info-bar;
+  appearance: gtk-info-bar;
   display: flex;
 }
 
@@ -49,7 +49,7 @@ html {
   margin-inline-end: 1em;
   padding-inline-start: 2.9em;
   font-size: 110%;
-  color: -moz-gtk-info-bar-text;
+  color: gtk-info-bar-text;
 }
 
 .feedBackground {
@@ -100,7 +100,7 @@ html {
 body {
   margin: 0;
   padding: 0 3em;
-  color: -moz-fieldText;
+  color: fieldText;
   font: message-box;
 }
 
@@ -175,7 +175,7 @@ a[href] img {
   border: 1px solid THreeDShadow;
   padding: 1em;
   margin: 1em auto;
-  background: -moz-Dialog;
+  background: Dialog;
 }
 
 .enclosure {
@@ -201,7 +201,7 @@ a[href] img {
   padding: 0.5em;
   padding-inline-start: 30px;
   margin: 0.5em auto;
-  background: -moz-Field;
+  background: Field;
 }
 
 .reader_favorites a:nth-child(n+2) {
@@ -226,7 +226,7 @@ div.in1 {
   padding: 0.5em;
   padding-right: 30px;
   padding-inline-start: 30px;
-  background: -moz-Field;
+  background: Field;
 }
 
 a#feedSource {

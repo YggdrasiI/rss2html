@@ -53,15 +53,18 @@ html {
 }
 
 .feedBackground {
-  background: url("chrome://browser/skin/feeds/feedIcon.png") 0% 10% no-repeat;
+  background: url("/icons/Feed-icon.svg") 0% 10% no-repeat;
+  background-size:32px 32px;
 }
 
 .videoPodcastBackground {
-  background: url("chrome://browser/skin/feeds/videoFeedIcon.png") 0% 10% no-repeat;
+  background: url("/icons/Feed-icon.svg") 0% 10% no-repeat;
+  background-size:32px 32px;
 }
 
 .audioPodcastBackground {
-  background: url("chrome://browser/skin/feeds/audioFeedIcon.png") 0% 10% no-repeat;
+  background: url("/icons/Feed-icon.svg") 0% 10% no-repeat;
+  background-size:32px 32px;
 }
 
 .feedHeader[dir="rtl"] {
@@ -164,8 +167,8 @@ a[href] img {
 
 .type-icon {
   vertical-align: bottom;
-  height: 16px;
-  width: 16px;
+  height: 1em;
+  width: 1em;
 }
 
 .enclosures {
@@ -189,8 +192,8 @@ a[href] img {
 }
 
 .handlersMenuList > .menulist-label-box > .menulist-icon {
-  max-width: 16px;
-  max-height: 16px;
+  max-width: 1em;
+  max-height: 1em;
 }
 
 .feedWarn {

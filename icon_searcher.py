@@ -12,6 +12,7 @@ try:
     gi.require_version('Gtk', '3.0')
     from gi.repository import Gtk, Gio
 except ImportError:
+    print("Gtk3 module not available")
     GTK3 = False
 
 FALLBACK_BASE_DIR = "/icons/oxygen-icons"

@@ -42,7 +42,7 @@ help:
 		"                            ssl_rss_server.[key|crt] by better ones. " \
 		"" \
 
-run: check_env
+run: check_env ssl
 	PYTHONPATH='$(SITE_PACKAGES)' $(PYTHON_BIN) rss_server.py
 
 %.service: %.service.template
@@ -136,10 +136,11 @@ print_pip_upgrade:
 	@false
 
 ssl_rss_server.key:
-	openssl req -x509 -newkey rsa:2048 -nodes -sha256 \
+	openssl req -x509 -newkey rsa:2048 -nodes -sha256 -days 365 \
 		-out ssl_rss_server.crt \
 		-keyout ssl_rss_server.key \
 		-subj '/CN=localhost' -extensions EXT \
 		-config <( \
-		printf "[dn]\nCN=localhost\n[req]\ndistinguished_name = dn\n[EXT]\nsubjectAltName=DNS:localhost\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth")
+		printf "[dn]\nCN=localhost\n[req]\ndistinguished_name = dn\n[EXT]\nsubjectAltName=DNS:localhost\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth") \
+		|| true
 

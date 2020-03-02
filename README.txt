@@ -4,6 +4,10 @@ Info:
         Simple background daemon to convert RSS Feeds into html pages.
         Representation of data is similar to Firefox's variant.
 
+        If you define a list of accounts, the server can used by multiple
+        users. Moreover, authenticated users can trigger some actions, like
+        download files, starting playback, etc.
+
 
 Requires:
         Python >= 3.4
@@ -20,16 +24,10 @@ Start:
   call 'make install_service' (requires systemd init system)
 
 
-Warning:
-  • The URI argument 'feed' allows relayed GET requests to arbitrary websites!
-  Don't made the daemon public available.
-  • The predifined actions may be also a security risk.
-
-
 Setup:
-  1. Call 'make check_env' to install unmet Python dependencies.
-  2. (Optional) The default settings are defined in default_settings.py
-     If you want override values create settings.py file and place your
+  1. Install unmet Python dependencies by 'make check_env'.
+  2. (Optional) The settings are defined in 'default_settings.py'
+     If you want override values create 'settings.py' and place your
      changes there:
 
         #!/usr/bin/python3

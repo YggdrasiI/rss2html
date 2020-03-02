@@ -39,30 +39,38 @@ SESSION_TYPES = {
     "pam": PamSession,
 }
 
+CSS_STYLES = {
+    "default.css": _("Default theme"),
+    "dark.css": _("Dark theme"),
+}
 
 XML_NAMESPACES = {'content': 'http://purl.org/rss/1.0/modules/content/',
                   'atom': 'http://www.w3.org/2005/AtomX',
                   'atom10': 'http://www.w3.org/2005/Atom',
                  }
+
 ORIG_LOCALE = locale.getlocale()  # running user might be non-english
 
 # Find installed EN locale. en_US or en_GB in most cases
 try:
     (out, err) = Popen(['locale', '-a'], stdout=PIPE).communicate()
     avail_locales = out.decode('utf-8').split("\n")
-    for l in avail_locales:
-        if l.startswith("en_"):
-            EN_LOCALE = tuple(l.split("."))
-            print("Use {} for english date strings".format(l))
-            break
+
+    # Check for normal value
+    en_locale = [l for l in avail_locales \
+                 if l.split(".")[0] in ["en_US", "en_GB"]]
+    if len(en_locale) > 0:
+        # Select more exotic one
+        en_locale.extend([l for l in avail_locales \
+                          if l.startswith("en_")])
+
+    EN_LOCALE = en_locale[0].split(".")
 except Exception as e:
     print(e)
-    EN_LOCALE = ("en_US", ORIG_LOCALE[1])  # second index probably UTF-8
+    print("Installing english locale mode date parsing easier… ;)")
+    EN_LOCALE = ("en_US", ORIG_LOCALE[1])
 
-CSS_STYLES = {
-    "default.css": _("Default theme"),
-    "dark.css": _("Dark theme"),
-}
+print("Use {} for english date strings".format(".".join(EN_LOCALE)))
 
 # ==========================================================
 
@@ -695,7 +703,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
             self.send_response(200)
             if self.path.endswith(".svg"):
-                self.send_header('Content-type', 'text/xml')
+                # text/xml would be wrong and FF won't display embedded svg
+                self.send_header('Content-type', 'image/svg+xml')
             else:
                 self.send_header('Content-type', 'image')
 

@@ -1,18 +1,16 @@
 @import "default.css";
 
-body {
-  margin: 0;
-  padding: 0 3em;
-  color: -moz-fieldText;
-  font: message-box;
+html {
+  background-color: black;
   filter: invert(85%);
 }
+/* Apply filter on root element (html)
+ * fixes issue with position:fixed-Elements 
+ * at least in Chrome(, but not FF).*/
+/*body {
+  filter: invert(85%);
+}*/
+
 img {
     filter: invert(100%);
-}
-
-html {
-  background: -moz-Dialog;
-  background-color: black;
-  font: 3mm tahoma,arial,helvetica,sans-serif;
 }

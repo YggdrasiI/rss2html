@@ -217,6 +217,10 @@ a[href] img {
     margin-right:2em;
 }
 
+.feed_list > *:nth-child(even) {
+  background: rgba(99,99,99,0.1);
+}
+
 div.in1 {
   border: 1px solid THreeDShadow;
   padding: 0.5em;

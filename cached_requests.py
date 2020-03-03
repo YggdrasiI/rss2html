@@ -3,6 +3,9 @@
 
 import time
 
+import logging
+logger = logging.getLogger(__name__)
+
 # from urllib.parse import urlparse, parse_qs, quote
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
@@ -42,7 +45,7 @@ def fetch_from_cache(feed):
     return None
 
 def fetch_file(settings, url, bCache=True):
-    print("Url: " + url)
+    logger.debug("Url: " + url)
 
     req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
     if bCache:
@@ -72,15 +75,15 @@ def fetch_file(settings, url, bCache=True):
 
     except HTTPError as e:
         if e.code == 304:  # Not modified => Return cached value
-            print("Return cached value")
+            logger.debug("Return cached value")
             (_, res, _) = _CACHE[url]
             return (res, 304)
 
-        print('The server couldn\'t fulfill the request.')
-        print('Error code: ', e.code)
+        logger.debug('The server couldn\'t fulfill the request.')
+        logger.debug('Error code: ', e.code)
     except URLError as e:
-        print('We failed to reach a server.')
-        print('Reason: ', e.reason)
+        logger.debug('We failed to reach a server.')
+        logger.debug('Reason: ', e.reason)
     else:
         # everything is fine
         data = response.read()

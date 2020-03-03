@@ -40,6 +40,10 @@ USERS = {
 }
 
 # ==========================================================
+# Logging level of each component can be controlled in 'logging.conf'
+# Set LOGLEVEL variable to overwrite level globally.
+LOGLEVEL = "DEBUG"
+
 CACHE_EXPIRE_TIME_S = 600
 MAX_FEED_BYTE_SIZE = 1E7
 ALLOWED_FILE_EXTENSIONS = [".css", ".png", ".jpg", ".svg"]

@@ -3,6 +3,8 @@
 
 import os.path
 import re
+import logging
+logger = logging.getLogger(__name__)
 
 class Feed:
     def __init__(self, name, url, title=None):
@@ -41,7 +43,7 @@ def save_history(feeds, folder="", filename="history.py"):
 
     path = os.path.join(folder, filename)
 
-    print("Write history file '{1}' with {0} entries.".format(
+    logger.debug("Write history file '{1}' with {0} entries.".format(
         len(feeds), filename))
     with open(path, "w") as f:
         f.write("#!/usr/bin/python3\n")
@@ -108,7 +110,7 @@ FAVORITES = [
         __FAVORITES=",\n    ".join(feed_strs) \
         + ",\n" if len(feed_strs) else "")
 
-    print("Write favorites file '{1}' with {0} entries.".format(
+    logger.debug("Write favorites file '{1}' with {0} entries.".format(
         len(feeds), filename))
     with open(path, "w") as f:
         f.write(config_file_content)

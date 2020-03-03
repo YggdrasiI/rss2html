@@ -17,6 +17,7 @@ import locale
 from subprocess import Popen, PIPE
 from time import sleep
 from random import randint
+from warnings import warn
 # from importlib import reload
 import ssl
 
@@ -31,6 +32,10 @@ import icon_searcher
 import cached_requests
 
 from session import LoginFreeSession, ExplicitSession, PamSession
+
+import logging
+import logging.config
+logger = None
 
 SESSION_TYPES = {
     None: LoginFreeSession,
@@ -50,30 +55,43 @@ XML_NAMESPACES = {'content': 'http://purl.org/rss/1.0/modules/content/',
                  }
 
 ORIG_LOCALE = locale.getlocale()  # running user might be non-english
-
-# Find installed EN locale. en_US or en_GB in most cases
-try:
-    (out, err) = Popen(['locale', '-a'], stdout=PIPE).communicate()
-    avail_locales = out.decode('utf-8').split("\n")
-
-    # Check for normal value
-    en_locale = [l for l in avail_locales \
-                 if l.split(".")[0] in ["en_US", "en_GB"]]
-    if len(en_locale) > 0:
-        # Select more exotic one
-        en_locale.extend([l for l in avail_locales \
-                          if l.startswith("en_")])
-
-    EN_LOCALE = en_locale[0].split(".")
-except Exception as e:
-    print(e)
-    print("Installing english locale mode date parsing easier… ;)")
-    EN_LOCALE = ("en_US", ORIG_LOCALE[1])
-
-print("Use {} for english date strings".format(".".join(EN_LOCALE)))
+EN_LOCALE = ("en_US", "utf-8")
 
 # ==========================================================
 
+
+def find_installed_en_locale():
+    # Find installed EN locale. en_US or en_GB in most cases
+    try:
+        (out, err) = Popen(['locale', '-a'], stdout=PIPE).communicate()
+        avail_locales = out.decode('utf-8').split("\n")
+
+        # Check for normal value
+        en_locale = [l for l in avail_locales \
+                     if l.split(".")[0] in ["en_US", "en_GB"]]
+        if len(en_locale) > 0:
+            # Select more exotic one
+            en_locale.extend([l for l in avail_locales \
+                              if l.startswith("en_")])
+
+        # Prefer utf8
+        _tmp = [l for l in en_locale if l.split(".")[-1] == "utf8"]
+        if len(_tmp) > 0:
+            en_locale = _tmp
+
+        # Prefer _US
+        _tmp = [l for l in en_locale if l.startswith("en_US")]
+        if len(_tmp) > 0:
+            en_locale = _tmp
+
+        EN_LOCALE = en_locale[0].split(".")
+    except Exception as e:
+        logger.warning("No english locale detected. Error message was: '{}' \n"\
+                        "\nParsing of date strings is easier with installed "\
+                        "english locales".format(e))
+        EN_LOCALE = ("en_US", ORIG_LOCALE[1])
+
+    logger.info("Use {} for english date strings".format(".".join(EN_LOCALE)))
 
 def check_process_already_running():
     # TODO
@@ -125,7 +143,7 @@ def parse_pubDate(s):
             locale.resetlocale(locale.LC_ALL)
             break
         except locale.Error as e:
-            print("Can not set locale: %s" % str(e))
+            logger.warn("Can not set locale: %s" % str(e))
             dt = datetime.strptime(s2, f)
             ret = dt.strftime("%d. %B %Y, %H:%M%p")
             break
@@ -332,10 +350,13 @@ def genMyHTTPServer():
         ServerClass = socketserver.TCPServer
 
     class _MyHTTPServer(ServerClass):
-        print("Use language {}".format(settings.GUI_LANG))
+        logger.info("Use language {}".format(settings.GUI_LANG))
         html_renderer = templates.HtmlRenderer(settings.GUI_LANG,
                                                settings.CSS_STYLE)
 
+        # Required for IPv6 hostname
+        address_family = socket.AF_INET6 if ":" in settings.HOST \
+                else socket.AF_INET
 
         def __init__(self, *largs, **kwargs):
             super().__init__(*largs, **kwargs)
@@ -368,7 +389,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         self.save_session = False
         self.context = {}
 
-        super().__init__(*largs, **kwargs)
+        super().__init__(*largs, directory="rss_server-page", **kwargs)
 
     def get_favorites(self):
         session_user = self.session.get_logged_in("user")
@@ -446,9 +467,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         self.session.load()
         self.save_session = False  # To send session headers without login form.
 
-        if settings.LOGIN_TYPE is "single_user" and \
+        if settings.LOGIN_TYPE == "single_user" and \
            not self.session.get("user"):
-            print("Generate new ID for default user!")
+            logger.debug("Generate new ID for default user!")
             # Login as "default" user and trigger send of headers
             if self.session.init(user="default"):
                 # return self.session_redirect(self.path)
@@ -539,10 +560,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 etag = '"{}"'.format(
                     hashlib.sha1((text if text is not None \
                                  else "").encode('utf-8')).hexdigest())
-                print("Eval ETag '{}'".format(etag))
-                print("Browser ETag '{}'".format(self.headers.get("If-None-Match", "")))
-                print("All headers:")
-                print(self.headers)
+                logger.debug("Eval ETag '{}'".format(etag))
+                logger.debug("Browser ETag '{}'".format(self.headers.get("If-None-Match", "")))
+                logger.debug("Received headers:\n{}".format(self.headers))
 
                 # If feed is unchanged and tags match return nothing, but 304.
                 if code == 304 and self.headers.get("If-None-Match", "") == etag:
@@ -614,7 +634,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             # No cache read in this variant
             try:
                 feed_filepath = filepath[-1]
-                print("Read " + feed_filepath)
+                logger.debug("Read " + feed_filepath)
 
                 try:
                     text = load_xml(feed_filepath)
@@ -681,7 +701,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Content-type', 'text/html')
             self.send_header('Cache-Control', "public, max-age=10, ")
             if etag:
-                print("Add ETag '{}'".format(etag))
+                logger.debug("Add ETag '{}'".format(etag))
                 self.send_header('ETag', etag)
                 self.send_header('Vary', "ETag, User-Agent")
 
@@ -725,10 +745,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path == "/" or show_index:
             # self.session.load(self)
             return self.write_index()
-        elif self.path[self.path.rfind("."):] in \
+        elif os.path.splitext(urlparse(self.path).path)[1] in \
                 settings.ALLOWED_FILE_EXTENSIONS:
             return super().do_GET()
         else:
+            print(self.path)
             # return super().do_GET()
             return self.send_error(404)
 
@@ -748,7 +769,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             "css_styles": CSS_STYLES,
         })
 
-        print("Input headers: " + str(self.headers))
+        logger.debug("Recived headers:\n{}".format(self.headers))
         html = self.server.html_renderer.run("index.html", self.context)
 
         output = BytesIO()
@@ -945,7 +966,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
     def handle_login(self, query_components):
         user = query_components.get("user", [""])[-1]
         password = query_components.get("password", [""])[-1]
-        print("User: '{}'".format(user))
+        logger.debug("User: '{}'".format(user))
 
         if self.session.init(user, password=password, settings=settings):
             return self.session_redirect('/')
@@ -987,13 +1008,39 @@ def wrap_SSL(httpd):
     )
 
 
+def set_logger_levels():
+    try:
+        loglevel = settings.LOGLEVEL
+    except AttributeError:
+        return
+
+    numeric_level = getattr(logging, loglevel.upper(), None)
+    if not isinstance(numeric_level, int):
+        raise ValueError('Invalid log level: %s' % loglevel)
+
+    keys = ["root", "rss_server", "feed", "session", "settings_helper",
+            "icon_searcher", "cached_requests"]
+
+    logging.basicConfig(level=numeric_level)
+    for key in keys:
+        logging.getLogger(key).setLevel(numeric_level)
 
 if __name__ == "__main__":
     settings.load_config(globals())
     settings.load_users(globals())
 
+    logging.config.fileConfig('logging.conf')
+
+    # create logger
+    logger = logging.getLogger('rss_server')
+    # logging.conf contain levels for each component, but
+    # this overrides this values if settings explicit force level
+    set_logger_levels()
+
+    find_installed_en_locale()
+
     if check_process_already_running():
-        print("Server process is already running.")
+        logger.info("Server process is already running.")
         os._exit(0)
 
     if "-d" in sys.argv:
@@ -1030,20 +1077,20 @@ if __name__ == "__main__":
         wrap_SSL(httpd)
 
     if settings.LOGIN_TYPE is None:
-        print( _("Note: Actions for enclosured media files are disabled because LOGIN_TYPE is None."))
+        warn( _("Note: Actions for enclosured media files are disabled because LOGIN_TYPE is None."))
 
     if settings.LOGIN_TYPE == "single_user":
-        print( _("Warning: Without definition of users, everyone " \
+        warn( _("Warning: Without definition of users, everyone " \
                  "with access to this page can add feeds or trigger " \
                  "the associated actions." )
               + _("This could be dangerous if you use user defined actions. "))
 
     if settings.LOGIN_TYPE in ["users", "pam"] and not settings.SSL:
-        print( _("Warning: Without SSL login credentials aren't encrypted. ")
+        warn( _("Warning: Without SSL login credentials aren't encrypted. ")
               + _("This could be dangerous if you use user defined actions. "))
 
-    print("Serving at port", settings.PORT)
-    print("Use {host}:{port}/?feed=[url] to view feed".format(
+    logger.info("Serving at port {}".format(settings.PORT))
+    logger.info("Use {host}:{port}/?feed=[url] to view feed".format(
         host=settings.HOST, port=settings.PORT))
     try:
         httpd.serve_forever()
@@ -1053,4 +1100,4 @@ if __name__ == "__main__":
         httpd.shutdown()
         raise
 
-    print("END")
+    logger.info("END program")

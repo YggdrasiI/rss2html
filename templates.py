@@ -39,7 +39,7 @@ class HtmlRenderer:
 
     def __init__(self, lang="en", css_style=None):
         if lang not in HtmlRenderer.list_of_available_locales:
-            print("Fallback on default language. '{}' is not "
+            logger.warn("Fallback on default language. '{}' is not "
                   "in list of available locales.".format(lang))
             lang = "en"
 

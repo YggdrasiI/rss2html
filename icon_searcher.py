@@ -5,6 +5,9 @@ import sys
 import os.path
 import default_settings as settings  # Overriden in load_config()
 
+import logging
+logger = logging.getLogger(__name__)
+
 GTK3 = True
 
 try:
@@ -12,7 +15,7 @@ try:
     gi.require_version('Gtk', '3.0')
     from gi.repository import Gtk, Gio
 except ImportError:
-    print("Gtk3 module not available")
+    logging.info("Gtk3 module not available")
     GTK3 = False
 
 FALLBACK_BASE_DIR = "/icons/oxygen-icons"
@@ -84,7 +87,7 @@ if GTK3:
         icon = Gio.content_type_get_icon(mimetype)
         theme = Gtk.IconTheme.get_default()
         if theme is None:
-            # print("No Gtk IconTheme detectable");
+            # logging.info("No Gtk IconTheme detectable")
             return None
 
         info = theme.choose_icon(icon.get_names(), -1, 0)

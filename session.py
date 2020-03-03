@@ -6,6 +6,9 @@ from hashlib import sha224, sha1
 from random import randint
 from subprocess import Popen, PIPE, TimeoutExpired
 
+import logging
+logger = logging.getLogger(__name__)
+
 """
 try:
     from pam import pam
@@ -101,8 +104,8 @@ class Session():
         session_id = self.get("session_id", "-1")
 
         if session_id != "-1":
-            print("Session User:" + user)
-            print("Session Id:" + session_id)
+            logger.debug("Session User:" + user)
+            logger.debug("Session Id:" + session_id)
             session_hash = self.get("session_hash", "-1")
 
             # Check cookie
@@ -111,7 +114,7 @@ class Session():
             ).hexdigest()
 
             if not session_hash == session_hash2:
-                print("Hey, session params not match!")
+                logger.debug("Hey, session params not match!")
                 # self.c.clear()  # Deletes too much
                 self.clear()
                 self.login_ok = False
@@ -122,13 +125,14 @@ class Session():
             # self.c.clear()  # Deletes too much
             self.clear()
 
-            print("User (not logged in): " + self.get("user"))
+            if user:
+                logger.debug("User (not logged in): " + self.get("user"))
 
 
     def save(self):
-        print("Session Type: " + str(type(self)))
-        print("Save cookies")
-        print(self.c.output())
+        logger.debug("Session Type: " + str(type(self)))
+        logger.debug("Save cookies")
+        logger.debug(self.c.output())
         self.request.send_header(
             "Set-Cookie", self.c.output(header="",
                                         sep="\r\nSet-Cookie:"))
@@ -185,7 +189,7 @@ class PamSession(Session):
 
         """
         if not PAM:
-            print("PAM login not available. Install python-pam.")
+            logger.debug("PAM login not available. Install python-pam.")
             return False
 
         # Requires read access on /etc/shadow
@@ -193,7 +197,7 @@ class PamSession(Session):
         if p.authenticate(user, password):
             return super().init(user, **kwargs)
 
-        print("PAM login failed for '{}'.".format(user))
+        logger.debug("PAM login failed for '{}'.".format(user))
         return False
         """
 
@@ -207,7 +211,7 @@ class PamSession(Session):
             return False
 
         exit_code = su_proc.poll()
-        print("Exit_code: " + str(exit_code))
+        logger.debug("Exit_code: " + str(exit_code))
         if (exit_code == 0):
             return super().init(user, **kwargs)
 

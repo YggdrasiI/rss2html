@@ -8,6 +8,9 @@ import os
 from importlib import import_module
 from glob import glob
 
+import logging
+logger = logging.getLogger(__name__)
+
 _CONFIG_PATH = None
 _CONFIG_FILE = None
 
@@ -153,7 +156,7 @@ def load_users(main_globals):
                     username] = user_fav_module.FAVORITES
 
         except ImportError as e:
-            print("Import of '{}' failed: {}".format(f, e))
+            logger.warn("Import of '{}' failed: {}".format(f, e))
 
     # Same for histories
     if not hasattr(main_globals.get("settings"), "USER_HISTORY"):
@@ -174,6 +177,6 @@ def load_users(main_globals):
                     username] = user_hist_module.HISTORY
 
         except ImportError as e:
-            print("Import of '{}' failed: {}".format(h, e))
+            logger.warn("Import of '{}' failed: {}".format(h, e))
 
 

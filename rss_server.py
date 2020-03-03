@@ -406,18 +406,23 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         favs = self.get_favorites()
         hist = self.get_history()
         for feed_key in add_favs:
-            (feed, idx) = get_feed(feed_key, favs, hist)
-            if feed and idx > 0:  # Index indicates that feed not in FAVORITES
-                favs.append(feed)
+            # Check for feed with this name
+            (feed, _) = get_feed(feed_key, hist)
+            if feed:
                 try:
                     hist.remove(feed)
                 except ValueError:
-                    pass
+                    logging.debug("Removing of feed '{}' from history" \
+                                  "failed.".format(feed))
 
+            (feed, _) = get_feed(feed_key, favs)
+            if not feed:  # Add if not already in FAVORITES
+                favs.append(feed)
+
+        update_favorites(favs, settings.get_config_folder(),
+                         settings.get_favorites_filename(session_user))
         save_history(hist, settings.get_config_folder(),
                      settings.get_history_filename(session_user))
-        update_favorites(favs, settings.get_config_folder(),
-                         settings.get_favorites_filename(user))
 
 
     def do_rm_feed(self, to_rm):
@@ -582,9 +587,10 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 if not feed:
                     feed_title = res["title"]
                     # Add this (new) url to feed history.
-                    settings.HISTORY.append(
+                    hist = self.get_history()
+                    hist.append(
                         Feed(feed_title, feed_url, feed_title))
-                    save_history(settings.HISTORY, settings.get_config_folder(),
+                    save_history(hist, settings.get_config_folder(),
                                  settings.get_history_filename(session_user))
 
                 # Warn if feed url might changes
@@ -677,8 +683,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     # Add this (new) feed to history.
                     # Try to extract feed url from xml data because it is not
                     # given directly!
-                    settings.HISTORY.append(feed)
-                    save_history(settings.HISTORY, settings.get_config_folder(),
+                    hist = self.get_history()
+                    hist.append(feed)
+                    save_history(hist, settings.get_config_folder(),
                                  settings.get_history_filename(session_user))
 
                 cached_requests.update_cache(feed.title, res, {})
@@ -969,6 +976,10 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         logger.debug("User: '{}'".format(user))
 
         if self.session.init(user, password=password, settings=settings):
+            # Omit display of double entries
+            if self.get_history() != settings.HISTORY:
+                clear_history(self.get_favorites(), self.get_history())
+
             return self.session_redirect('/')
         else:
             error_msg = _('Login has failed.')

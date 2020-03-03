@@ -139,6 +139,26 @@ def load_users(main_globals):
     if config_dir not in sys.path:
         sys.path.insert(0, config_dir)
 
+    def _update(filename, prefix, suffix, attrname, feed_dict):
+
+        user_module_name = os.path.basename(filename)[:-len(suffix)]
+        username = user_module_name[len(prefix):]
+
+        # Unload module if file was already read
+        try:
+            del sys.modules[user_module_name]
+        except KeyError:
+            pass
+
+        try:
+            user_fav_module = import_module(user_module_name)
+            if hasattr(user_fav_module, attrname):
+                feed_dict[username] = getattr(user_fav_module, attrname)
+
+        except ImportError as e:
+            logger.warn("Import of '{}' failed: {}".format(filename, e))
+
+    # 1. Favs
     if not hasattr(main_globals.get("settings"), "USER_FAVORITES"):
         main_globals.get("settings").USER_FAVORITES = {}
 
@@ -147,18 +167,10 @@ def load_users(main_globals):
     user_favs = glob(os.path.join(
         config_dir, "{}*{}".format(prefix, suffix)))
     for f in user_favs:
-        user_module_name = os.path.basename(f)[:-len(suffix)]
-        username = user_module_name[len(prefix):]
-        try:
-            user_fav_module = import_module(user_module_name)
-            if hasattr(user_fav_module, "FAVORITES"):
-                main_globals.get("settings").USER_FAVORITES[
-                    username] = user_fav_module.FAVORITES
+        _update(f, prefix, suffix, "FAVORITES",
+                main_globals.get("settings").USER_FAVORITES)
 
-        except ImportError as e:
-            logger.warn("Import of '{}' failed: {}".format(f, e))
-
-    # Same for histories
+    # 2. Same for histories
     if not hasattr(main_globals.get("settings"), "USER_HISTORY"):
         main_globals.get("settings").USER_HISTORY = {
             "default": [] }
@@ -168,15 +180,6 @@ def load_users(main_globals):
     user_hists = glob(os.path.join(
         config_dir, "{}*{}".format(prefix, suffix)))
     for h in user_hists:
-        user_module_name = os.path.basename(h)[:-len(suffix)]
-        username = user_module_name[len(prefix):]
-        try:
-            user_hist_module = import_module(user_module_name)
-            if hasattr(user_hist_module, "HISTORY"):
-                main_globals.get("settings").USER_HISTORY[
-                    username] = user_hist_module.HISTORY
-
-        except ImportError as e:
-            logger.warn("Import of '{}' failed: {}".format(h, e))
-
+        _update(h, prefix, suffix, "HISTORY",
+                main_globals.get("settings").USER_HISTORY)
 

@@ -3,8 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 html {
-  background: Dialog;
+  background: rgb(237, 236, 235); /* -moz-Dialog */
   font: 3mm tahoma,arial,helvetica,sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 0 3em;
+  color: rgb(26, 26, 26); /* -moz-fieldText; */
+  font: message-box;
 }
 
 #subscribeUsingDescription,
@@ -22,11 +29,11 @@ html {
 }
 
 #feedBody {
-  border: 1px solid THreeDShadow;
+  border: 1px solid rgb(161, 158, 154); /* THreeDShadow */
   padding: 3em;
   padding-inline-start: 30px;
   margin: 2em auto;
-  background: Field;
+  background: rgb(255, 255, 255); /* -moz-Field */
 }
 
 #feedHeaderContainer {
@@ -97,21 +104,14 @@ html {
   }
 }
 
-body {
-  margin: 0;
-  padding: 0 3em;
-  color: fieldText;
-  font: message-box;
-}
-
 h1 {
   font-size: 160%;
-  border-bottom: 2px solid ThreeDLightShadow;
+  border-bottom: 2px solid rgb(237, 236, 235); /* ThreeDLightShadow */
   margin: 0 0 .2em 0;
 }
 
 h2 {
-  color: GrayText;
+  color: rgb(148, 145, 141); /* GrayText */
   font-size: 110%;
   font-weight: normal;
   margin: 0 0 .6em 0;
@@ -172,10 +172,10 @@ a[href] img {
 }
 
 .enclosures {
-  border: 1px solid THreeDShadow;
+  border: 1px solid rgb(161, 158, 154); /* THreeDShadow */
   padding: 1em;
   margin: 1em auto;
-  background: Dialog;
+  background: rgb(237, 236, 235); /* -moz-Dialog */
 }
 
 .enclosure {
@@ -197,11 +197,11 @@ a[href] img {
 }
 
 .feedWarn {
-  border: 1px solid THreeDShadow;
+  border: 1px solid rgb(161, 158, 154); /* THreeDShadow */
   padding: 0.5em;
   padding-inline-start: 30px;
   margin: 0.5em auto;
-  background: Field;
+  background: rgb(255, 255, 255); /* -moz-Field */
 }
 
 .reader_favorites a:nth-child(n+2) {
@@ -222,11 +222,11 @@ a[href] img {
 }
 
 div.in1 {
-  border: 1px solid THreeDShadow;
+  border: 1px solid rgb(161, 158, 154); /* THreeDShadow */
   padding: 0.5em;
   padding-right: 30px;
   padding-inline-start: 30px;
-  background: Field;
+  background: rgb(255, 255, 255); /* -moz-Field */
 }
 
 a#feedSource {

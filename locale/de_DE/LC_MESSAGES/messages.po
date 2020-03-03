@@ -82,7 +82,7 @@ msgstr ""
 
 #: rss_server.py:892
 msgid "Wrong hash for this url argument."
-msgstr "Hash des URI-Argumnts 'url' passt nicht."
+msgstr "Hash des URI-Arguments 'url' passt nicht."
 
 #: rss_server.py:901
 msgid "Action not allowed for this file."
@@ -122,7 +122,7 @@ msgstr ""
 msgid "This could be dangerous if you use user defined actions. "
 msgstr ""
 "Je nach Definition der benutzerdefinierten Aktionen kann das "
-"einSicherheitsrisiko darstellen. "
+"ein Sicherheitsrisiko darstellen. "
 
 #: rss_server.py:1016
 msgid "Warning: Without SSL login credentials aren't encrypted. "
@@ -168,7 +168,7 @@ msgid ""
 "the functionality."
 msgstr ""
 "Dieses Skript ersetzt die Funktionalität des internen RSS-Readers von "
-"Firefox,da diese Funktion ab Version 64.0 entfernt wurde."
+"Firefox, da diese Funktion ab Version 64.0 entfernt wurde."
 
 #: templates/index.html:24
 msgid ""
@@ -220,7 +220,7 @@ msgstr ""
 #, python-format
 msgid "Its name can be used as shortcut, i.e %(example_url)s."
 msgstr ""
-"Statt der Url kann man auch den Feed-Namen als Schlüssel verwenden.z.B. "
+"Statt der Url kann man auch den Feed-Namen als Schlüssel verwenden, z.B. "
 "%(example_url)s."
 
 #: templates/index.html:52
@@ -261,8 +261,8 @@ msgstr "Kein Login erforderlich"
 
 #: templates/macros.html:19
 msgid "Every user in 'settings.USERS' can log in."
-msgstr "Jeder in 'settings.USERS' angegebene Account kann sich einloggen."
+msgstr "Jeder in 'settings.USERS' definierte Account kann sich einloggen."
 
 #: templates/macros.html:21
 msgid "Every user on this system can log in."
-msgstr "Alle auf diesem System definierten Benutzer kann sich einloggen."
+msgstr "Alle auf diesem System definierten Benutzer können sich einloggen."

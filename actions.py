@@ -5,7 +5,7 @@ import sys
 import os
 import re
 from os.path import expandvars
-from subprocess import Popen, run
+from subprocess import Popen, PIPE
 
 from urllib.request import Request, urlopen
 from urllib.parse import urlparse
@@ -104,11 +104,15 @@ def download_with_wget(feed, url, settings):
         # contain the filename, evaluate it from Content-disposition
         # header.
         cmd_pre = ("wget", "--spider", "--debug", url)
-        spider = run(cmd_pre, capture_output=True)
+        # spider = run(cmd_pre, capture_output=True)  # Not in Python 3.4
+        # spider_output = spider.stderr.decode('utf-8')
+
+        spider = Popen(cmd_pre, stdout=PIPE, stderr=PIPE).communicate()
+        spider_output = spider[1].decode('utf-8')
 
         filename_in_header = re.search(
             "Content-disposition[^\r\n]*filename=([^\r\n]*)",
-            spider.stderr.decode('utf-8'))
+            spider_output)
         if filename_in_header:
             basename = filename_in_header.group(1)
             file_ext = os.path.splitext(basename)[1]

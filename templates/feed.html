@@ -54,7 +54,7 @@
 {% macro feed(entry, loop, with_content_full) %}
 <div class="entry">
     <h3><a href="{{ entry.url }}"><span>{{ entry.title }}</span></a>
-        <span class="lastUpdated">{{ entry.last_update }}</span>
+        <span class="lastUpdated">{{ entry.pubDate|convert_pub_date }}</span>
     </h3>
     <div class="feedEntryContent {% if entry.content_full %}click_out{% endif %}">
         <div class="in2">

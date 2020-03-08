@@ -10,6 +10,9 @@ logger = logging.getLogger(__name__)
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
 
+import default_settings as settings
+
+
 _CACHE = {}
 
 def update_cache(key, res, headers):
@@ -18,7 +21,7 @@ def update_cache(key, res, headers):
     _CACHE[key] = (int(time.time()), res, headers)
 
 """
-def check_cache(settings, key):
+def check_cache(key):
     if key in _CACHE:
         now = int(time.time())
         (t, res, headers) = _CACHE.get(key)
@@ -44,7 +47,7 @@ def fetch_from_cache(feed):
 
     return None
 
-def fetch_file(settings, url, bCache=True):
+def fetch_file(url, bCache=True):
     logger.debug("Url: " + url)
 
     req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -95,14 +98,12 @@ def fetch_file(settings, url, bCache=True):
     return (None, 404)
 
 if __name__ == "__main__":
-    import default_settings as settings
-
     url = "http://in-trockenen-buechern.de/feed"
     print("Get file first time…")
-    (_, code) = fetch_file(settings, url)
+    (_, code) = fetch_file(url)
     print("Http status code: {}".format(code))
     print("Wait…")
     time.sleep(2)
     print("Get file second time…")
-    (_, code) = fetch_file(settings, url)
+    (_, code) = fetch_file(url)
     print("Http status code: {}".format(code))

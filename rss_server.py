@@ -14,7 +14,6 @@ import socket
 import socketserver
 from io import BytesIO
 import locale
-from subprocess import Popen, PIPE
 from time import sleep
 from random import randint
 from warnings import warn
@@ -25,6 +24,7 @@ from gettext import gettext as _
 # from jina2.utils import unicode_urlencode as urlencode
 
 from feed import Feed, get_feed, save_history, clear_history, update_favorites
+import feed_parser
 
 import templates
 import default_settings as settings  # Overriden in load_config()
@@ -35,6 +35,11 @@ from session import LoginFreeSession, ExplicitSession, PamSession
 
 import logging
 import logging.config
+logging.config.fileConfig('logging.conf')
+
+'''logging.root.setLevel(logging.NOTSET)
+logging.root.setLevel(0)
+logging.basicConfig(level=0)'''
 logger = None
 
 SESSION_TYPES = {
@@ -53,45 +58,6 @@ XML_NAMESPACES = {'content': 'http://purl.org/rss/1.0/modules/content/',
                   'atom': 'http://www.w3.org/2005/AtomX',
                   'atom10': 'http://www.w3.org/2005/Atom',
                  }
-
-ORIG_LOCALE = locale.getlocale()  # running user might be non-english
-EN_LOCALE = ("en_US", "utf-8")
-
-# ==========================================================
-
-
-def find_installed_en_locale():
-    # Find installed EN locale. en_US or en_GB in most cases
-    try:
-        (out, err) = Popen(['locale', '-a'], stdout=PIPE).communicate()
-        avail_locales = out.decode('utf-8').split("\n")
-
-        # Check for normal value
-        en_locale = [l for l in avail_locales \
-                     if l.split(".")[0] in ["en_US", "en_GB"]]
-        if len(en_locale) > 0:
-            # Select more exotic one
-            en_locale.extend([l for l in avail_locales \
-                              if l.startswith("en_")])
-
-        # Prefer utf8
-        _tmp = [l for l in en_locale if l.split(".")[-1] == "utf8"]
-        if len(_tmp) > 0:
-            en_locale = _tmp
-
-        # Prefer _US
-        _tmp = [l for l in en_locale if l.startswith("en_US")]
-        if len(_tmp) > 0:
-            en_locale = _tmp
-
-        EN_LOCALE = en_locale[0].split(".")
-    except Exception as e:
-        logger.warning("No english locale detected. Error message was: '{}' \n"\
-                        "\nParsing of date strings is easier with installed "\
-                        "english locales".format(e))
-        EN_LOCALE = ("en_US", ORIG_LOCALE[1])
-
-    logger.info("Use {} for english date strings".format(".".join(EN_LOCALE)))
 
 def check_process_already_running():
     # TODO
@@ -118,224 +84,12 @@ def daemon_double_fork():
     return False
 
 
-def parse_pubDate(s):
-    """
-    Example input:
-        <pubDate>Tue, 04 Dec 2018 06:48:30 +0000</pubDate>
-        <pubDate>Fri, 15 Mar 2019 18:00:00 GMT</pubDate>
-    """
-    formats = [
-        ("%a, %d %b %Y %H:%M:%S %z", s),
-        ("%a, %d %b %Y %H:%M:%S %Z", s),
-        ("%a, %d %b %Y %H:%M:%S", s[:s.rfind(" ")-len(s)]),
-    ]
-
-    ret = None
-    for (f, s2) in formats:
-        try:
-            locale.setlocale(locale.LC_ALL, EN_LOCALE)
-            dt = datetime.strptime(s2, f)
-
-            # Without this line the locale is ignored...
-            locale.setlocale(locale.LC_ALL, '')
-            ret = dt.strftime("%d. %B %Y, %H:%M%p")
-
-            locale.resetlocale(locale.LC_ALL)
-            break
-        except locale.Error as e:
-            logger.warn("Can not set locale: %s" % str(e))
-            dt = datetime.strptime(s2, f)
-            ret = dt.strftime("%d. %B %Y, %H:%M%p")
-            break
-        except ValueError:
-            pass
-
-    if ret:
-        return ret
-
-    raise Exception("Can not parse '{}'".format(s))
-
-
 def load_xml(filename):
     with open(filename, 'rt') as f:
         text = f.read(-1)
         return text
 
     return None
-
-
-
-def find_feed_keyword_values(tree, context=None):
-
-    context = context if context else {}
-
-    context.setdefault("title", "Undefined")
-    context.setdefault("href", "")
-    context.setdefault("feed_lang", "en")
-
-    def search_href():
-        if (atom_node.attrib.get("rel") == "self" and
-            atom_node.attrib.get("type") in ["application/rss+xml",
-                                                 "application/xml"]
-           ):
-            context["href"] = atom_node.attrib.get("href", "")
-            context["title"] = atom_node.attrib.get(
-                "title", context["title"])
-            return True
-
-    for atom_node in tree.findall('./channel/atom10:link', XML_NAMESPACES):
-        if search_href(): break
-
-    for atom_node in tree.findall('./channel/atom:link', XML_NAMESPACES):
-        if search_href(): break
-
-    # ATTENTION: 'if node:' evaluates to False even if node is a 'node instance'!
-    # Check with 'if node is not None:'
-    node = tree.find('./channel/title')
-    if node is not None:
-        context["title"] = node.text
-
-    node = tree.find('./channel/language')
-    if node is not None:
-        context["feed_lang"] = node.text
-
-    node = tree.find('./channel/description')
-    context["subtitle"] = "Undefined" if node is None else node.text
-
-    node = tree.find('./channel/image/url')
-    image_url = "" if node is None else node.text
-
-    node = tree.find('./channel/image/title')
-    image_title = "" if node is None else node.text
-
-    if image_url:
-        context["image"] = {"url" : image_url,
-                                "title": image_title}
-
-    entries = []
-    entries_len = 0  # To remove entry_content_full for long feeds.
-    for item_node in tree.findall('./channel/item'):
-        entry_id = len(entries)+1
-        if settings.CONTENT_MAX_ENTRIES >= 0:
-            if entry_id > settings.CONTENT_MAX_ENTRIES and False:
-                break
-
-        entry = {}
-        node = item_node.find('./link')
-        entry["url"] = "Undefined" if node is None else node.text
-
-        node = item_node.find('./title')
-        entry["title"] = "Undefined" if node is None else node.text
-
-        node = item_node.find('./description')
-        content_short = "" if node is None else node.text
-
-        node = item_node.find('./content:encoded', XML_NAMESPACES)
-        content_full  = "" if node is None else node.text
-
-        if content_short == content_full:  # Remove duplicate info
-            content_full = ""
-
-        if content_short == "":  # Use full directly if <description> was empty
-            content_short, content_full = content_full, ""
-
-        if entries_len > settings.CONTENT_FULL_LEN_THRESH:
-            content_full = ""
-
-        if not settings.DETAIL_PAGE:
-            content_full = ""
-
-        context["extra_css_cls"] = ("in1_ani"
-                                         if settings.DETAIL_PAGE_ANIMATED else
-                                         "in1_no_ani")
-
-        entry["content_short"] = content_short
-        entry["content_full"] = content_full
-
-        node = item_node.find('./pubDate')
-        if node is not None:
-            entry["last_update"] = parse_pubDate(node.text)
-        else:
-            entry["last_update"] = "Undefined date"
-
-        entry["enclosures"] = find_enclosures(item_node)
-
-        entries.append(entry)
-        entries_len += len(content_full)
-
-    context["entries"] = entries
-    return context
-
-
-def find_enclosures(item_node):
-    enclosures = []
-    for e_node in item_node.findall('./enclosure'):
-        e = {}
-        try:
-            url = e_node.attrib["url"]
-            """# Escape arguments?!
-            url2 = url.split("?", 1)
-            if len(url2) > 1:
-                url2[1] = urlencode(url2[1])
-
-            url = "?".join(url2)
-            """
-            e["enclosure_url"] = url
-        except (AttributeError, KeyError):
-            e["enclosure_url"] = "Undefined"
-
-        e["enclosure_filename"] = os.path.basename(e["enclosure_url"])
-
-        try:
-            e["enclosure_type"] = e_node.attrib["type"]
-        except (AttributeError, KeyError):
-            e["enclosure_type"] = "Undefined"
-
-        try:
-            lBytes = int(e_node.attrib["length"])
-            if lBytes >= 1E9:
-                l = "{:.4} GB".format(lBytes/1E9)
-            elif lBytes >= 1E6:
-                l = "{:.4} MB".format(lBytes/1E6)
-            elif lBytes >= 1E3:
-                l = "{:.4} kB".format(lBytes/1E3)
-            else:
-                l = "{} B".format(lBytes)
-
-            e["enclosure_length"] = l
-        except (AttributeError, KeyError, ValueError):
-            e["enclosure_length"] = "0"
-
-        # Extend by dict with actions
-        add_enclosure_actions(e)
-
-        enclosures.append(e)
-
-    return enclosures
-
-def add_enclosure_actions(e):
-    # Add dict with possible actions for this media element
-    # The hash is added to prevent change of url. (No user authentication...)
-
-    url = e["enclosure_url"]
-    url_hash = '{}'.format( hashlib.sha224(
-        (settings.ACTION_SECRET + url).encode('utf-8')).hexdigest())
-    e["actions"] = []
-
-    for (aname, action) in settings.ACTIONS.items():
-        if action.get("check"):
-            if not action["check"](url, settings):
-                continue
-
-        a = {
-            "url": "/action?a={}&s={}&url={}".format(
-                aname,
-                url_hash, url),
-            "title": action["title"],
-            "icon": action["icon"],
-        }
-        e["actions"].append(a)
-
 
 
 def genMyHTTPServer():
@@ -556,7 +310,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 feed_url = feed.url if feed else feed_key
 
                 res = None
-                (text, code) = cached_requests.fetch_file(settings, feed_url, bUseCache)
+                (text, code) = cached_requests.fetch_file(feed_url, bUseCache)
 
                 if text is None:
                     error_msg = _('No feed found for this URI arguments.')
@@ -579,19 +333,19 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     self.end_headers()
                     return None
 
-                tree = ElementTree.XML(text)
+                # tree = ElementTree.XML(text)
+                # res = find_feed_keyword_values(tree)
 
-                res = find_feed_keyword_values(tree)
-
-                # Update cache and history
                 if not feed:
-                    feed_title = res["title"]
-                    # Add this (new) url to feed history.
-                    hist = self.get_history()
-                    hist.append(
-                        Feed(feed_title, feed_url, feed_title))
-                    save_history(hist, settings.get_config_folder(),
-                                 settings.get_history_filename(session_user))
+                    feed = Feed("", feed_url)
+                    bNew = True
+                else:
+                    bNew = False
+
+                feed_parser.parse_feed(feed, text)
+                res = feed.context
+
+                self.update_cache_feed(feed, bNew)
 
                 # Warn if feed url might changes
                 parsed_feed_url = res["href"]
@@ -644,7 +398,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
                 try:
                     text = load_xml(feed_filepath)
-                    tree = ElementTree.XML(text)
+                    # tree = ElementTree.XML(text)
+
+                    feed_new = Feed("", "no url")
+                    feed_parser.parse_feed(feed_new, text)
+
                 except FileNotFoundError:
                     error_msg = _("Feed XML document '{}' does not " \
                                   "exists.".format(feed_filepath))
@@ -653,42 +411,19 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     error_msg = _("Parsing of feed XML document '{}' " \
                                   "failed.".format(feed_filepath))
                     return self.show_msg(error_msg, True)
-                except:
+                except Exception as e:
+                    raise(e)
                     error_msg = _("Loading of feed XML document '{}' " \
                                   "failed.".format(feed_filepath))
                     return self.show_msg(error_msg, True)
 
-                res = find_feed_keyword_values(tree)
+                # res = find_feed_keyword_values(tree)
+                res = feed_new.context
+
+                self.update_cache_filepath(feed_new)
                 res["nocache_link"] = res["title"]
                 res["session_user"] = session_user
 
-                # Update cache and history
-                feed = get_feed(res["title"],
-                                self.get_favorites(),
-                                self.get_history())[0]
-                if feed:
-                    # Currently, the feed title is an unique key.
-                    # Replace feed url if extracted href field
-                    # indicates a newer url for a feed with this title.
-                    parsed_feed_url = res["href"]
-                    if parsed_feed_url and parsed_feed_url != feed.url:
-                        feed.url = parsed_feed_url
-                        self.save_feed_change(feed)
-
-                else:
-                    feed_title = res["title"]
-                    feed = Feed(feed_title,
-                                res.get("href", ""),
-                                feed_title)
-                    # Add this (new) feed to history.
-                    # Try to extract feed url from xml data because it is not
-                    # given directly!
-                    hist = self.get_history()
-                    hist.append(feed)
-                    save_history(hist, settings.get_config_folder(),
-                                 settings.get_history_filename(session_user))
-
-                cached_requests.update_cache(feed.title, res, {})
                 context = {}
                 context.update(self.context)
                 context.update(res)
@@ -925,9 +660,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
     def handle_action(self, query_components):
         try:
-            action = settings.ACTIONS[query_components["a"][-1]]
+            aname = query_components["a"][-1]
             url = query_components["url"][-1]
+            feed_name = query_components["feed"][-1]
             url_hash = query_components["s"][-1]
+            action = settings.ACTIONS[aname]
         except (KeyError, IndexError):
             error_msg = _('URI arguments wrong.')
             return self.show_msg(error_msg, True)
@@ -940,8 +677,23 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                                "'default_settings.py'. ")
             return self.show_msg(error_msg, True)
 
+        # Get feed for this action (to eval download folder name, etc.)
+        feed = get_feed(feed_name,
+                        self.get_favorites(),
+                        self.get_history())[0]
+        if not feed:
+            error_msg = _('No feed found for given URI argument.')
+            return self.show_msg(error_msg, True)
+
+        """  # Not required
+        text = cached_requests.fetch_from_cache(feed)
+        if text is None:
+            (text, code) = cached_requests.fetch_file(feed.url)
+        """
+
         url_hash2 = '{}'.format( hashlib.sha224(
-            (settings.ACTION_SECRET + url).encode('utf-8')).hexdigest())
+            (settings.ACTION_SECRET + url + aname).encode('utf-8')
+        ).hexdigest())
         if url_hash != url_hash2:
             error_msg = _('Wrong hash for this url argument.')
             return self.show_msg(error_msg, True)
@@ -951,18 +703,31 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         url = url.replace("'","").replace('"','').replace('\\', '')
 
         if action["check"] is not None:
-            if not action["check"](url, settings):
+            check = action["check"]
+            try:
+                if not check(feed, url, settings):
+                    error_msg = _('Action not allowed for this file.')
+                    return self.show_msg(error_msg, True)
+            except Exception as e:
+                logger.debug("check-Handler of '{aname}' failed. " \
+                             "Exception was: '{e}'.".format(aname=aname, e=e))
                 error_msg = _('Action not allowed for this file.')
                 return self.show_msg(error_msg, True)
 
         try:
-            action["handler"](url, settings)
+            handler = action["handler"]
         except KeyError:
-                raise Exception("Action not defined")
+            logger.debug("Handler of action '{aname}' not defined." \
+                         .format(aname))
+            error_msg = _("Handler of action not defined.")
+            return self.show_msg(error_msg, True)
+
+        try:
+            handler(feed, url, settings)
         except Exception as e:
             error_msg = _('Running of handler for "{action_name}" failed. ' \
-                          'Exception was: "{exception}".')\
-                    .format(action_name=action, exception=str(e))
+                          'Exception was: "{e}".')\
+                    .format(action_name=action, e=e)
             return self.show_msg(error_msg, True)
 
         # Handling sucessful
@@ -1009,6 +774,61 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         # self.wfile.write(output.getvalue())
 
+    def update_cache_feed(self, feed_new, bNew):
+        """ Update cache and history """
+
+        res = feed_new.context
+        if bNew:
+            # Add this (new) url to feed history.
+            hist = self.get_history()
+            # feed_title = res["title"]
+            # hist.append(Feed(feed_title, feed.url, feed_title))
+            hist.append(feed_new)
+            save_history(hist, settings.get_config_folder(),
+                         settings.get_history_filename(session_user))
+
+
+    def update_cache_filepath(self, feed_new):
+        """ Update cache and history and old feed entry, if found."""
+
+        res = feed_new.context
+        # 1. Find feed with same title
+        feed = get_feed(res["title"],
+                        self.get_favorites(),
+                        self.get_history())[0]
+
+        if feed:
+            # The feed title acts as an unique key.
+            # Replace feed with feed_new, but check
+            # it the url had changed.
+            feed_new.name = feed.name
+
+            # Replace feed url if extracted href field
+            # indicates a newer url for a feed with this title.
+            parsed_feed_url = res["href"]
+            if parsed_feed_url and parsed_feed_url != feed.url:
+                # feed.url = parsed_feed_url
+                # self.save_feed_change(feed)
+                self.save_feed_change(feed_new)
+
+            feed = feed_new
+        else:
+            feed = feed_new
+
+            # Extract feed url from xml data because it is not
+            # given directly!
+            feed.url = res.get("href", "")
+
+            # Add this (new) feed to history.
+            hist = self.get_history()
+            hist.append(feed)
+            save_history(hist, settings.get_config_folder(),
+                         settings.get_history_filename(session_user))
+
+        # 2. Write changes
+        cached_requests.update_cache(feed.title, res, {})
+
+
 # Call 'make ssl' to generate local test certificates.
 def wrap_SSL(httpd):
     ssl_path = "."
@@ -1029,26 +849,31 @@ def set_logger_levels():
     if not isinstance(numeric_level, int):
         raise ValueError('Invalid log level: %s' % loglevel)
 
-    keys = ["root", "rss_server", "feed", "session", "settings_helper",
-            "icon_searcher", "cached_requests"]
+    keys = list(logging.root.manager.loggerDict.keys())
+    keys.insert(0, "root")
+    print("Logger keys: {}".format(keys))
 
+    print("Set Logging level on {}".format(numeric_level))
     logging.basicConfig(level=numeric_level)
     for key in keys:
         logging.getLogger(key).setLevel(numeric_level)
 
+
 if __name__ == "__main__":
+    # create logger
+    logger = logging.getLogger('rss_server')
+
     settings.load_config(globals())
     settings.load_users(globals())
 
-    logging.config.fileConfig('logging.conf')
+    # Overwrite 'settings' in other modules, too.
+    settings.update_submodules(globals())
 
-    # create logger
-    logger = logging.getLogger('rss_server')
-    # logging.conf contain levels for each component, but
-    # this overrides this values if settings explicit force level
+    # logging.conf already contain levels for each component, but
+    # settings could override this by a global value
     set_logger_levels()
 
-    find_installed_en_locale()
+    feed_parser.find_installed_en_locale()
 
     if check_process_already_running():
         logger.info("Server process is already running.")

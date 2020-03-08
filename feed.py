@@ -3,6 +3,7 @@
 
 import os.path
 import re
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -11,6 +12,8 @@ class Feed:
         self.name = name
         self.url = url
         self.title = title
+        self.items = []
+        self.context = {}
 
     def __repr__(self):
         return 'Feed("{name}", "{url}" {title})'.format(
@@ -19,6 +22,60 @@ class Feed:
             title=', "{}"'.format(self.title) if self.title else "",
         )
 
+'''
+    def add_items(self, items):
+        for item in items:
+            self.items.append(item)
+
+    def get_item(self, guid=None, relative_id=None):
+        if guid:
+            for item in self.items:
+                if item.guid == guid:
+                    return item
+
+        if relative_id:
+            try:
+                item = self.items[relative_id]
+                return item
+            except IndexError:
+                pass
+
+        return None
+
+    def has_items(self):
+        return (len(self.items) > 0)
+
+    def init_from_xml(self, text):
+        pass
+
+
+class Item:
+    def __init__(self, enclosures=None, guid=None):
+        self.enclosures = enclosures
+        self.guid = guid
+
+    def add_enclosures(self, enclosures):
+        for enclosure in enclosures:
+            self.items.append(enclosure)
+
+    def has_enclosures(self):
+        return (len(self.enclosures) > 0)
+
+    def get_enclosure(self, guid=None, url=None):
+        match = [e for e in self.enclosures if (e.guid == guid or \
+                                        e.url == url)]
+        try:
+            return match[0]
+        except IndexError:
+            pass
+
+        return None
+
+class Enclosure:
+    def __init__(self, url, guid=None):
+        self.url = url
+        self.guid = guid if guid else self.url
+'''
 
 def get_feed(key, *feed_lists):  # hist_feeds=None):
     """ Search feed in list(s) of Feed-objects.

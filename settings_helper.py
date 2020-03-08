@@ -6,6 +6,7 @@
 import sys
 import os
 from importlib import import_module
+from types import ModuleType
 from glob import glob
 
 import logging
@@ -57,7 +58,8 @@ def get_settings_path():
 
 def get_favorites_path(user=None):
     return os.path.join(get_config_folder(),
-                            "favorites_{}.py".format(user))
+                        get_favorites_filename(user))
+
 
 
 def get_history_path(user=None):
@@ -182,4 +184,39 @@ def load_users(main_globals):
     for h in user_hists:
         _update(h, prefix, suffix, "HISTORY",
                 main_globals.get("settings").USER_HISTORY)
+
+
+def update_submodules(main_globals):
+    # Use main_globals-settings submodule in all other
+    # submodules, too.
+    #
+    # Useful in modules with following statement:
+    # import default_settings as settings
+
+    settings = main_globals["settings"]
+    modules_done = []  # To omit infinite loops due recursion
+
+    def _r(m):
+        if m in modules_done:
+            return
+
+        modules_done.append(m)
+        if hasattr(m, "__dict__"):
+            if "settings" in m.__dict__:
+                if isinstance(m.settings, ModuleType):
+                    logger.debug("Replace settings module in '{}'".\
+                                 format(m.__name__))
+                    m.settings = settings
+                else:
+                    logger.warning("Found variable named 'settings' in module" \
+                                "'{}'. This name should ne be used.".\
+                                 format(m.__name__))
+
+            for s in m.__dict__.values():
+                if isinstance(s, ModuleType):
+                    _r(s)
+
+    for v in main_globals.values():
+        if isinstance(v, ModuleType):
+            _r(v)
 

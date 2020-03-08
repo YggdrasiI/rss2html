@@ -6,8 +6,9 @@ from jinja2 import Environment, FileSystemLoader
 from babel.support import Translations
 
 import icon_searcher
+from feed_parser import parse_pubDate
 
-
+# Template filters
 def get_icon_for_mimetype(mime):
     return icon_searcher.get_icon_path(mime)
 
@@ -23,6 +24,13 @@ def get_clipped_media_name(media_name, max_len):
         media_name[:max_len - (len(media_name) - last_dot)],
         media_name[last_dot+1:]
     )
+
+def convert_pub_date(pubDate, date_format=None):
+    if pubDate:
+        return parse_pubDate(pubDate, date_format)
+
+    return "Undefined date"
+
 
 # @babel.localeselector
 def get_locale():
@@ -56,6 +64,7 @@ class HtmlRenderer:
 
         self.env.filters['get_icon'] = get_icon_for_mimetype
         self.env.filters['clipped_media_name'] = get_clipped_media_name
+        self.env.filters['convert_pub_date'] = convert_pub_date
         
         self.extra_context = {"system_css_style": css_style}
 

@@ -16,7 +16,15 @@ SSL = True          # HTTPS
 GUI_LANG = "en"
 
 # ==========================================================
-DOWNLOAD_DIR = "$HOME/Downloads"
+DOWNLOAD_DIR = "$HOME/Downloads/"
+# Possible keys: feed_name, feed_title,
+#                basename, file_ext, pub_date,
+#                item_title, item_guid
+DOWNLOAD_NAMING_SCHEME = "{feed_name}/{basename}"
+# DOWNLOAD_NAMING_SCHEME = "{feed_name}/{pub_date}_{item_title}{file_ext}"
+
+# Format of above pub_date key
+PUB_DATE_FORMAT = "%Y%m%d"
 
 # ==========================================================
 # LOGIN_TYPE
@@ -42,7 +50,7 @@ USERS = {
 # ==========================================================
 # Logging level of each component can be controlled in 'logging.conf'
 # Set LOGLEVEL variable to overwrite level globally.
-LOGLEVEL = "DEBUG"
+# LOGLEVEL = "DEBUG"
 
 CACHE_EXPIRE_TIME_S = 600
 MAX_FEED_BYTE_SIZE = 1E7
@@ -80,10 +88,10 @@ local setttings.py:
 
 from default_settings import ACTIONS
 
-def can_action_name(url, settings):
+def can_action_name(feed, url, settings):
     return True
 
-def action_name(url, settings):
+def action_name(feed, url, settings):
     return True
 
 ACTIONS.update({
@@ -135,8 +143,9 @@ USER_FAVORITES = {
 # of settings:
 #    import default_settings as settings
 #    settings.load_config(globals())
+#    settings.update_submodules(globals())
 #
 from settings_helper import get_config_folder, \
-        load_config, load_default_favs, load_users, \
+        load_config, load_default_favs, load_users, update_submodules, \
         get_favorites_filename, get_history_filename, \
         get_settings_path, get_favorites_path

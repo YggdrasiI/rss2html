@@ -133,7 +133,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
     #
     # ETag in FF still ignored
     ## protocol_version = "HTTP/1.1"
-    directory="rss_server-page"  # for Python 3.4
+    directory="/rss_server-page"  # for Python 3.4
 
     def __init__(self, *largs, **kwargs):
         Session = SESSION_TYPES.get(settings.LOGIN_TYPE, ExplicitSession)
@@ -491,7 +491,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             return self.write_index()
         elif os.path.splitext(urlparse(self.path).path)[1] in \
                 settings.ALLOWED_FILE_EXTENSIONS:
-            self.path = self.directory + "/" + self.path  # for Python 3.4
+            self.path = MyHandler.directory + self.path  # for Python 3.4
             ret =  super().do_GET()
         else:
             print(self.path)

@@ -165,14 +165,16 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             # Check for feed with this name
             (feed, _) = get_feed(feed_key, hist)
             if feed:
+                logging.info("Remove feed '{}' from history.".format(feed))
                 try:
                     hist.remove(feed)
                 except ValueError:
                     logging.debug("Removing of feed '{}' from history" \
                                   "failed.".format(feed))
 
-            (feed, _) = get_feed(feed_key, favs)
-            if not feed:  # Add if not already in FAVORITES
+            (fav_feed, _) = get_feed(feed_key, favs)
+            if not fav_feed:  # Add if not already in FAVORITES
+                logging.info("Add feed '{}' to favorites.".format(feed))
                 favs.append(feed)
 
         update_favorites(favs, settings.get_config_folder(),

@@ -782,6 +782,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         res = feed_new.context
         if bNew:
+            session_user = self.session.get_logged_in("user")
             # Add this (new) url to feed history.
             hist = self.get_history()
             # feed_title = res["title"]
@@ -822,6 +823,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             # given directly!
             feed.url = res.get("href", "")
 
+            session_user = self.session.get_logged_in("user")
             # Add this (new) feed to history.
             hist = self.get_history()
             hist.append(feed)

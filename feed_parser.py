@@ -5,6 +5,7 @@
 # The context can be propagated into the html renderer.
 #
 
+import sys
 import os.path
 import re
 import hashlib
@@ -263,6 +264,8 @@ def find_installed_en_locale():
 
     logger.info("Use {} for english date strings".format(".".join(EN_LOCALE)))
 
+    # Set variable on module level
+    sys.modules[__name__].EN_LOCALE = EN_LOCALE
 
 def parse_pubDate(s, date_format=None):
     """
@@ -292,7 +295,8 @@ def parse_pubDate(s, date_format=None):
             locale.resetlocale(locale.LC_ALL)
             break
         except locale.Error as e:
-            logger.warn("Can not set locale: %s" % str(e))
+            logger.warn("Can not set locale '{}'. Error: '{}'.".\
+                    format(str(EN_LOCALE), str(e)))
             dt = datetime.strptime(s2, f)
             ret = dt.strftime(date_format)
             break

@@ -14,6 +14,8 @@ import locale
 from xml.etree import ElementTree
 from subprocess import Popen, PIPE
 
+from urllib.parse import quote, unquote
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -32,7 +34,7 @@ EN_LOCALE = ("en_US", "utf-8")
 def parse_feed(feed, text):
     tree = ElementTree.XML(text)
 
-    feed.context = find_feed_keyword_values(feed, tree)
+    find_feed_keyword_values(feed, tree)
 
     feed.title = feed.context["title"]
     if feed.name == "":  # New feed got title as name
@@ -41,7 +43,8 @@ def parse_feed(feed, text):
 
 def find_feed_keyword_values(feed, tree):
 
-    context = feed.context if feed.context else {}
+    feed.context = feed.context if feed.context else {}
+    context = feed.context
 
     context.setdefault("title", "Undefined")
     context.setdefault("href", "")
@@ -55,6 +58,11 @@ def find_feed_keyword_values(feed, tree):
             context["href"] = atom_node.attrib.get("href", "")
             context["title"] = atom_node.attrib.get(
                 "title", context["title"])
+
+            # Sanitize input which breaks html code
+            context["href"] = quote(context["href"], safe=":/")
+            context["title"] = quote(context["title"], safe=":/")
+
             return True
 
     for atom_node in tree.findall('./channel/atom10:link', XML_NAMESPACES):
@@ -205,6 +213,10 @@ def add_enclosure_actions(feed, e):
     url = e["enclosure_url"]
     e["actions"] = []
 
+    # feeds opened by filename (?file=...) has no name 
+    # at this stage. Use title from xml file.
+    name = feed.name if feed.name else feed.context.get("title", "")
+
     for (aname, action) in settings.ACTIONS.items():
         if action.get("check"):
             if not action["check"](feed, url, settings):
@@ -215,16 +227,20 @@ def add_enclosure_actions(feed, e):
         ).hexdigest())
         # guid = e.get("enclosure_guid", e["enclosure_url"])
 
-        a = {
-            "url": "/action?a={action}&feed={feed}&url={url}" \
-            "&s={url_hash}".format(
-                feed=feed.name,
+        # Quoting of feed and url at least for '#&?' chars.
+        url_args = "a={action}&feed={feed}&url={url}&s={url_hash}".format(
+                feed=quote(name),
                 action=aname,
-                url=url,
-                url_hash=url_hash),
+                url=quote(url),
+                url_hash=url_hash)
+
+        a = {
+            "url": "{}?{}".format("/action", url_args),
             "title": action["title"],
             "icon": action["icon"],
         }
+
+
         e["actions"].append(a)
 
 

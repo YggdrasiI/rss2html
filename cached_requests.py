@@ -2,11 +2,14 @@
 # -*- coding: utf-8 -*-
 
 import time
+import ssl
+import os.path
 
 import logging
 logger = logging.getLogger(__name__)
 
 # from urllib.parse import urlparse, parse_qs, quote
+from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
 
@@ -47,7 +50,7 @@ def fetch_from_cache(feed):
 
     return None
 
-def fetch_file(url, bCache=True):
+def fetch_file(url, bCache=True, local_dir="rss_server-page/"):
     logger.debug("Url: " + url)
 
     req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -59,13 +62,35 @@ def fetch_file(url, bCache=True):
                                headers.get('ETag'))
             if "Last-Modified" in headers:
                 req.add_header('If-Modified-Since',
-                               headers.get('Last-Modified')) 
+                               headers.get('Last-Modified'))
         except KeyError:
             pass
 
     try:
-        response = urlopen(req, timeout=10)
 
+        # Workaround for self signed certificate on own
+        # address. Read (some) files directly.
+        try:
+            parsed_url = urlparse(url)
+            port = parsed_url.port if parsed_url.port else 80
+            host = parsed_url.hostname
+            if (port == settings.PORT and host in [
+                settings.HOST, "localhost", "::1", "127.0.0.1"]):
+
+                if (os.path.splitext(parsed_url.path)[1] in [".xml"]
+                        and "../" not in parsed_url.path):
+                    local_relative_path = os.path.join(
+                            local_dir.lstrip("/"),
+                            parsed_url.path.lstrip("/"))
+                    logger.debug("Fetch local file '{}'".format(
+                        local_relative_path))
+                    text = load_xml(local_relative_path)
+                    return (text, 200)
+        except Exception as e:
+            logger.debug("Local file search failed for url '{}'. Error was: "
+                    "'{}'".format(url, e))
+
+        response = urlopen(req, timeout=10)
         try:
             # Content-Length header optional/not set in all cases…
             content_len = int(response.getheader("Content-Length", 0))
@@ -97,13 +122,22 @@ def fetch_file(url, bCache=True):
 
     return (None, 404)
 
+
+def load_xml(filename):
+    with open(filename, 'rt') as f:
+        text = f.read(-1)
+        return text
+
+    return None
+
+
 if __name__ == "__main__":
     url = "http://in-trockenen-buechern.de/feed"
     print("Get file first time…")
-    (_, code) = fetch_file(url)
+    (_, code) = fetch_file(url, local_dir=".")
     print("Http status code: {}".format(code))
     print("Wait…")
     time.sleep(2)
     print("Get file second time…")
-    (_, code) = fetch_file(url)
+    (_, code) = fetch_file(url, local_dir=".")
     print("Http status code: {}".format(code))

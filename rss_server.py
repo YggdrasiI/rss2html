@@ -6,7 +6,7 @@ import os.path
 from datetime import datetime
 from xml.etree import ElementTree
 
-from urllib.parse import urlparse, parse_qs, quote
+from urllib.parse import urlparse, parse_qs, quote, unquote
 from threading import Thread
 import http.server
 import hashlib
@@ -314,7 +314,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 feed_url = feed.url if feed else feed_key
 
                 res = None
-                (text, code) = cached_requests.fetch_file(feed_url, bUseCache)
+                (text, code) = cached_requests.fetch_file(
+                        feed_url, bUseCache, MyHandler.directory)
 
                 if text is None:
                     error_msg = _('No feed found for this URI arguments.')
@@ -323,9 +324,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 etag = '"{}"'.format(
                     hashlib.sha1((text if text is not None \
                                  else "").encode('utf-8')).hexdigest())
-                logger.debug("Eval ETag '{}'".format(etag))
-                logger.debug("Browser ETag '{}'".format(self.headers.get("If-None-Match", "")))
-                logger.debug("Received headers:\n{}".format(self.headers))
+                # logger.debug("Eval ETag '{}'".format(etag))
+                # logger.debug("Browser ETag '{}'".format(self.headers.get("If-None-Match", "")))
+                # logger.debug("Received headers:\n{}".format(self.headers))
 
                 # If feed is unchanged and tags match return nothing, but 304.
                 if code == 304 and self.headers.get("If-None-Match", "") == etag:
@@ -666,8 +667,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
     def handle_action(self, query_components):
         try:
             aname = query_components["a"][-1]
-            url = query_components["url"][-1]
-            feed_name = query_components["feed"][-1]
+            url = unquote(query_components["url"][-1])
+            feed_name = unquote(query_components.get("feed", [""])[-1])
             url_hash = query_components["s"][-1]
             action = settings.ACTIONS[aname]
         except (KeyError, IndexError):
@@ -693,7 +694,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         """  # Not required
         text = cached_requests.fetch_from_cache(feed)
         if text is None:
-            (text, code) = cached_requests.fetch_file(feed.url)
+            (text, code) = cached_requests.fetch_file(
+                    feed.url, MyHandler.directory)
         """
 
         url_hash2 = '{}'.format( hashlib.sha224(
@@ -858,7 +860,7 @@ def set_logger_levels():
 
     keys = list(logging.root.manager.loggerDict.keys())
     keys.insert(0, "root")
-    print("Logger keys: {}".format(keys))
+    # print("Logger keys: {}".format(keys))
 
     print("Set Logging level on {}".format(numeric_level))
     logging.basicConfig(level=numeric_level)

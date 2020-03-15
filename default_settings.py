@@ -13,7 +13,8 @@ HOST = "localhost"  # "" allows access from everywhere....
 PORT = 8888
 SSL = True          # HTTPS
 
-GUI_LANG = "en"
+# Default language. (Overriden by browsers value.)
+GUI_LANG = "en_US"
 
 # ==========================================================
 DOWNLOAD_DIR = "$HOME/Downloads/"

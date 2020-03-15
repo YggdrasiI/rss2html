@@ -8,6 +8,9 @@ from babel.support import Translations
 import icon_searcher
 from feed_parser import parse_pubDate
 
+import logging
+logger = logging.getLogger(__name__)
+
 # Template filters
 def get_icon_for_mimetype(mime):
     return icon_searcher.get_icon_path(mime)
@@ -40,37 +43,51 @@ def get_locale():
 class HtmlRenderer:
     locale_dir = "locale"  # "i18n"
     msgdomain = "html"
-    list_of_available_locales = ["en", "de"]
+    list_of_available_locales = ["en_US", "de_DE"]
     loader = FileSystemLoader("templates")
     extensions = ['jinja2.ext.i18n', 'jinja2.ext.with_', 'jinja2.ext.autoescape']
     # bcc = FileSystemBytecodeCache('/tmp', '%s.cache')
 
-    def __init__(self, lang="en", css_style=None):
+    def __init__(self, lang="en_US", css_style=None):
         if lang not in HtmlRenderer.list_of_available_locales:
             logger.warn("Fallback on default language. '{}' is not "
                   "in list of available locales.".format(lang))
-            lang = "en"
+            lang = "en_US"
 
-        self.translations = Translations.load(
-            HtmlRenderer.locale_dir,
-            [lang])
-        # add any other env options if needed
-        self.env = Environment(
-            extensions=HtmlRenderer.extensions,
-            # bytecode_cache=HtmlRenderer.bcc,
-            loader=HtmlRenderer.loader)
-        self.env.install_gettext_translations(
-            self.translations)
+        self.translations = {}
+        self.envs = {}
+        for locale_key in HtmlRenderer.list_of_available_locales:
+            logger.info("Create environment for language '{}'.".\
+                       format(locale_key))
+            self.translations[locale_key] = Translations.load(
+                HtmlRenderer.locale_dir, locale_key)
+            # add any other env options if needed
+            env = Environment(
+                extensions=HtmlRenderer.extensions,
+                # bytecode_cache=HtmlRenderer.bcc,
+                loader=HtmlRenderer.loader)
+            env.install_gettext_translations(
+                self.translations[locale_key])
 
-        self.env.filters['get_icon'] = get_icon_for_mimetype
-        self.env.filters['clipped_media_name'] = get_clipped_media_name
-        self.env.filters['convert_pub_date'] = convert_pub_date
-        
+            env.filters['get_icon'] = get_icon_for_mimetype
+            env.filters['clipped_media_name'] = get_clipped_media_name
+            env.filters['convert_pub_date'] = convert_pub_date
+
+            self.envs[locale_key] = env
+
+        self.preferred_lang = lang
         self.extra_context = {"system_css_style": css_style}
 
 
+
     def run(self, filename="base.html", context=None):
-        template = self.env.get_template(filename)
+        try:
+            lang = context["gui_lang"]
+        except:
+            lang = self.preferred_lang
+
+        env = self.envs[lang]
+        template = env.get_template(filename)
 
         for k in self.extra_context:
             if k not in context:

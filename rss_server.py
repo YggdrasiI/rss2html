@@ -208,6 +208,34 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 except ValueError:
                     pass
 
+    def eval_gui_lang(self, avail_langs=None):
+        if not avail_langs:
+            avail_langs = templates.HtmlRenderer.list_of_available_locales
+
+        session_lang = self.session.get("lang")
+        if session_lang in avail_langs:
+            return session_lang
+
+        # Example header: Accept-Language: de,en-US;q=0.7,en;q=0.3
+        # Assume descending ordering of q=-weights, so we can select first hit.
+        header_langs = self.headers.get("Accept-Language")
+        if header_langs:
+            for _lang in header_langs.split(","):
+                _q = _lang.split(";q=")
+                lang = _q[0]
+                match_prefix = [alang for alang in avail_langs if
+                                alang.startswith(lang)]
+                if len(match_prefix) > 0:
+                    # Save value in session to avoid re-evaluation
+                    self.session.c["lang"] = match_prefix[0]
+                    self.session.c["lang"]["max-age"] = 86000
+                    self.save_session = True
+                    return match_prefix[0]
+
+        return settings.GUI_LANG
+
+
+
     def do_POST(self):
         content_length = int(self.headers['Content-Length'])
         content = self.rfile.read(content_length).decode('utf-8')
@@ -239,6 +267,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 self.save_session = True
 
         session_user = self.session.get_logged_in("user")
+        self.context["gui_lang"] = self.eval_gui_lang()
 
         # User CSS-Style can overwrite server value
         user_css_style = self.session.get("css_style")
@@ -386,7 +415,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     context.update(self.context)
                     context.update(res)
                     html = self.server.html_renderer.run(
-                        "feed.html", context)
+                        "feed.html", context, self.context["gui_lang"])
 
             except ValueError as e:
                 error_msg = str(e)

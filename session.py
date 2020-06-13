@@ -65,8 +65,10 @@ class Session():
     def add_cookie_derectives(self):
         # Metadata
         self.c["user"]["max-age"] = 31536000        # year
-        self.c["session_id"]["max-age"] = 604800    # week
-        self.c["session_hash"]["max-age"] = 604800
+        # self.c["session_id"]["max-age"] = 604800    # week
+        # self.c["session_hash"]["max-age"] = 604800
+        self.c["session_id"]["max-age"] = 2592000   # month
+        self.c["session_hash"]["max-age"] = 2592000
 
         try:
             self.c["user"]["samesite"] = "Strict"

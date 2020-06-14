@@ -414,8 +414,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     context = {}
                     context.update(self.context)
                     context.update(res)
-                    html = self.server.html_renderer.run(
-                        "feed.html", context, self.context["gui_lang"])
+                    html = self.server.html_renderer.run("feed.html", context)
 
             except ValueError as e:
                 error_msg = str(e)

@@ -189,7 +189,7 @@ a[href] img {
   margin-right: 2em;
 }
 .feed_list > *:nth-child(even) {
-  background: #939393;
+  background: rgba(147, 147, 147, 0.1);
 }
 div.in1 {
   border: 1px solid #686a6d;

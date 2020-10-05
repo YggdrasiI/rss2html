@@ -14,7 +14,9 @@ registerPlugin({
 				var red = less.functions.functionRegistry.get("red");
 				var green = less.functions.functionRegistry.get("green");
 				var blue = less.functions.functionRegistry.get("blue");
-				var rgb = less.functions.functionRegistry.get("rgb");
+				var alpha = less.functions.functionRegistry.get("alpha");
+				//var rgb = less.functions.functionRegistry.get("rgb");
+				var rgba = less.functions.functionRegistry.get("rgba");
 
 				var p = percentage.value; // number
 				var r = red(color1);      // obj
@@ -24,10 +26,8 @@ registerPlugin({
 				g.value = 255 - (255*(1-p) + g.value*(2*p-1));
 				b.value = 255 - (255*(1-p) + b.value*(2*p-1));
 
-				return new tree.Value(rgb(r,g,b));
-			},
-			'define_further_functions_here': function() {
-				return new tree.Dimension(Math.PI);
+				//return new tree.Value(rgb(r,g,b));
+				return new tree.Value(rgba(r,g,b, alpha(color1)));
 			}
 		});
 	}

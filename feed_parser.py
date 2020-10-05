@@ -99,7 +99,7 @@ def find_feed_keyword_values(feed, tree):
     for item_node in tree.findall('./channel/item'):
         entry_id = len(entries)+1
         if settings.CONTENT_MAX_ENTRIES >= 0:
-            if entry_id > settings.CONTENT_MAX_ENTRIES and False:
+            if entry_id > settings.CONTENT_MAX_ENTRIES:
                 break
 
         entry = {}

@@ -252,7 +252,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         msg = 'Post values: {}'.format(str(query_components))
         return self.show_msg(msg)
 
-
     def do_GET(self):
 
         self.session.load()

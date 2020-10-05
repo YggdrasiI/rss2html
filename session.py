@@ -41,7 +41,7 @@ class Session():
             self.c["session_id"] = session_id
             self.c["session_hash"] = session_hash
 
-            self.add_cookie_derectives()
+            self.add_cookie_directives()
             self.login_ok = True
 
             return True
@@ -62,13 +62,22 @@ class Session():
         self.c.pop("session_hash", None)
         self.login_ok = False
 
-    def add_cookie_derectives(self):
+    def add_cookie_directives(self):
         # Metadata
-        self.c["user"]["max-age"] = 31536000        # year
-        # self.c["session_id"]["max-age"] = 604800    # week
-        # self.c["session_hash"]["max-age"] = 604800
-        self.c["session_id"]["max-age"] = 2592000   # month
-        self.c["session_hash"]["max-age"] = 2592000
+        if True:
+            self.c["user"]["max-age"] = 31536000        # year
+            # self.c["session_id"]["max-age"] = 604800    # week
+            # self.c["session_hash"]["max-age"] = 604800
+            self.c["session_id"]["max-age"] = 2592000   # month
+            self.c["session_hash"]["max-age"] = 2592000
+
+        else:
+            # Set 'Expires' directive to omit 'session cookie' behaviour
+            # (No effect in FF 81.0?! ...)
+            exp = "Fri, 31-Dec-2021 20:00:00 GMT"
+            self.c["user"]["expires"] = exp
+            self.c["session_id"]["expires"] = exp
+            self.c["session_hash"]["expires"] = exp
 
         try:
             self.c["user"]["samesite"] = "Strict"
@@ -152,7 +161,7 @@ class LoginFreeSession(Session):
         # self.c["session_id"] = "0"
         self.c["session_id"] = str(randint(0, 1E15))
         self.c["session_hash"] = "0"
-        self.add_cookie_derectives()
+        self.add_cookie_directives()
         self.login_ok = True
 
         return True

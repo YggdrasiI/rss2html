@@ -237,6 +237,25 @@ form.login_form input {
 .clearfix {
   overflow: auto;
 }
+/* BEGIN 'style='-replacements
+ Otherwise, this properties will be ignored due
+ content security restrictions. */
+.div_after_feed {
+  clear: both;
+}
+.w100percent {
+  width: 100%;
+}
+/* END 'style='-replacements */
+/* BEGIN Colour information for onclick2.css */
+label.menu_close1 {
+  background-color: gray;
+  opacity: 0.25;
+}
+div.in1 {
+  background: #ffffff;
+}
+/* END Colour information for onclick2.css */
 a {
   color: #0000ee;
 }
@@ -248,4 +267,17 @@ a:active {
 }
 a:visited {
   color: #551a8b;
+}
+/* Set wordpress smiley size (seen on minkorrekt)*/
+.wp-smiley {
+  height: 1em;
+  max-height: 1em;
+}
+/* Colour information for onclick2.css */
+label.menu_close1 {
+  background-color: gray;
+  opacity: 0.25;
+}
+div.in1 {
+  background: #ffffff;
 }

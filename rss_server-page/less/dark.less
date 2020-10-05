@@ -1,0 +1,27 @@
+@factor: 0.85;
+
+@plugin "plugin_css_invert";
+
+@color1: css_invert(rgb(237, 236, 235), @factor);
+@color2: css_invert(rgb( 26,  26,  26), @factor);
+@color3: css_invert(rgb(161, 158, 154), @factor);
+@color4: css_invert(rgb(255, 255, 255), @factor);
+@color5: css_invert(rgb(237, 236, 235), @factor);
+@color6: css_invert(rgb(148, 145, 141), @factor);
+@color7: css_invert(rgb(  0,   0,   0), @factor); // unused
+@color8: css_invert(rgb(  0,   0,   0), @factor); // unused
+@color-even: css_invert(rgba(99,99,99,0.1), @factor);
+
+@link: css_invert(rgb(0, 0, 238), @factor);
+@link-hover: css_invert(rgb(170, 0, 68), @factor);
+@link-active: css_invert(rgb(238, 0, 0), @factor);
+@link-visited: css_invert(rgb(85, 26, 139), @factor);
+
+@feed-header-container: css_invert(#F2DC95, @factor);
+
+@import "base.less";
+
+input {
+  color: css_invert(rgb( 26,  26,  26), @factor);
+  background-color: rgb( 26,  26,  26);
+}

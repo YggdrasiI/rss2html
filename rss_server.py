@@ -20,7 +20,8 @@ from warnings import warn
 # from importlib import reload
 import ssl
 
-from gettext import gettext as _
+#from gettext import gettext as _
+from locale_gettext import gettext as _, set_gettext
 # from jina2.utils import unicode_urlencode as urlencode
 
 from feed import Feed, get_feed, save_history, clear_history, update_favorites
@@ -304,6 +305,10 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             show_index = True
             self.do_rm_feed(to_rm)
 
+        # Switch _ to language of request.
+        # (Note: In templates Jinja2 translates, but not
+        # in _("") calls in the py's files itself.)
+        set_gettext(self.server.html_renderer, self.context)
 
         if self.path == "/quit":
             ret = self.show_msg(_("Quit"))

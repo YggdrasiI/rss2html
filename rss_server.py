@@ -286,8 +286,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         to_rm = query_components.get("rm", [])
         etag = None
 
-        query_components["page"] = \
-                [query_components.get("page", ['1'])[-1]]  # Normalize
 
         # entryid=0: Newest entry of feed. Thus, id not stable due feed updates
         try:
@@ -357,10 +355,19 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     error_msg = _('No feed found for this URI arguments.')
                     return self.show_msg(error_msg, True)
 
+                # Parse 'page' uri argument (affects etag!)
+                page = 1
+                if settings.CONTENT_MAX_ENTRIES > 0:
+                    try:
+                        page = int(query_components.setdefault("page", ['1'])[-1])
+                    except:
+                        pass
+
+                # Generate etag
                 etag = '"{}p{}"'.format(
                     hashlib.sha1((text if text is not None \
-                                 else "").encode('utf-8')).hexdigest(),
-                    query_components["page"][-1]
+                                  else "").encode('utf-8')).hexdigest(),
+                    page
                 )
                 # logger.debug("Eval ETag '{}'".format(etag))
                 # logger.debug("Browser ETag '{}'".format(self.headers.get("If-None-Match", "")))
@@ -393,16 +400,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
                 # Select displayed range of feed entries
                 if settings.CONTENT_MAX_ENTRIES > 0:
-                    try:
-                        page = int(query_components["page"][-1])
-                    except:
-                        page = 1
-
                     res["entry_list_first_id"] = (page-1) * \
-                            feed.context["entry_list_size"]
+                            res["entry_list_size"]
 
                     # feed.context["query_components"] = query_components
-                    feed.context["feed_page"] = page
+                    res["feed_page"] = page
 
                 self.update_cache_feed(feed, bNew)
 

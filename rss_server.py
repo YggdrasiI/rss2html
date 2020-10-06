@@ -382,7 +382,10 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     bNew = False
 
                 feed_parser.parse_feed(feed, text)
-                res = feed.context
+
+                # Note: without copy, changes like warnings on res
+                # would be stored peristend into feed.context.
+                res = feed.context.copy()
 
                 # Select displayed range of feed entries
                 if settings.CONTENT_MAX_ENTRIES > 0:
@@ -403,16 +406,17 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 parsed_feed_url = res["href"]
                 if not url_update and parsed_feed_url and parsed_feed_url != feed_url:
                     res.setdefault("warnings", []).append({
-                        "title": "Warning",
-                        "msg": """Feed url difference detected. It might
-                        be useful to <a href="/?{ARGS}&url_update=1">update</a> \
-                        the stored url.<br /> \
-                        Url in config/history file: {OLD_URL}<br /> \
-                        Url in feed xml file: {NEW_URL}
-                        """.format(OLD_URL=feed_url,
-                                   NEW_URL=parsed_feed_url,
-                                   ARGS="feed=" + quote(str(feed_key)),
-                                  )
+                        "title": _("Warning"),
+                        "msg": _(
+                            """Feed url difference detected. It might
+                            be useful to <a href="/?{ARGS}&url_update=1">update</a> \
+                            the stored url.<br /> \
+                            Url in config/history file: {OLD_URL}<br /> \
+                            Url in feed xml file: {NEW_URL} \
+                            """).format(OLD_URL=feed_url,
+                                        NEW_URL=parsed_feed_url,
+                                        ARGS="feed=" + quote(str(feed_key)),
+                                       )
                     })
 
                 res["nocache_link"] = True

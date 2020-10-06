@@ -23,7 +23,7 @@ PIP_PACKAGES='Jinja2>=2.10' \
 SUPPORTED_LANGS=en_US de_DE  # Space between entries
 
 # Use installed pybabel if available
-PYBABEL=$(shell which pybabel || echo -n "PYTHONPATH='$(SITE_PACKAGES)' ./site-packages/pybabel")
+PYBABEL=$(shell which pybabel || echo -n "PYTHONPATH='$(SITE_PACKAGES)' ./site-packages/bin/pybabel")
 
 help:
 	@echo -e "Common targets:\n" \

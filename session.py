@@ -106,8 +106,8 @@ class Session():
         session_id = self.get("session_id", "-1")
 
         if session_id != "-1":
-            logger.debug("Session User:" + user)
-            logger.debug("Session Id:" + session_id)
+            # logger.debug("Session User:" + user)
+            # logger.debug("Session Id:" + session_id)
             session_hash = self.get("session_hash", "-1")
 
             # Check cookie

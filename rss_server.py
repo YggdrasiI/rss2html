@@ -286,6 +286,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         to_rm = query_components.get("rm", [])
         etag = None
 
+        query_components["page"] = \
+                [query_components.get("page", ['1'])[-1]]  # Normalize
+
         # entryid=0: Newest entry of feed. Thus, id not stable due feed updates
         try:
             entryid = int(query_components.get("entry", )[-1])
@@ -350,9 +353,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     error_msg = _('No feed found for this URI arguments.')
                     return self.show_msg(error_msg, True)
 
-                etag = '"{}"'.format(
+                etag = '"{}p{}"'.format(
                     hashlib.sha1((text if text is not None \
-                                 else "").encode('utf-8')).hexdigest())
+                                 else "").encode('utf-8')).hexdigest(),
+                    query_components["page"][-1]
+                )
                 # logger.debug("Eval ETag '{}'".format(etag))
                 # logger.debug("Browser ETag '{}'".format(self.headers.get("If-None-Match", "")))
                 # logger.debug("Received headers:\n{}".format(self.headers))
@@ -379,6 +384,19 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 feed_parser.parse_feed(feed, text)
                 res = feed.context
 
+                # Select displayed range of feed entries
+                if settings.CONTENT_MAX_ENTRIES > 0:
+                    try:
+                        page = int(query_components["page"][-1])
+                    except:
+                        page = 1
+
+                    res["entry_list_first_id"] = (page-1) * \
+                            feed.context["entry_list_size"]
+
+                    # feed.context["query_components"] = query_components
+                    feed.context["feed_page"] = page
+
                 self.update_cache_feed(feed, bNew)
 
                 # Warn if feed url might changes
@@ -397,8 +415,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                                   )
                     })
 
-                #res["nocache_link"] = "/?feed={}&cache=0".format(feed_key)
-                res["nocache_link"] = feed_key
+                res["nocache_link"] = True
                 res["session_user"] = session_user
 
                 # Replace stored url, if newer value is given.

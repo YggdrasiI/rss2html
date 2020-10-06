@@ -197,8 +197,6 @@ div.in1 {
   padding: 0.5em;
   padding-right: 30px;
   padding-inline-start: 30px;
-  background: #ffffff;
-  /* -moz-Field */
 }
 a#feedSource {
   float: right;
@@ -272,12 +270,4 @@ a:visited {
 .wp-smiley {
   height: 1em;
   max-height: 1em;
-}
-/* Colour information for onclick2.css */
-label.menu_close1 {
-  background-color: gray;
-  opacity: 0.25;
-}
-div.in1 {
-  background: #ffffff;
 }

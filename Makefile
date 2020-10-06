@@ -23,7 +23,7 @@ PIP_PACKAGES='Jinja2>=2.10' \
 SUPPORTED_LANGS=en_US de_DE  # Space between entries
 
 # Use installed pybabel if available
-PYBABEL=$(shell which pybabel || echo -n "PYTHONPATH='$(SITE_PACKAGES)' ./site-packages/pybabel")
+PYBABEL=$(shell which pybabel || echo -n "PYTHONPATH='$(SITE_PACKAGES)' ./site-packages/bin/pybabel")
 
 help:
 	@echo -e "Common targets:\n" \
@@ -40,6 +40,7 @@ help:
 		"                            This certicate is self-signed, thus the browers\n" \
 		"                            will warns the users. If needed, replace\n" \
 		"                            ssl_rss_server.[key|crt] by better ones. " \
+		"make css                 -- Build CSS from LESS files.\n" \
 		"" \
 
 run: check_env ssl
@@ -81,6 +82,9 @@ start_service: rss_server.service
 build: check_env babel_compile
 
 ssl: ssl_rss_server.key ssl_rss_server.crt
+
+css: rss_server-page/less/default.css rss_server-page/less/dark.css
+	mv rss_server-page/less/*.css rss_server-page/css/.
 
 # ====================================================
 clean:
@@ -143,4 +147,9 @@ ssl_rss_server.key:
 		-config <( \
 		printf "[dn]\nCN=localhost\n[req]\ndistinguished_name = dn\n[EXT]\nsubjectAltName=DNS:localhost\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth") \
 		|| true
+
+rss_server-page/less/%.css: rss_server-page/less/%.less \
+	rss_server-page/less/base.less \
+	rss_server-page/less/plugin_css_invert.js
+	lessc "$<" "$@"
 

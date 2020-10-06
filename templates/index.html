@@ -82,7 +82,7 @@
 
 {% macro list_history(feed, host) -%}
 <span class="reader_favorites">
-  <a href="//{{ host }}/?feed={{ feed.title|urlencode }}">{{
+  <a href="//{{ host }}/?feed={{ feed.name|urlencode }}">{{
     feed.title|default(feed.name,True) }}</a>
   <a href="//{{ host }}/?add_fav={{ feed.name|urlencode }}" title="{{
   _('Add to favorites') }}">➕&#xFE0E;</a>

@@ -26,7 +26,6 @@ if __name__ == "__main__":
         host = settings.HOST
         protocol = "https" if settings.SSL else "http"
 
-
     try:
         tmp_file = sys.argv[1]
     except IndexError:

@@ -1,14 +1,20 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div id="feedHeaderContainer" style="width:100%">
+<div id="feedHeaderContainer" class="w100percent">
     <div dir="ltr" class="feedHeader feedBackground">
         <h2><a href="/">{{ _("Overview") }}</a></h2>
     </div>
     <div id="feedHeaderContainerSpacer"></div>
     <div dir="ltr" class="feedHeader">
+        {{ page_links(feed2.name, entries|length, entry_list_size, feed_page) }}
+    </div>
+    <div id="feedHeaderContainerSpacer"></div>
+    <div dir="ltr" class="feedHeader">
         {% if nocache_link %}
-        <h2><a href="/?feed={{ nocache_link|urlencode }}&cache=0"
+        <h2><a href="/?feed={{
+                      feed2.name|urlencode }}&page={{
+                      feed_page}}&cache=0"
                 >{{ _('Ignore feed cache') }}</a></h2>
         {% endif %}
     </div>
@@ -34,7 +40,7 @@
         </div>
     </div>
     <div id="feedContent">
-        {% for entry in entries %}
+        {% for entry in entries[entry_list_first_id:entry_list_first_id+entry_list_size] %}
         {{ feed(entry, loop, False) }}
         {% endfor %}
 
@@ -75,7 +81,7 @@
         {% endif %}
     </div>
 </div>
-<div style="clear: both;"></div>
+<div class="div_after_feed"></div>
 {% endmacro %}
 
 {% macro feed_full_content(entry, loop) %}
@@ -115,4 +121,22 @@
     {% endfor %}
     </span>
 </div>
+{% endmacro %}
+
+{% macro page_links(feed_name, num_entries, stride, cur_page) %}
+<span class="feed_page_links">
+    <h2>
+    {% if num_entries > stride  %}
+    {% for dummy in range(0, num_entries, stride) %}
+        {% if loop.index == cur_page %}
+        <b>{{ loop.index }}</b>
+        {% else %}
+        <a href="/?feed={{
+                  feed_name|urlencode }}&page={{
+                  loop.index }}">{{ loop.index }}</a>
+        {% endif %}
+    {% endfor %}
+    {% endif %}
+    </h2>
+</span>
 {% endmacro %}

@@ -1,50 +1,54 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 html {
-  background: #edeceb;
-  /* -moz-Dialog */
-  font: 3mm tahoma, arial, helvetica, sans-serif;
+  background: @color1; /* -moz-Dialog */
+  font: 3mm tahoma,arial,helvetica,sans-serif;
 }
+
 body {
   margin: 0;
   padding: 0 3em;
-  color: #1a1a1a;
-  /* -moz-fieldText; */
+  color: @color2; /* -moz-fieldText; */
   font: message-box;
 }
+
 #subscribeUsingDescription,
 #subscribeButton {
   display: block;
 }
+
 #subscribeUsingDescription {
   margin-bottom: 0.5em;
 }
+
 #subscribeButton {
   margin-top: 0.5em;
   margin-inline-start: auto;
 }
+
 #feedBody {
-  border: 1px solid #a19e9a;
-  /* THreeDShadow */
+  border: 1px solid @color3; /* THreeDShadow */
   padding: 3em;
   padding-inline-start: 30px;
   margin: 2em auto;
-  background: #ffffff;
-  /* -moz-Field */
+  background: @color4; /* -moz-Field */
 }
+
 #feedHeaderContainer {
   border: 1px solid ThreeDShadow;
   border-radius: 10px;
   margin: -1em auto 0 auto;
-  background-color: #F2DC95;
-  /*InfoBackground not defined anymore*/
+  background-color: @feed-header-container; /*InfoBackground not defined anymore*/
   appearance: gtk-info-bar;
   display: flex;
 }
+
 #feedHeaderContainerSpacer {
   flex-grow: 1;
 }
+
 .feedHeader {
   margin-top: 1.5em;
   margin-bottom: 0.5em;
@@ -54,187 +58,221 @@ body {
   font-size: 110%;
   color: gtk-info-bar-text;
 }
+
 .feedBackground {
   background: url("/icons/Feed-icon.svg") 0% 10% no-repeat;
-  background-size: 32px 32px;
+  background-size:32px 32px;
 }
+
 .videoPodcastBackground {
   background: url("/icons/Feed-icon.svg") 0% 10% no-repeat;
-  background-size: 32px 32px;
+  background-size:32px 32px;
 }
+
 .audioPodcastBackground {
   background: url("/icons/Feed-icon.svg") 0% 10% no-repeat;
-  background-size: 32px 32px;
+  background-size:32px 32px;
 }
+
 .feedHeader[dir="rtl"] {
   background-position: 100% 10%;
 }
+
 #feedIntroText {
   display: none;
 }
+
 .feedHeader[firstrun="true"] #feedIntroText {
   padding-top: 0.1em;
   padding-inline-start: 0.6em;
   display: block;
 }
+
 .feedHeader[firstrun="true"] > #feedSubscribeLine {
   padding-inline-start: 1.8em;
 }
+
 #feedSubscribeLine {
   padding-top: 0.2em;
   padding-inline-start: 0.5em;
 }
+
 /* Don't print subscription UI */
 @media print {
   #feedHeaderContainer {
     display: none;
   }
 }
+
 h1 {
   font-size: 160%;
-  border-bottom: 2px solid #edeceb;
-  /* ThreeDLightShadow */
-  margin: 0 0 0.2em 0;
+  border-bottom: 2px solid @color5; /* ThreeDLightShadow */
+  margin: 0 0 .2em 0;
 }
+
 h2 {
-  color: #94918d;
-  /* GrayText */
+  color: @color6; /* GrayText */
   font-size: 110%;
   font-weight: normal;
-  margin: 0 0 0.6em 0;
+  margin: 0 0 .6em 0;
 }
+
 #feedTitleLink {
   float: right;
-  margin-inline-start: 0.6em;
+  margin-inline-start: .6em;
   margin-inline-end: 0;
   margin-top: 0;
   margin-bottom: 0;
 }
+
 a[href] img {
   border: none;
 }
+
 #feedTitleContainer {
   margin-inline-start: 0;
-  margin-inline-end: 0.6em;
+  margin-inline-end: .6em;
   margin-top: 0;
   margin-bottom: 0;
 }
+
 #feedTitleImage {
-  margin-inline-start: 0.6em;
+  margin-inline-start: .6em;
   margin-inline-end: 0;
   margin-top: 0;
   margin-bottom: 0;
   max-width: 300px;
   max-height: 150px;
 }
+
 .feedEntryContent {
   font-size: 110%;
 }
+ 
 .link {
   color: #0000FF;
   text-decoration: underline;
   cursor: pointer;
 }
+
 .link:hover:active {
   color: #FF0000;
 }
+
 .lastUpdated {
-  display: block;
+  display:block;
   font-size: 85%;
   font-weight: normal;
 }
+
 .type-icon {
   vertical-align: bottom;
   height: 1em;
   width: 1em;
 }
+
 .enclosures {
-  border: 1px solid #a19e9a;
-  /* THreeDShadow */
+  border: 1px solid @color3; /* THreeDShadow */
   padding: 1em;
   margin: 1em auto;
-  background: #edeceb;
-  /* -moz-Dialog */
+  background: @color5; /* -moz-Dialog */
 }
+
 .enclosure {
   vertical-align: middle;
   margin-left: 2px;
 }
-.enclosure_actions_icon {
-  height: 1em;
-  vertical-align: bottom;
+
+.enclosure_actions {
 }
+
+.enclosure_actions_icon {
+ height:1em;
+ vertical-align: bottom;
+}
+
 .handlersMenuList > .menulist-label-box > .menulist-icon {
   max-width: 1em;
   max-height: 1em;
 }
+
 .feedWarn {
-  border: 1px solid #a19e9a;
-  /* THreeDShadow */
+  border: 1px solid @color3; /* THreeDShadow */
   padding: 0.5em;
   padding-inline-start: 30px;
   margin: 0.5em auto;
-  background: #ffffff;
-  /* -moz-Field */
+  background: @color4; /* -moz-Field */
 }
+
 .reader_favorites a:nth-child(n+2) {
-  font-color: black;
-  font-weight: bold;
-  text-decoration: none;
-  margin-left: 1em;
+    font-color:black;
+    font-weight:bold;
+    text-decoration:none;
+    margin-left:1em;
 }
+
 .reader_favorites a:first-child {
-  display: inline-block;
-  min-width: 60%;
-  margin-right: 2em;
+    display:inline-block;
+    min-width: 60%;
+    margin-right:2em;
 }
+
 .feed_list > *:nth-child(even) {
-  background: rgba(99, 99, 99, 0.1);
+  background: @color-even;
 }
+
 div.in1 {
-  border: 1px solid #a19e9a;
-  /* THreeDShadow */
+  border: 1px solid @color3; /* THreeDShadow */
   padding: 0.5em;
   padding-right: 30px;
   padding-inline-start: 30px;
 }
+
 a#feedSource {
-  float: right;
-  text-decoration: none;
-  color: inherit;
+    float:right;
+    text-decoration:none;
+    color:inherit;
 }
+
 .css_style_list {
-  display: inline-block;
-  vertical-align: top;
+    display:inline-block;
+    vertical-align: top;
 }
-.misc_list li {
+
+.misc_list li{
   padding-bottom: 0.5em;
 }
-.feed_list li {
+
+.feed_list li{
   padding-bottom: 0.1em;
 }
-.feed_list li a {
+
+.feed_list li a{
   text-decoration: none;
 }
-.feed_list li a:hover {
+
+.feed_list li a:hover{
   color: #AA0044;
 }
+
 form.login_form {
-  float: left;
+  float:left;
   margin-bottom: 0.5em;
 }
-form.login_form input {
+form.login_form input{
   display: inline;
-  max-width: 7em;
+  max-width:7em;
 }
+
 .login_desc {
-  float: left;
-  width: 45%;
-  padding-left: 1em;
+  float:left;
+  width:45%;
+  padding-left:1em;
 }
 .clearfix {
   overflow: auto;
 }
+
 /* BEGIN 'style='-replacements
  Otherwise, this properties will be ignored due
  content security restrictions. */
@@ -242,32 +280,32 @@ form.login_form input {
   clear: both;
 }
 .w100percent {
-  width: 100%;
+	width:100%;
 }
 /* END 'style='-replacements */
+
 /* BEGIN Colour information for onclick2.css */
 label.menu_close1 {
-  background-color: gray;
-  opacity: 0.25;
+  background-color:gray;
+  opacity:0.25;
 }
+
 div.in1 {
-  background: #ffffff;
+  background: @color4;
 }
 /* END Colour information for onclick2.css */
+
 a {
-  color: #0000ee;
+	color:@link;
+	&:hover {
+		color:@link-hover;
+	}
+	&:active {
+		color:@link-active;
+	}
+	&:visited {
+		color:@link-visited;
+	}
 }
-a:hover {
-  color: #aa0044;
-}
-a:active {
-  color: #ee0000;
-}
-a:visited {
-  color: #551a8b;
-}
-/* Set wordpress smiley size (seen on minkorrekt)*/
-.wp-smiley {
-  height: 1em;
-  max-height: 1em;
-}
+
+@import "extras.less";

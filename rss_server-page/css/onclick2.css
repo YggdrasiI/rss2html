@@ -50,8 +50,8 @@ label.menu_close1 {
   cursor:pointer;
   z-index:1;
 
-  background-color:gray;
-  opacity:0.25;
+  /*background-color:gray;
+  opacity:0.25;*/
 }
 
 /* This element will be shown if one of the clickboxes is enabled .*/
@@ -75,7 +75,7 @@ div.in1 {
   margin: 4vh 2em;
   z-index:2;
 
-  background: Field;
+  /*background: Field;*/ /* Background of popup */
 }
 
 div.in1_no_ani {

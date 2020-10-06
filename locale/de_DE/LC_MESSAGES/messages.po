@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-03-01 20:34+0100\n"
+"POT-Creation-Date: 2020-10-06 12:43+0200\n"
 "PO-Revision-Date: 2019-01-10 20:07+0100\n"
 "Last-Translator: Olaf Schulz <olaf_schulz+rss2html@posteo.de>\n"
 "Language: de_DE\n"
@@ -18,91 +18,117 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.8.0\n"
 
-#: default_settings.py:101
+#: default_settings.py:117
 msgid "Download file"
 msgstr "Datei herunterladen"
 
-#: default_settings.py:107
+#: default_settings.py:123
 msgid "Play file with external program"
 msgstr "Datei mit externem Programm öffnen"
 
-#: rss_server.py:50
+#: rss_server.py:54
 msgid "Default theme"
 msgstr "Standard-Theme"
 
-#: rss_server.py:51
+#: rss_server.py:55
 msgid "Dark theme"
 msgstr "Dunkel"
 
-#: rss_server.py:468
+#: rss_server.py:314
 msgid "Quit"
 msgstr "Beenden"
 
-#: rss_server.py:511
+#: rss_server.py:358
 msgid "No feed found for this URI arguments."
 msgstr "Kein Feed für diese URI-Parameter gefunden."
 
-#: rss_server.py:599
+#: rss_server.py:414
+msgid "Warning"
+msgstr "Warnung"
+
+#: rss_server.py:415
+msgid ""
+"Feed url difference detected. It might\n"
+"                            be useful to <a "
+"href=\"/?{ARGS}&url_update=1\">update</a>                             the"
+" stored url.<br />                             Url in config/history "
+"file: {OLD_URL}<br />                             Url in feed xml file: "
+"{NEW_URL}                             "
+msgstr ""
+"Die im Feed angegebene Url weicht von der lokal gespeicherten ab.\n"
+"                            Soll die neue Url <a "
+"href=\"/?{ARGS}&url_update=1\">übernommen</a> werden?<br />"
+"                             Url in der Config/Histroy-Datei: "
+"{OLD_URL}<br />                             Url in XML-Datei des Feeds: "
+"{NEW_URL}                             "
+
+#: rss_server.py:467
 msgid "Feed XML document '{}' does not exists."
 msgstr "XML-Datei des Feeds '{}' existiert nicht."
 
-#: rss_server.py:603
+#: rss_server.py:471
 msgid "Parsing of feed XML document '{}' failed."
 msgstr "Parsen des XML-Datei '{}' fehlgeschlagen."
 
-#: rss_server.py:607
+#: rss_server.py:476
 msgid "Loading of feed XML document '{}' failed."
 msgstr "Laden von XML-Datei '{}' fehlgeschlagen."
 
-#: rss_server.py:789 rss_server.py:818
+#: rss_server.py:638 rss_server.py:667
 msgid "Error"
 msgstr "Fehler"
 
-#: rss_server.py:792
+#: rss_server.py:641
 msgid "Debug Info"
 msgstr "Debugging-Informationen"
 
-#: rss_server.py:820
+#: rss_server.py:669
 msgid "Info"
 msgstr ""
 
-#: rss_server.py:878
+#: rss_server.py:729
 msgid "URI arguments wrong."
 msgstr "Falsche URI-Parameter."
 
-#: rss_server.py:882
+#: rss_server.py:733
 msgid "Action requires login. "
 msgstr "Aktion nur nach Login möglich."
 
-#: rss_server.py:884
+#: rss_server.py:735
 msgid ""
 "Define LOGIN_TYPE in 'settings.py'. Proper values can be found in "
 "'default_settings.py'. "
 msgstr ""
 
-#: rss_server.py:892
+#: rss_server.py:745
+msgid "No feed found for given URI argument."
+msgstr "Kein Feed für diesen URI-Parameter gefunden."
+
+#: rss_server.py:759
 msgid "Wrong hash for this url argument."
 msgstr "Hash des URI-Arguments 'url' passt nicht."
 
-#: rss_server.py:901
+#: rss_server.py:770 rss_server.py:775
 msgid "Action not allowed for this file."
 msgstr "Aktion ist für diese Datei nicht erlaubt."
 
-#: rss_server.py:909
-msgid ""
-"Running of handler for \"{action_name}\" failed. Exception was: "
-"\"{exception}\"."
-msgstr ""
+#: rss_server.py:783
+msgid "Handler of action not defined."
+msgstr "Kein Handler für diese Aktion definiert."
 
-#: rss_server.py:915
+#: rss_server.py:789
+msgid "Running of handler for \"{action_name}\" failed. Exception was: \"{e}\"."
+msgstr "Aufruf von \"{action_name}\" fehlgeschlagen. Fehler: \"{e}\"."
+
+#: rss_server.py:795
 msgid "Running of \"{action_name}\" for \"{url}\" started."
 msgstr "Aktion \"{action_name}\" für \"{url}\" aufgerufen."
 
-#: rss_server.py:927
+#: rss_server.py:811
 msgid "Login has failed."
 msgstr "Login ist fehlgeschlagen."
 
-#: rss_server.py:1007
+#: rss_server.py:979
 msgid ""
 "Note: Actions for enclosured media files are disabled because LOGIN_TYPE "
 "is None."
@@ -110,7 +136,7 @@ msgstr ""
 "Hinweis: Aktionen für eingebettete Medien-Dateien sind deaktiviert, da "
 "LOGIN_TYPE = None."
 
-#: rss_server.py:1010
+#: rss_server.py:982
 msgid ""
 "Warning: Without definition of users, everyone with access to this page "
 "can add feeds or trigger the associated actions."
@@ -118,13 +144,13 @@ msgstr ""
 "Warnung: Ohne Definition von Usern kann jeder mit Zugriff auf diese "
 "Webseite Feeds hinzufügen oder die zugeordneten Aktionen starten. "
 
-#: rss_server.py:1013 rss_server.py:1017
+#: rss_server.py:985 rss_server.py:989
 msgid "This could be dangerous if you use user defined actions. "
 msgstr ""
-"Je nach Definition der benutzerdefinierten Aktionen kann das "
-"ein Sicherheitsrisiko darstellen. "
+"Je nach Definition der benutzerdefinierten Aktionen kann das ein "
+"Sicherheitsrisiko darstellen. "
 
-#: rss_server.py:1016
+#: rss_server.py:988
 msgid "Warning: Without SSL login credentials aren't encrypted. "
 msgstr ""
 "Warnung: Ohne SSL-Verschlüsselung werden die Login-Daten unverschlüsselt "
@@ -138,19 +164,19 @@ msgstr "RSS-Viewer"
 msgid "Overview"
 msgstr "Übersicht"
 
-#: templates/feed.html:12 templates/login.html:12 templates/message.html:12
+#: templates/feed.html:18 templates/login.html:12 templates/message.html:12
 msgid "Ignore feed cache"
 msgstr "Ignoriere Feed-Cache"
 
-#: templates/feed.html:31
+#: templates/feed.html:37
 msgid "Source"
 msgstr "Quelle"
 
-#: templates/feed.html:62
+#: templates/feed.html:68
 msgid "Details"
 msgstr "Details"
 
-#: templates/feed.html:70
+#: templates/feed.html:76
 msgid "media files"
 msgstr "Media-Dateien"
 
@@ -247,11 +273,11 @@ msgstr "Favoriten-Dateien neu einlesen."
 msgid "Quit daemon"
 msgstr "Hintergrunddienst beenden"
 
-#: templates/index.html:79 templates/index.html:89
+#: templates/index.html:79 templates/index.html:90
 msgid "Remove feed"
 msgstr "Feed entfernen"
 
-#: templates/index.html:87
+#: templates/index.html:88
 msgid "Add to favorites"
 msgstr "Feed zu Favoriten hinzufügen"
 
@@ -266,3 +292,4 @@ msgstr "Jeder in 'settings.USERS' definierte Account kann sich einloggen."
 #: templates/macros.html:21
 msgid "Every user on this system can log in."
 msgstr "Alle auf diesem System definierten Benutzer können sich einloggen."
+

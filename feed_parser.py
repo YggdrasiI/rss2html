@@ -46,6 +46,7 @@ def find_feed_keyword_values(feed, tree):
     feed.context = feed.context if feed.context else {}
     context = feed.context
 
+    context["feed2"] = feed
     context.setdefault("title", "Undefined")
     context.setdefault("href", "")
     context.setdefault("feed_lang", "en")
@@ -98,9 +99,6 @@ def find_feed_keyword_values(feed, tree):
     entries_len = 0  # To remove entry_content_full for long feeds.
     for item_node in tree.findall('./channel/item'):
         entry_id = len(entries)+1
-        if settings.CONTENT_MAX_ENTRIES >= 0:
-            if entry_id > settings.CONTENT_MAX_ENTRIES:
-                break
 
         entry = {}
         node = item_node.find('./link')
@@ -151,6 +149,9 @@ def find_feed_keyword_values(feed, tree):
         entries_len += len(content_full)
 
     context["entries"] = entries
+    context["entry_list_first_id"] = 0
+    context["entry_list_size"] = settings.CONTENT_MAX_ENTRIES \
+            if settings.CONTENT_MAX_ENTRIES > 0 else len(entries)
     return context
 
 

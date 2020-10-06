@@ -55,7 +55,7 @@ USERS = {
 
 CACHE_EXPIRE_TIME_S = 600
 MAX_FEED_BYTE_SIZE = 1E7
-ALLOWED_FILE_EXTENSIONS = [".css", ".png", ".jpg", ".svg"]
+ALLOWED_FILE_EXTENSIONS = [".css", ".png", ".jpg", ".svg", ".js"]
 
 # If <desciption> and <content:encoded>-field both set, use second entry for
 # 'detail page'
@@ -66,6 +66,9 @@ DETAIL_PAGE_ANIMATED = False
 
 # Limits on latest feed entries if > -1
 CONTENT_MAX_ENTRIES = -1
+
+# Split feed entries on multiple pages.
+ENTRIES_PER_PAGE = -1
 
 # Some podcast feeds uses very long <content:encoded>-Tags
 # This could cause issues during the rendering of the page (freezed browser

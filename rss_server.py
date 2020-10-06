@@ -20,7 +20,8 @@ from warnings import warn
 # from importlib import reload
 import ssl
 
-from gettext import gettext as _
+#from gettext import gettext as _
+from locale_gettext import gettext as _, set_gettext
 # from jina2.utils import unicode_urlencode as urlencode
 
 from feed import Feed, get_feed, save_history, clear_history, update_favorites
@@ -285,6 +286,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         to_rm = query_components.get("rm", [])
         etag = None
 
+        query_components["page"] = \
+                [query_components.get("page", ['1'])[-1]]  # Normalize
+
         # entryid=0: Newest entry of feed. Thus, id not stable due feed updates
         try:
             entryid = int(query_components.get("entry", )[-1])
@@ -300,6 +304,10 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             show_index = True
             self.do_rm_feed(to_rm)
 
+        # Switch _ to language of request.
+        # (Note: In templates Jinja2 translates, but not
+        # in _("") calls in the py's files itself.)
+        set_gettext(self.server.html_renderer, self.context)
 
         if self.path == "/quit":
             ret = self.show_msg(_("Quit"))
@@ -349,9 +357,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     error_msg = _('No feed found for this URI arguments.')
                     return self.show_msg(error_msg, True)
 
-                etag = '"{}"'.format(
+                etag = '"{}p{}"'.format(
                     hashlib.sha1((text if text is not None \
-                                 else "").encode('utf-8')).hexdigest())
+                                 else "").encode('utf-8')).hexdigest(),
+                    query_components["page"][-1]
+                )
                 # logger.debug("Eval ETag '{}'".format(etag))
                 # logger.debug("Browser ETag '{}'".format(self.headers.get("If-None-Match", "")))
                 # logger.debug("Received headers:\n{}".format(self.headers))
@@ -376,7 +386,23 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     bNew = False
 
                 feed_parser.parse_feed(feed, text)
-                res = feed.context
+
+                # Note: without copy, changes like warnings on res
+                # would be stored peristend into feed.context.
+                res = feed.context.copy()
+
+                # Select displayed range of feed entries
+                if settings.CONTENT_MAX_ENTRIES > 0:
+                    try:
+                        page = int(query_components["page"][-1])
+                    except:
+                        page = 1
+
+                    res["entry_list_first_id"] = (page-1) * \
+                            feed.context["entry_list_size"]
+
+                    # feed.context["query_components"] = query_components
+                    feed.context["feed_page"] = page
 
                 self.update_cache_feed(feed, bNew)
 
@@ -384,20 +410,20 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 parsed_feed_url = res["href"]
                 if not url_update and parsed_feed_url and parsed_feed_url != feed_url:
                     res.setdefault("warnings", []).append({
-                        "title": "Warning",
-                        "msg": """Feed url difference detected. It might
-                        be useful to <a href="/?{ARGS}&url_update=1">update</a> \
-                        the stored url.<br /> \
-                        Url in config/history file: {OLD_URL}<br /> \
-                        Url in feed xml file: {NEW_URL}
-                        """.format(OLD_URL=feed_url,
-                                   NEW_URL=parsed_feed_url,
-                                   ARGS="feed=" + quote(str(feed_key)),
-                                  )
+                        "title": _("Warning"),
+                        "msg": _(
+                            """Feed url difference detected. It might
+                            be useful to <a href="/?{ARGS}&url_update=1">update</a> \
+                            the stored url.<br /> \
+                            Url in config/history file: {OLD_URL}<br /> \
+                            Url in feed xml file: {NEW_URL} \
+                            """).format(OLD_URL=feed_url,
+                                        NEW_URL=parsed_feed_url,
+                                        ARGS="feed=" + quote(str(feed_key)),
+                                       )
                     })
 
-                #res["nocache_link"] = "/?feed={}&cache=0".format(feed_key)
-                res["nocache_link"] = feed_key
+                res["nocache_link"] = True
                 res["session_user"] = session_user
 
                 # Replace stored url, if newer value is given.

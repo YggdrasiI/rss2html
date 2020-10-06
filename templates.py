@@ -8,6 +8,8 @@ from babel.support import Translations
 import icon_searcher
 from feed_parser import parse_pubDate
 
+import gettext
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -47,6 +49,7 @@ class HtmlRenderer:
     loader = FileSystemLoader("templates")
     extensions = ['jinja2.ext.i18n', 'jinja2.ext.with_', 'jinja2.ext.autoescape']
     # bcc = FileSystemBytecodeCache('/tmp', '%s.cache')
+    babel_lang_translations = {}
 
     def __init__(self, lang="en_US", css_style=None):
         if lang not in HtmlRenderer.list_of_available_locales:
@@ -75,6 +78,13 @@ class HtmlRenderer:
 
             self.envs[locale_key] = env
 
+            self.babel_lang_translations.setdefault(
+                locale_key,
+                gettext.translation('messages', localedir=self.locale_dir,
+                                    languages=[locale_key])
+            )
+            self.babel_lang_translations[locale_key].install()
+
         self.preferred_lang = lang
         self.extra_context = {"system_css_style": css_style}
 
@@ -95,6 +105,15 @@ class HtmlRenderer:
 
         return template.render(context)
 
+
+    def gettext(self, context):
+        try:
+            lang = context["gui_lang"]
+            return self.babel_lang_translations[lang].gettext
+        except Exception as e:
+            logger.warn("Fallback on default gettext function. Error: " +
+                        str(e))
+            return gettext.gettext
 
 if __name__ == "__main__":
     r = HtmlRenderer()

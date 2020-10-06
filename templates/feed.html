@@ -34,7 +34,10 @@
         </a>
         <div id="feedTitleContainer">
           <h1 id="feedTitleText" >{{ title }}
-            <a id="feedSource" href="{{ href }}">[{{ _('Source') }}]</a>
+						{% if source_link %}
+						<a id="feedSource" href="{{ source_link }}">[{{ _('WWW') }}]</a>
+						{% endif %}
+            <a id="feedSource" href="{{ href }}">[{{ _('XML') }}]</a>
           </h1>
           <h2 id="feedSubtitleText" >{{ subtitle }}</h2>
         </div>

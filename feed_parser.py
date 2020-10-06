@@ -78,6 +78,10 @@ def find_feed_keyword_values(feed, tree):
     if node is not None:
         context["title"] = node.text
 
+    node = tree.find('./channel/link')
+    if node is not None:
+        context["source_link"] = node.text
+
     node = tree.find('./channel/language')
     if node is not None:
         context["feed_lang"] = node.text

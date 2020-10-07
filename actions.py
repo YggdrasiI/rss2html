@@ -219,3 +219,4 @@ def get_item_for_url(feed, url, settings):
                     return entry
 
     return None
+

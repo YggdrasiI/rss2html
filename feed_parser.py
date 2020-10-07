@@ -243,6 +243,7 @@ def add_enclosure_actions(feed, e):
             "url": "{}?{}".format("/action", url_args),
             "title": action["title"],
             "icon": action["icon"],
+            "name": aname,
         }
 
 

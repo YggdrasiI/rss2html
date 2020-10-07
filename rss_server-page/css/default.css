@@ -254,6 +254,17 @@ div.in1 {
   background: #ffffff;
 }
 /* END Colour information for onclick2.css */
+/* BEGIN Colour information for onclick_actions.css */
+div.in1_action {
+  background-color: #edeceb;
+  border: 1px solid #a19e9a;
+  /* THreeDShadow */
+}
+ul.enclosure_actions li a {
+  color: #aa0044;
+  background-color: #edeceb;
+}
+/* END Colour information for onclick_actions.css */
 a {
   color: #0000ee;
 }

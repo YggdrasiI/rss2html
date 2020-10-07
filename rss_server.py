@@ -34,6 +34,8 @@ import cached_requests
 
 from session import LoginFreeSession, ExplicitSession, PamSession
 
+from static_content import action_icon_dummy_classes
+
 import logging
 import logging.config
 logging.config.fileConfig('logging.conf')
@@ -518,6 +520,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
             self.wfile.write(output.getvalue())
 
+        elif self.path == "/css/action_icons.css":
+            return action_icon_dummy_classes(self)
         elif self.path.startswith("/icons/system/"):
             image = icon_searcher.get_cached_file(self.path)
             if not image:

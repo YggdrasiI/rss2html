@@ -1,0 +1,7 @@
+{% for aname, action in actions.items() %}
+.bgicon_{{ aname }} {
+background-image:url(../{{ action.icon }}) !important;
+opacity: 0.8;
+}
+
+{% endfor %}

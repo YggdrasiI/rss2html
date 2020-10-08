@@ -32,22 +32,22 @@ label.action_open {
 ul.enclosure_actions li {
 	display:inline-block;
 	vertical-align:middle;
-	width:6em;
-	height:6em;
-	/*border: 1px dotted black;*/
+	width:8em;
+	height:5em;
 	margin:1em;
+	border: 3px dotted black;
 }
 ul.enclosure_actions li a{
     display:block;
     height:100%; width:100%;
 
     text-decoration:none;
-    /*line-height:6em;*/ /* Just for one-liner useful */
+    /*line-height:5em;*/ /* Just for one-liner useful */
     line-height:1.5em;
     /*background-image:attr(action_icon url, kodi.png);*/ /* Syntax not supported syntax*/
     background-image: none;  /* overriden by bgicon_{action_name}-class */
     background-repeat: no-repeat;
-    background-size:100%;
+    background-size: contain;
     background-position: center; 
 
     /*color:black;

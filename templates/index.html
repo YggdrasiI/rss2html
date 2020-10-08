@@ -26,7 +26,7 @@
     <h2 id="feedSubtitleText">{{ _('Favorites') }}</h2>
     <ul class="feed_list">
       {% for fav in favorites %}
-      <li>{{ list_favorite(fav, host) }}</li>
+      <li>{{ list_favorite(fav, host, loop.index) }}</li>
       {% else %}
       {{ _('List of favorite feeds is empty.') }}
       {% endfor %}
@@ -34,11 +34,14 @@
     <h2 id="feedSubtitleText">{{ _('Other Feeds') }}</h2>
     <ul class="feed_list">
       {% for fav in history %}
-      <li>{{ list_history(fav, host) }}</li>
+      <li>{{ list_history(fav, host, loop.index) }}</li>
       {% else %}
       {{ _('History of visited feeds is empty.') }}
       {% endfor %}
     </ul>
+    <!-- Dummy node for clickable menus -->
+    <input type="radio" name="menu" id="action_toggle-0" class="menu_clickbox">
+
     <h2 id="feedSubtitleText">{{ _('URI Arguments') }}</h2>
     <p>{{ _("Prepend feed url by '%(url)s' to display feed content by this
     rss viewer.")|format(url="<i>%(protocol)s%(host)s/?feed=</i>")|format(
@@ -71,24 +74,71 @@
 </div>
 {% endblock %}
 
-{% macro list_favorite(feed, host) -%}
-<span class="reader_favorites">
-  <a href="//{{ host }}/?feed={{ feed.name|urlencode }}">{{
-    feed.title|default(feed.name,True) }}</a>
-  <a href="//{{ host }}/?rm={{ feed.name|urlencode }}" title="{{
-  _('Remove feed') }}">✖</a>
+{% macro list_favorite(feed, host, idx) -%}
+{# Right 'floated' section in feed title #}
+<span class="manage_feed">
+    {# Clickable element for feed actions #}
+    <div class="in2_action">
+        <label for="action_toggle-f-{{ idx }}"
+               class="feed_open">▴</label> {# Others: ▲ #}
+    </div>
+
+    {# Container of feed actions #}
+    <input type="radio" name="menu" id="action_toggle-f-{{ idx }}" class="menu_clickbox">
+    <div class="in1_action in1_action_no_ani"><label for="action_toggle-0" class="menu_close2">✖</label>
+    <span class="enclosure_filename">{{ feed.title }}</span>
+
+    {# Definiton of actions #}
+    <ul class="feed_actions">
+            <li>
+    <a href="//{{ host }}/?rm={{ feed.name|urlencode }}" title="{{
+        _('Remove feed') }}">✖</a>
+            </li>
+    </ul>
+    </div>
+    <label for="action_toggle-0" class="menu_close1"></label>
 </span>
+
+{# main section in feed title #}
+  <a class="reader_favorites"
+     href="//{{ host }}/?feed={{ feed.name|urlencode }}">{{
+    feed.title|default(feed.name,True) }}</a>
 {%- endmacro %}
 
-{% macro list_history(feed, host) -%}
-<span class="reader_favorites">
-  <a href="//{{ host }}/?feed={{ feed.name|urlencode }}">{{
-    feed.title|default(feed.name,True) }}</a>
-  <a href="//{{ host }}/?add_fav={{ feed.name|urlencode }}" title="{{
-  _('Add to favorites') }}">➕&#xFE0E;</a>
-  <a href="//{{ host }}/?rm={{ feed.name|urlencode }}" title="{{
-  _('Remove feed') }}">✖</a>
+{% macro list_history(feed, host, idx) -%}
+<span class="manage_feed">
 </span>
+{# Right 'floated' section in feed title #}
+<span class="manage_feed">
+    {# Clickable element for feed actions #}
+    <div class="in2_action">
+        <label for="action_toggle-h-{{ idx }}"
+               class="feed_open">▴</label> {# Others: ▲ #}
+    </div>
+
+    {# Container of feed actions #}
+    <input type="radio" name="menu" id="action_toggle-h-{{ idx }}" class="menu_clickbox">
+    <div class="in1_action in1_action_no_ani"><label for="action_toggle-0" class="menu_close2">✖</label>
+    <span class="enclosure_filename">{{ feed.title }}</span>
+
+        {# Definiton of actions #}
+        <ul class="feed_actions">
+            <li>
+                <a href="//{{ host }}/?add_fav={{ feed.name|urlencode }}" title="{{
+                         _('Add to favorites') }}">➕&#xFE0E;</a>
+            </li><li>
+                <a href="//{{ host }}/?rm={{ feed.name|urlencode }}" title="{{
+                         _('Remove feed') }}">✖</a>
+            </li>
+        </ul>
+    </div>
+    <label for="action_toggle-0" class="menu_close1"></label>
+</span>
+
+{# main section in feed title #}
+  <a class="reader_favorites"
+     href="//{{ host }}/?feed={{ feed.name|urlencode }}">{{
+    feed.title|default(feed.name,True) }}</a>
 {%- endmacro %}
 
 {% macro warn(title, msg) -%}

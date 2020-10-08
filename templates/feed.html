@@ -80,6 +80,11 @@
             {% for en in entry.enclosures %}
             {{ feed_enclosure(en, feed_loop.index, loop.index) }}
             {% endfor %}
+
+            <!-- On the same hirarchy level after all elements (or after each element) -->
+
+            <!-- After elements -->
+            <input type="radio" name="menu" id="action_toggle-0" class="menu_clickbox">
         </div>
         {% endif %}
     </div>
@@ -135,11 +140,14 @@
         </ul>
     </div>
 
+    <label for="action_toggle-0" class="menu_close1"></label>
+    {#
     <!-- On the same hirarchy level after all elements (or after each element) -->
     <label for="action_toggle-0" class="menu_close1"></label>
 
     <!-- After elements -->
     <input type="radio" name="menu" id="action_toggle-0" class="menu_clickbox">
+    #}
 
 </div>
 {% endmacro %}

@@ -1,7 +1,15 @@
 {% for aname, action in actions.items() %}
 .bgicon_{{ aname }} {
-background-image:url(../{{ action.icon }}) !important;
-opacity: 0.8;
+  {# opacity: 0.8; #}
+
+  {# fallback variant without gradient #}
+  background-image:url(../{{ action.icon }}) !important;
+
+  {# reduce icon opacity on to for better text readability #}
+  background-image: linear-gradient(to bottom,
+  rgba(0,0,0,1.0) 30%,
+  rgba(0,0,0,0.0) 90%),
+  url(../{{ action.icon }}) !important;
 }
 
 {% endfor %}

@@ -298,6 +298,10 @@ a:visited {
   height: 1em;
   max-height: 1em;
 }
+:root {
+  /* This variable differs between dark and light themes. */
+  --bgicon_gradient: linear-gradient(to bottom, #000000 30%, rgba(0, 0, 0, 0) 90%);
+}
 input {
   color: #c7c7c7;
   background-color: #1a1a1a;

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-10-06 12:43+0200\n"
+"POT-Creation-Date: 2020-10-08 22:21+0200\n"
 "PO-Revision-Date: 2019-01-10 20:07+0100\n"
 "Last-Translator: Olaf Schulz <olaf_schulz+rss2html@posteo.de>\n"
 "Language: de_DE\n"
@@ -26,11 +26,15 @@ msgstr "Datei herunterladen"
 msgid "Play file with external program"
 msgstr "Datei mit externem Programm öffnen"
 
-#: rss_server.py:54
+#: rss_server.py:56
 msgid "Default theme"
 msgstr "Standard-Theme"
 
-#: rss_server.py:55
+#: rss_server.py:57
+msgid "Light theme"
+msgstr "Hell"
+
+#: rss_server.py:58
 msgid "Dark theme"
 msgstr "Dunkel"
 
@@ -42,11 +46,11 @@ msgstr "Beenden"
 msgid "No feed found for this URI arguments."
 msgstr "Kein Feed für diese URI-Parameter gefunden."
 
-#: rss_server.py:414
+#: rss_server.py:418
 msgid "Warning"
 msgstr "Warnung"
 
-#: rss_server.py:415
+#: rss_server.py:419
 msgid ""
 "Feed url difference detected. It might\n"
 "                            be useful to <a "
@@ -62,73 +66,73 @@ msgstr ""
 "{OLD_URL}<br />                             Url in XML-Datei des Feeds: "
 "{NEW_URL}                             "
 
-#: rss_server.py:467
+#: rss_server.py:471
 msgid "Feed XML document '{}' does not exists."
 msgstr "XML-Datei des Feeds '{}' existiert nicht."
 
-#: rss_server.py:471
+#: rss_server.py:475
 msgid "Parsing of feed XML document '{}' failed."
 msgstr "Parsen des XML-Datei '{}' fehlgeschlagen."
 
-#: rss_server.py:476
+#: rss_server.py:480
 msgid "Loading of feed XML document '{}' failed."
 msgstr "Laden von XML-Datei '{}' fehlgeschlagen."
 
-#: rss_server.py:638 rss_server.py:667
+#: rss_server.py:644 rss_server.py:673
 msgid "Error"
 msgstr "Fehler"
 
-#: rss_server.py:641
+#: rss_server.py:647
 msgid "Debug Info"
 msgstr "Debugging-Informationen"
 
-#: rss_server.py:669
+#: rss_server.py:675
 msgid "Info"
 msgstr ""
 
-#: rss_server.py:729
+#: rss_server.py:735
 msgid "URI arguments wrong."
 msgstr "Falsche URI-Parameter."
 
-#: rss_server.py:733
+#: rss_server.py:739
 msgid "Action requires login. "
 msgstr "Aktion nur nach Login möglich."
 
-#: rss_server.py:735
+#: rss_server.py:741
 msgid ""
 "Define LOGIN_TYPE in 'settings.py'. Proper values can be found in "
 "'default_settings.py'. "
 msgstr ""
 
-#: rss_server.py:745
+#: rss_server.py:751
 msgid "No feed found for given URI argument."
 msgstr "Kein Feed für diesen URI-Parameter gefunden."
 
-#: rss_server.py:759
+#: rss_server.py:765
 msgid "Wrong hash for this url argument."
 msgstr "Hash des URI-Arguments 'url' passt nicht."
 
-#: rss_server.py:770 rss_server.py:775
+#: rss_server.py:776 rss_server.py:781
 msgid "Action not allowed for this file."
 msgstr "Aktion ist für diese Datei nicht erlaubt."
 
-#: rss_server.py:783
+#: rss_server.py:789
 msgid "Handler of action not defined."
 msgstr "Kein Handler für diese Aktion definiert."
 
-#: rss_server.py:789
+#: rss_server.py:795
 msgid "Running of handler for \"{action_name}\" failed. Exception was: \"{e}\"."
 msgstr "Aufruf von \"{action_name}\" fehlgeschlagen. Fehler: \"{e}\"."
 
-#: rss_server.py:795
+#: rss_server.py:801
 msgid "Running of \"{action_name}\" for \"{url}\" started."
 msgstr "Aktion \"{action_name}\" für \"{url}\" aufgerufen."
 
-#: rss_server.py:811
+#: rss_server.py:817
 msgid "Login has failed."
 msgstr "Login ist fehlgeschlagen."
 
-#: rss_server.py:979
+#: rss_server.py:985
 msgid ""
 "Note: Actions for enclosured media files are disabled because LOGIN_TYPE "
 "is None."
@@ -136,7 +140,7 @@ msgstr ""
 "Hinweis: Aktionen für eingebettete Medien-Dateien sind deaktiviert, da "
 "LOGIN_TYPE = None."
 
-#: rss_server.py:982
+#: rss_server.py:988
 msgid ""
 "Warning: Without definition of users, everyone with access to this page "
 "can add feeds or trigger the associated actions."
@@ -144,19 +148,19 @@ msgstr ""
 "Warnung: Ohne Definition von Usern kann jeder mit Zugriff auf diese "
 "Webseite Feeds hinzufügen oder die zugeordneten Aktionen starten. "
 
-#: rss_server.py:985 rss_server.py:989
+#: rss_server.py:991 rss_server.py:995
 msgid "This could be dangerous if you use user defined actions. "
 msgstr ""
 "Je nach Definition der benutzerdefinierten Aktionen kann das ein "
 "Sicherheitsrisiko darstellen. "
 
-#: rss_server.py:988
+#: rss_server.py:994
 msgid "Warning: Without SSL login credentials aren't encrypted. "
 msgstr ""
 "Warnung: Ohne SSL-Verschlüsselung werden die Login-Daten unverschlüsselt "
 "übertragen. "
 
-#: templates/base.html:36 templates/index.html:10
+#: templates/base.html:41 templates/index.html:10
 msgid "RSS Viewer"
 msgstr "RSS-Viewer"
 
@@ -168,15 +172,19 @@ msgstr "Übersicht"
 msgid "Ignore feed cache"
 msgstr "Ignoriere Feed-Cache"
 
-#: templates/feed.html:37
-msgid "Source"
-msgstr "Quelle"
+#: templates/feed.html:38
+msgid "WWW"
+msgstr ""
 
-#: templates/feed.html:68
+#: templates/feed.html:40
+msgid "XML"
+msgstr ""
+
+#: templates/feed.html:71
 msgid "Details"
 msgstr "Details"
 
-#: templates/feed.html:76
+#: templates/feed.html:79
 msgid "media files"
 msgstr "Media-Dateien"
 
@@ -220,11 +228,11 @@ msgstr "Andere Feeds"
 msgid "History of visited feeds is empty."
 msgstr "Verlauf der besuchten Feeds ist leer."
 
-#: templates/index.html:42
+#: templates/index.html:45
 msgid "URI Arguments"
 msgstr "URI-Argumente"
 
-#: templates/index.html:43
+#: templates/index.html:46
 #, python-format
 msgid ""
 "Prepend feed url by '%(url)s' to display feed content by this\n"
@@ -233,7 +241,7 @@ msgstr ""
 "Um einen Feed mit diesem Programm anzuzeigen, setze vor die Url des Feed "
 "folgenden String: '%(url)s', damit er von diesem RSS-Viewer geladen wird."
 
-#: templates/index.html:46
+#: templates/index.html:49
 #, python-format
 msgid ""
 "Add a feed to %(favvar)s in '%(config_file)s' to extend above\n"
@@ -242,42 +250,42 @@ msgstr ""
 "Füge Feed zu %(favvar)s in '%(config_file)s' hinzu, um obige Liste zu "
 "erweitern."
 
-#: templates/index.html:48
+#: templates/index.html:51
 #, python-format
 msgid "Its name can be used as shortcut, i.e %(example_url)s."
 msgstr ""
 "Statt der Url kann man auch den Feed-Namen als Schlüssel verwenden, z.B. "
 "%(example_url)s."
 
-#: templates/index.html:52
+#: templates/index.html:55
 msgid "Miscellaneous"
 msgstr "Diverses"
 
-#: templates/index.html:55
+#: templates/index.html:58
 msgid "User:"
 msgstr "Benutzer:"
 
-#: templates/index.html:56
+#: templates/index.html:59
 msgid "Logout"
 msgstr "Ausloggen"
 
-#: templates/index.html:59
+#: templates/index.html:62
 msgid "Styles:"
 msgstr "Stile:"
 
-#: templates/index.html:67
+#: templates/index.html:70
 msgid "Reload favorites from disk"
 msgstr "Favoriten-Dateien neu einlesen."
 
-#: templates/index.html:68
+#: templates/index.html:71
 msgid "Quit daemon"
 msgstr "Hintergrunddienst beenden"
 
-#: templates/index.html:79 templates/index.html:90
+#: templates/index.html:95 templates/index.html:131
 msgid "Remove feed"
 msgstr "Feed entfernen"
 
-#: templates/index.html:88
+#: templates/index.html:128
 msgid "Add to favorites"
 msgstr "Feed zu Favoriten hinzufügen"
 

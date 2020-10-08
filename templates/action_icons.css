@@ -6,10 +6,7 @@
   background-image:url(../{{ action.icon }}) !important;
 
   {# reduce icon opacity on to for better text readability #}
-  background-image: linear-gradient(to bottom,
-  rgba(0,0,0,1.0) 30%,
-  rgba(0,0,0,0.0) 90%),
-  url(../{{ action.icon }}) !important;
+  background-image: var(--bgicon_gradient), url(../{{ action.icon }}) !important;
 }
 
 {% endfor %}

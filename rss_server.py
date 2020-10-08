@@ -54,6 +54,7 @@ SESSION_TYPES = {
 
 CSS_STYLES = {
     "default.css": _("Default theme"),
+    "light.css": _("Light theme"),
     "dark.css": _("Dark theme"),
 }
 
@@ -576,7 +577,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             "css_styles": CSS_STYLES,
         })
 
-        logger.debug("Recived headers:\n{}".format(self.headers))
+        # logger.debug("Recived headers:\n{}".format(self.headers))
         html = self.server.html_renderer.run("index.html", self.context)
 
         output = BytesIO()

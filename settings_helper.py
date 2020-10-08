@@ -84,6 +84,8 @@ def get_history_filename(user=None):
 
 def load_config(main_globals):
     config_dir = get_config_folder()
+    logger.info("Load config from {}".format(config_dir))
+
     if config_dir not in sys.path:
         sys.path.insert(0, config_dir)
 

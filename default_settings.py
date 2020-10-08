@@ -77,7 +77,7 @@ ENTRIES_PER_PAGE = -1
 CONTENT_FULL_LEN_THRESH = 1E5
 
 # Default css-file.
-#             Available: "default.css", "dark.css"
+#             Available: "default.css", "light.css", "dark.css"
 #
 # User can override this value by the cookie 'style_css'
 CSS_STYLE = None  # None => default.css

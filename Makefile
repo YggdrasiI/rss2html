@@ -22,8 +22,9 @@ PIP_PACKAGES='Jinja2>=2.10' \
 # Translation releated
 SUPPORTED_LANGS=en_US de_DE  # Space between entries
 
+PYBABEL=$(shell echo -n "PYTHONPATH='$(SITE_PACKAGES)' ./site-packages/bin/pybabel")
 # Use installed pybabel if available
-PYBABEL=$(shell which pybabel || echo -n "PYTHONPATH='$(SITE_PACKAGES)' ./site-packages/bin/pybabel")
+# PYBABEL=$(shell which pybabel || echo -n "PYTHONPATH='$(SITE_PACKAGES)' ./site-packages/bin/pybabel")
 
 help:
 	@echo -e "Common targets:\n" \
@@ -83,7 +84,9 @@ build: check_env babel_compile
 
 ssl: ssl_rss_server.key ssl_rss_server.crt
 
-css: rss_server-page/less/default.css rss_server-page/less/dark.css
+css: rss_server-page/less/default.css \
+	rss_server-page/less/light.css \
+	rss_server-page/less/dark.css
 	mv rss_server-page/less/*.css rss_server-page/css/.
 
 # ====================================================

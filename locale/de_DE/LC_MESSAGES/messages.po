@@ -58,7 +58,7 @@ msgstr ""
 "Die im Feed angegebene Url weicht von der lokal gespeicherten ab.\n"
 "                            Soll die neue Url <a "
 "href=\"/?{ARGS}&url_update=1\">übernommen</a> werden?<br />"
-"                             Url in der Config/Histroy-Datei: "
+"                             Url in der Config/History-Datei: "
 "{OLD_URL}<br />                             Url in XML-Datei des Feeds: "
 "{NEW_URL}                             "
 

@@ -30,6 +30,7 @@ body {
 
 #feedBody {
   border: 1px solid @color3; /* THreeDShadow */
+  border-radius: 10px;
   padding: 3em;
   padding-inline-start: 30px;
   margin: 2em auto;
@@ -37,7 +38,7 @@ body {
 }
 
 #feedHeaderContainer {
-  border: 1px solid ThreeDShadow;
+  border: 1px solid @color3; /* THreeDShadow; */
   border-radius: 10px;
   margin: -1em auto 0 auto;
   background-color: @feed-header-container; /*InfoBackground not defined anymore*/
@@ -148,7 +149,7 @@ a[href] img {
 .feedEntryContent {
   font-size: 110%;
 }
- 
+
 .link {
   color: #0000FF;
   text-decoration: underline;
@@ -187,8 +188,8 @@ a[href] img {
 }
 
 .enclosure_actions_icon {
- height:1em;
- vertical-align: bottom;
+  height:1em;
+  vertical-align: bottom;
 }
 
 .handlersMenuList > .menulist-label-box > .menulist-icon {
@@ -198,28 +199,13 @@ a[href] img {
 
 .feedWarn {
   border: 1px solid @color3; /* THreeDShadow */
+  border-radius: 10px;
   padding: 0.5em;
   padding-inline-start: 30px;
   margin: 0.5em auto;
   background: @color4; /* -moz-Field */
 }
 
-.reader_favorites a:nth-child(n+2) {
-    font-color:black;
-    font-weight:bold;
-    text-decoration:none;
-    margin-left:1em;
-}
-
-.reader_favorites a:first-child {
-    display:inline-block;
-    min-width: 60%;
-    margin-right:2em;
-}
-
-.feed_list > *:nth-child(even) {
-  background: @color-even;
-}
 
 div.in1 {
   border: 1px solid @color3; /* THreeDShadow */
@@ -229,31 +215,61 @@ div.in1 {
 }
 
 a#feedSource {
-    float:right;
-    text-decoration:none;
-    color:inherit;
+  float:right;
+  text-decoration:none;
+  color:inherit;
 }
 
 .css_style_list {
-    display:inline-block;
-    vertical-align: top;
+  display:inline-block;
+  vertical-align: top;
 }
 
-.misc_list li{
+.misc_list > li{
   padding-bottom: 0.5em;
 }
 
-.feed_list li{
-  padding-bottom: 0.1em;
+.feed_list
+{
+  display: grid;
+  /*gap: 1rem;*/
+  grid-template-columns: repeat(auto-fill, minmax(20em, 1fr));
+  /*font: 1em/1.3 Cambria, serif;*/
+  gap: 1rem;
 }
 
-.feed_list li a{
+.feed_list > li
+{
+  /*padding: 1rem;*/
+  padding-bottom: 0.2rem;
+  list-style: none;
+  position:relative;
+}
+
+
+.feed_list > li > a{
+  display:block;
+  margin-right:3em;
   text-decoration: none;
+
+  border-top:2px solid rgba(40,40,40,0.3);
 }
 
-.feed_list li a:hover{
+.feed_list > li > a:hover{
   color: #AA0044;
 }
+
+.feed_list > li > span.manage_feed{
+  position:absolute;
+  right:1em;
+  top:0px;/* bottom: 0px;*/
+  width:2em;
+  text-align:center;
+
+  border-top:2px solid rgba(128,0,128,0.3);
+}
+
+/* ====== */
 
 form.login_form {
   float:left;
@@ -274,13 +290,13 @@ form.login_form input{
 }
 
 /* BEGIN 'style='-replacements
- Otherwise, this properties will be ignored due
- content security restrictions. */
+Otherwise, this properties will be ignored due
+content security restrictions. */
 .div_after_feed {
   clear: both;
 }
 .w100percent {
-	width:100%;
+  width:100%;
 }
 /* END 'style='-replacements */
 
@@ -295,17 +311,35 @@ div.in1 {
 }
 /* END Colour information for onclick2.css */
 
+/* BEGIN Colour information for onclick_actions.css */
+div.in1_action {
+  background-color:@color5;
+  border: 1px solid @color3;
+}
+ul.enclosure_actions li a{
+  color:@link-hover;
+  background-color:@color5;
+}
+/* END Colour information for onclick_actions.css */
+
+ul.feed_actions li a{
+  color:@link-hover;
+  background-color:@color5;
+
+  font-size:400%;
+}
+
 a {
-	color:@link;
-	&:hover {
-		color:@link-hover;
-	}
-	&:active {
-		color:@link-active;
-	}
-	&:visited {
-		color:@link-visited;
-	}
+  color:@link;
+  &:hover {
+    color:@link-hover;
+  }
+  &:active {
+    color:@link-active;
+  }
+  &:visited {
+    color:@link-visited;
+  }
 }
 
 @import "extras.less";

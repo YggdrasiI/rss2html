@@ -75,6 +75,7 @@ div.in1 {
   margin: 4vh 2em;
   z-index:2;
 
+  border-radius: 10px;
   /*background: Field;*/ /* Background of popup */
 }
 

@@ -7,7 +7,26 @@
 function action_link(el){
 	call_link(el.href);
 	console.log("Action url called:" + el.href);
-	//return false; //redundant
+}
+
+function give_feedback(el, parent_handler){
+  // Gives feedback if text string is not empty.
+	// The handler is stoped until the normal style is restored
+
+	var timeout = 3000;
+	var _skip_click = function (evt) {evt.preventDefault();}
+	var col = el.style.color;
+
+	el.style.color = "#666666";
+	el.removeEventListener("click", parent_handler);
+	el.addEventListener("click", _skip_click);
+
+	setTimeout(function() {
+		el.style.color = col;
+		el.removeEventListener("click", _skip_click);
+		el.addEventListener("click", parent_handler);
+	}, timeout)
+
 }
 
 function call_link(url){
@@ -40,9 +59,10 @@ function add_action_event_handler(){
 			document.getElementsByClassName("enclosure_actions")
 		){
 			for( const link of enclosure.getElementsByTagName("a")){
-				link.addEventListener("click", function(evt){
+				link.addEventListener("click", function _listener(evt){
 					evt.preventDefault();
 					action_link(link);
+					give_feedback(link, _listener);
 				});
 			}
 		}

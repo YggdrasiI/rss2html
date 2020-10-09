@@ -231,6 +231,22 @@ a#feedSource {
   border-top: 2px solid rgba(128, 0, 128, 0.3);
 }
 /* ====== */
+h2.add_feed,
+form.add_feed {
+  display: inline-block;
+}
+h2.add_feed {
+  margin-right: 1em;
+}
+form.add_feed input[type="submit"] {
+  display: none;
+}
+form.add_feed input[type="text"] {
+  max-width: 20em;
+  margin-bottom: 0.6em;
+  border: 0px solid rgba(0, 0, 0, 0);
+  border-top: 2px solid rgba(128, 0, 128, 0.3);
+}
 form.login_form {
   float: left;
   margin-bottom: 0.5em;
@@ -299,7 +315,8 @@ a:visited {
   max-height: 1em;
 }
 :root {
-  /* This variable differs between dark and light themes. */
+  /* This variable differs between dark and light themes
+   and will be used by action_icons.css*/
   --bgicon_gradient: linear-gradient(to bottom, #000000 30%, rgba(0, 0, 0, 0) 90%);
 }
 input {

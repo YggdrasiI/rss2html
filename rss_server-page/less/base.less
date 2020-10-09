@@ -271,6 +271,23 @@ a#feedSource {
 
 /* ====== */
 
+h2.add_feed, form.add_feed {
+  display:inline-block;
+}
+h2.add_feed {
+  margin-right: 1em;
+}
+form.add_feed input[type="submit"]{
+  display:none;
+}
+form.add_feed input[type="text"]{
+  max-width:20em;
+  margin-bottom: 0.6em; // like h2 
+
+  border:0px solid rgba(0,0,0,0.0);
+  border-top:2px solid rgba(128,0,128,0.3);
+}
+
 form.login_form {
   float:left;
   margin-bottom: 0.5em;

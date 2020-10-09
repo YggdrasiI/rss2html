@@ -995,8 +995,10 @@ if __name__ == "__main__":
               + _("This could be dangerous if you use user defined actions. "))
 
     logger.info("Serving at port {}".format(settings.PORT))
-    logger.info("Use {host}:{port}/?feed=[url] to view feed".format(
-        host=settings.HOST, port=settings.PORT))
+    logger.info("Use {protocol}{host}:{port}/?feed=[url] to view feed".format(
+        protocol="https://" if settings.SSL else "http://",
+        host=settings.HOST if settings.HOST else "localhost",
+        port=settings.PORT))
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

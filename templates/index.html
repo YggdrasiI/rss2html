@@ -42,6 +42,13 @@
     <!-- Dummy node for clickable menus -->
     <input type="radio" name="menu" id="action_toggle-0" class="menu_clickbox">
 
+    <h2 class="add_feed" id="feedSubtitleText">{{ _('Add feed') }}</h2>
+    <form action="/" method="GET" class="add_feed">
+        <span>{{ "%(protocol)s%(host)s/?feed="|format(
+            host=host, protocol=protocol) }}</span>
+        <input name="feed" type="text" value="" tabindex="1">
+        <input type="submit"/>
+    </form>
     <h2 id="feedSubtitleText">{{ _('URI Arguments') }}</h2>
     <p>{{ _("Prepend feed url by '%(url)s' to display feed content by this
     rss viewer.")|format(url="<i>%(protocol)s%(host)s/?feed=</i>")|format(

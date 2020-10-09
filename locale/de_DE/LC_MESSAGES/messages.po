@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-10-08 22:21+0200\n"
+"POT-Creation-Date: 2020-10-09 12:27+0200\n"
 "PO-Revision-Date: 2019-01-10 20:07+0100\n"
 "Last-Translator: Olaf Schulz <olaf_schulz+rss2html@posteo.de>\n"
 "Language: de_DE\n"
@@ -229,10 +229,14 @@ msgid "History of visited feeds is empty."
 msgstr "Verlauf der besuchten Feeds ist leer."
 
 #: templates/index.html:45
+msgid "Add feed"
+msgstr "Feed hinzufügen"
+
+#: templates/index.html:52
 msgid "URI Arguments"
 msgstr "URI-Argumente"
 
-#: templates/index.html:46
+#: templates/index.html:53
 #, python-format
 msgid ""
 "Prepend feed url by '%(url)s' to display feed content by this\n"
@@ -241,7 +245,7 @@ msgstr ""
 "Um einen Feed mit diesem Programm anzuzeigen, setze vor die Url des Feed "
 "folgenden String: '%(url)s', damit er von diesem RSS-Viewer geladen wird."
 
-#: templates/index.html:49
+#: templates/index.html:56
 #, python-format
 msgid ""
 "Add a feed to %(favvar)s in '%(config_file)s' to extend above\n"
@@ -250,42 +254,42 @@ msgstr ""
 "Füge Feed zu %(favvar)s in '%(config_file)s' hinzu, um obige Liste zu "
 "erweitern."
 
-#: templates/index.html:51
+#: templates/index.html:58
 #, python-format
 msgid "Its name can be used as shortcut, i.e %(example_url)s."
 msgstr ""
 "Statt der Url kann man auch den Feed-Namen als Schlüssel verwenden, z.B. "
 "%(example_url)s."
 
-#: templates/index.html:55
+#: templates/index.html:62
 msgid "Miscellaneous"
 msgstr "Diverses"
 
-#: templates/index.html:58
+#: templates/index.html:65
 msgid "User:"
 msgstr "Benutzer:"
 
-#: templates/index.html:59
+#: templates/index.html:66
 msgid "Logout"
 msgstr "Ausloggen"
 
-#: templates/index.html:62
+#: templates/index.html:69
 msgid "Styles:"
 msgstr "Stile:"
 
-#: templates/index.html:70
+#: templates/index.html:77
 msgid "Reload favorites from disk"
 msgstr "Favoriten-Dateien neu einlesen."
 
-#: templates/index.html:71
+#: templates/index.html:78
 msgid "Quit daemon"
 msgstr "Hintergrunddienst beenden"
 
-#: templates/index.html:95 templates/index.html:131
+#: templates/index.html:102 templates/index.html:138
 msgid "Remove feed"
 msgstr "Feed entfernen"
 
-#: templates/index.html:128
+#: templates/index.html:135
 msgid "Add to favorites"
 msgstr "Feed zu Favoriten hinzufügen"
 

@@ -61,8 +61,9 @@ def find_feed_keyword_values(feed, tree):
                 "title", context["title"])
 
             # Sanitize input which breaks html code
-            context["href"] = quote(context["href"], safe=":/")
-            context["title"] = quote(context["title"], safe=":/")
+            # Disabled because urls are now normalized to unqoted form
+            # context["href"] = quote(context["href"], safe=":/")
+            # context["title"] = quote(context["title"], safe=":/")
 
             return True
 

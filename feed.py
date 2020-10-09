@@ -3,6 +3,7 @@
 
 import os.path
 import re
+from urllib.parse import unquote
 
 import logging
 logger = logging.getLogger(__name__)
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 class Feed:
     def __init__(self, name, url, title=None):
         self.name = name
-        self.url = url
+        self.url = unquote(url)  # Normalize into unquoted form
         self.title = title
         self.items = []
         self.context = {}

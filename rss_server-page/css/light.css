@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 html {
-  background: #333434;
+  background: #edeceb;
   /* -moz-Dialog */
   font: 3mm tahoma, arial, helvetica, sans-serif;
 }
 body {
   margin: 0;
   padding: 0 3em;
-  color: #c7c7c7;
+  color: #1a1a1a;
   /* -moz-fieldText; */
   font: message-box;
 }
@@ -25,21 +25,21 @@ body {
   margin-inline-start: auto;
 }
 #feedBody {
-  border: 1px solid #686a6d;
+  border: 1px solid #a19e9a;
   /* THreeDShadow */
   border-radius: 10px;
   padding: 3em;
   padding-inline-start: 30px;
   margin: 2em auto;
-  background: #262626;
+  background: #ffffff;
   /* -moz-Field */
 }
 #feedHeaderContainer {
-  border: 1px solid #686a6d;
+  border: 1px solid #a19e9a;
   /* THreeDShadow; */
   border-radius: 10px;
   margin: -1em auto 0 auto;
-  background-color: #2f3f70;
+  background-color: #F2DC95;
   /*InfoBackground not defined anymore*/
   appearance: gtk-info-bar;
   display: flex;
@@ -94,12 +94,12 @@ body {
 }
 h1 {
   font-size: 160%;
-  border-bottom: 2px solid #333434;
+  border-bottom: 2px solid #edeceb;
   /* ThreeDLightShadow */
   margin: 0 0 0.2em 0;
 }
 h2 {
-  color: #717376;
+  color: #94918d;
   /* GrayText */
   font-size: 110%;
   font-weight: normal;
@@ -151,11 +151,11 @@ a[href] img {
   width: 1em;
 }
 .enclosures {
-  border: 1px solid #686a6d;
+  border: 1px solid #a19e9a;
   /* THreeDShadow */
   padding: 1em;
   margin: 1em auto;
-  background: #333434;
+  background: #edeceb;
   /* -moz-Dialog */
 }
 .enclosure {
@@ -171,17 +171,17 @@ a[href] img {
   max-height: 1em;
 }
 .feedWarn {
-  border: 1px solid #686a6d;
+  border: 1px solid #a19e9a;
   /* THreeDShadow */
   border-radius: 10px;
   padding: 0.5em;
   padding-inline-start: 30px;
   margin: 0.5em auto;
-  background: #262626;
+  background: #ffffff;
   /* -moz-Field */
 }
 div.in1 {
-  border: 1px solid #686a6d;
+  border: 1px solid #a19e9a;
   /* THreeDShadow */
   padding: 0.5em;
   padding-right: 30px;
@@ -279,35 +279,35 @@ label.menu_close1 {
   opacity: 0.25;
 }
 div.in1 {
-  background: #262626;
+  background: #ffffff;
 }
 /* END Colour information for onclick2.css */
 /* BEGIN Colour information for onclick_actions.css */
 div.in1_action {
-  background-color: #333434;
-  border: 1px solid #686a6d;
+  background-color: #edeceb;
+  border: 1px solid #a19e9a;
 }
 ul.enclosure_actions li a {
-  color: #62d9a9;
-  background-color: #333434;
+  color: #aa0044;
+  background-color: #edeceb;
 }
 /* END Colour information for onclick_actions.css */
 ul.feed_actions li a {
-  color: #62d9a9;
-  background-color: #333434;
+  color: #aa0044;
+  background-color: #edeceb;
   font-size: 400%;
 }
 a {
-  color: #d9d932;
+  color: #0000ee;
 }
 a:hover {
-  color: #62d9a9;
+  color: #aa0044;
 }
 a:active {
-  color: #32d9d9;
+  color: #ee0000;
 }
 a:visited {
-  color: #9dc777;
+  color: #551a8b;
 }
 /* Set wordpress smiley size (seen on minkorrekt)*/
 .wp-smiley {
@@ -317,9 +317,5 @@ a:visited {
 :root {
   /* This variable differs between dark and light themes
    and will be used by action_icons.css*/
-  --bgicon_gradient: linear-gradient(to bottom, #000000 30%, rgba(0, 0, 0, 0) 90%);
-}
-input {
-  color: #c7c7c7;
-  background-color: #1a1a1a;
+  --bgicon_gradient: linear-gradient(to bottom, #ffffff 30%, rgba(255, 255, 255, 0) 90%);
 }

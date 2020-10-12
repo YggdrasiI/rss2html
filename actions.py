@@ -178,18 +178,20 @@ def play_with_mpv(feed, url, settings):
     double_fork(mpv)
 
 
-def factory__ssh_cmd(ssh_hostname, ssh_cmd, identity_file=None):
+def factory__ssh_cmd(ssh_hostname, ssh_cmd, identity_file=None, port=None):
     # Returns action function handler
     #
     # Example: factory__ssh_cmd("you@localhost", "echo '{url}'")
 
     def action(feed, url, settings):
         def ssh():
+            cmd = ["ssh", ssh_hostname, ssh_cmd.format(url=url)]
             if identity_file:
-                cmd = ("ssh", "-i", "{}".format(identity_file),
-                        ssh_hostname, ssh_cmd.format(url=url))
-            else:
-                cmd = ("ssh", ssh_hostname, ssh_cmd.format(url=url))
+                cmd[1:1] = ["-i", "{}".format(identity_file)]
+            if port:
+                cmd[1:1] = ["-p", "{}".format(port)]
+
+            cmd = tuple(cmd)
 
             logging.debug("SSH-Cmd: {}".format(cmd))
 

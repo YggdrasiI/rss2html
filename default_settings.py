@@ -11,7 +11,12 @@ import actions
 
 HOST = "localhost"  # "" allows access from everywhere....
 PORT = 8888
-SSL = True          # HTTPS
+SSL = False          # HTTPS
+
+# Required for SSL:
+# Generate test key with 'make ssl' or use letsencrypt/etc.
+SSL_KEY_PATH = "ssl_rss_server.key"
+SSL_CRT_PATH = "ssl_rss_server.crt"
 
 # Default language. (Overriden by browsers value.)
 GUI_LANG = "en_US"

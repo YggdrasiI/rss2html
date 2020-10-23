@@ -1,7 +1,7 @@
 FOLDER=$(realpath .)
 USER=$(shell whoami)
-PYTHON_BIN=$(shell which python3 || which python)
-SYSTEMD_INSTALL_DIR=/etc/systemd/system
+PYTHON_BIN?=$(shell which python3 || which python)
+SYSTEMD_INSTALL_DIR?=/etc/systemd/system
 
 # To use subcommand output as file [ cat <(echo "Test") ]
 SHELL=/bin/bash

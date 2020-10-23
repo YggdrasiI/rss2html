@@ -899,12 +899,12 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 
 # Call 'make ssl' to generate local test certificates.
-def wrap_SSL(httpd):
+def wrap_SSL(httpd, key_file, crt_file):
     ssl_path = "."
     httpd.socket = ssl.wrap_socket (
         httpd.socket, server_side=True,
-        keyfile=os.path.join(ssl_path, "ssl_rss_server.key"),
-        certfile=os.path.join(ssl_path, "ssl_rss_server.crt"),
+        keyfile=os.path.join(ssl_path, key_file),
+        certfile=os.path.join(ssl_path, crt_file),
     )
 
 
@@ -979,7 +979,8 @@ if __name__ == "__main__":
         raise
 
     if settings.SSL:
-        wrap_SSL(httpd)
+        wrap_SSL(httpd,
+                settings.SSL_KEY_PATH, settings.SSL_CRT_PATH)
 
     if settings.LOGIN_TYPE is None:
         warn( _("Note: Actions for enclosured media files are disabled because LOGIN_TYPE is None."))

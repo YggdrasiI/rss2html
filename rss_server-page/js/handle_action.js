@@ -5,7 +5,7 @@
  */
 
 function action_link(el){
-	call_link(el.href);
+	call_link(el.href, el.parentElement.parentElement.parentElement);
 	console.log("Action url called:" + el.href);
 }
 
@@ -29,7 +29,7 @@ function give_feedback(el, parent_handler){
 
 }
 
-function call_link(url){
+function call_link(url, feedback_element){
 	/* Trigger simple http request */
 	var xhr = new XMLHttpRequest();
 	xhr.open("GET", url, true);
@@ -41,7 +41,15 @@ function call_link(url){
 
 			// Extract status message
 			msg = xhr.responseXML.getElementById("feedBody");
-			console.log("Action handled" + msg.innerText);
+			console.log(msg.innerText);
+
+			// Print status message text
+			var textnode = document.createTextNode(msg.innerText);
+			if (feedback_element.lastChild.nodeType == 3){
+				feedback_element.replaceChild(textnode, feedback_element.lastChild);
+			}else{
+				feedback_element.appendChild(textnode);
+			}
 		}else{
 			console.log("Action request error: " + String(xhr.status) );
 		}

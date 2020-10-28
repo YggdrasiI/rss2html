@@ -30,13 +30,20 @@ label.action_open {
 
 /* Definitions for content of action overlay menu */
 
-ul.enclosure_actions li {
+ul.enclosure_actions, ul.feed_actions {
+	display:grid;
+	grid-template-columns: repeat(auto-fit, 8.6em);
+	justify-content: center;
+}
+
+ul.enclosure_actions li, ul.feed_actions li {
   display:inline-block;
   vertical-align:middle;
-  width:8em;
-  height:5em;
-  margin:1em;
+  width:7.6em;
+  height:4.72em;
+	margin-top:1em; /* horizontal margin controled by grid-setting */
 }
+
 ul.enclosure_actions li a{
   display:block;
   height:100%; width:100%;
@@ -90,13 +97,14 @@ label.feed_open {
 
 font-family:bold;
 }
-ul.feed_actions li {
-  display:inline-block;
-  vertical-align:middle;
-  width:8em;
-  height:5em;
-  margin:1em;
+
+/* Merged definition with ul.enclosure_actions, see above */
+/*ul.feed_actions {
 }
+
+ul.feed_actions li {
+}*/
+
 ul.feed_actions li a{
   display:block;
   height:100%; width:100%;

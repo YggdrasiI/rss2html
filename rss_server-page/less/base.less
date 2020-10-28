@@ -38,12 +38,38 @@ body {
 }
 
 #feedHeaderContainer {
+  position: sticky;
+  top: -1em;
+  left: 2em;
+  right: 2em;
+  margin-top: -1em;
+}
+
+.feedHeaderLinks {
   border: 1px solid @color3; /* THreeDShadow; */
   border-radius: 10px;
-  margin: -1em auto 0 auto;
   background-color: @feed-header-container; /*InfoBackground not defined anymore*/
   appearance: gtk-info-bar;
   display: flex;
+}
+
+div.feedHeaderHorzontalSpacer {
+  height:4em;
+  background: linear-gradient(to bottom, @color1 30%, transparent);
+
+  /* Move spacer to avoid display of scrolled content in rounded corners. */
+  /*margin-top:-10px;*/
+  z-index:-1;
+  position:relative;
+  top:-10px; left:0px;
+}
+
+/* Ignore feedHeaderHorzontalSpacer area by pointer events */
+#feedHeaderContainer {
+  pointer-events: none;
+}
+.feedHeaderLinks {
+  pointer-events: auto;
 }
 
 #feedHeaderContainerSpacer {

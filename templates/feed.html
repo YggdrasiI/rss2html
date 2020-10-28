@@ -1,23 +1,26 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div id="feedHeaderContainer" class="w100percent">
-    <div dir="ltr" class="feedHeader feedBackground">
-        <h2><a href="/">{{ _("Overview") }}</a></h2>
+<div id="feedHeaderContainer">
+    <div class="feedHeaderLinks">
+        <div dir="ltr" class="feedHeader feedBackground">
+            <h2><a href="/">{{ _("Overview") }}</a></h2>
+        </div>
+        <div id="feedHeaderContainerSpacer"></div>
+        <div dir="ltr" class="feedHeader">
+            {{ page_links(feed2.name, entries|length, entry_list_size, feed_page) }}
+        </div>
+        <div id="feedHeaderContainerSpacer"></div>
+        <div dir="ltr" class="feedHeader">
+            {% if nocache_link %}
+            <h2><a href="/?feed={{
+                         feed2.name|urlencode }}&page={{
+                         feed_page}}&cache=1"
+                   >{{ _('Ignore feed cache') }}</a></h2>
+            {% endif %}
+        </div>
     </div>
-    <div id="feedHeaderContainerSpacer"></div>
-    <div dir="ltr" class="feedHeader">
-        {{ page_links(feed2.name, entries|length, entry_list_size, feed_page) }}
-    </div>
-    <div id="feedHeaderContainerSpacer"></div>
-    <div dir="ltr" class="feedHeader">
-        {% if nocache_link %}
-        <h2><a href="/?feed={{
-                      feed2.name|urlencode }}&page={{
-                      feed_page}}&cache=0"
-                >{{ _('Ignore feed cache') }}</a></h2>
-        {% endif %}
-    </div>
+    <div class="feedHeaderHorzontalSpacer"></div>
 </div>
 
 {% for entry in warnings %}
@@ -34,9 +37,9 @@
         </a>
         <div id="feedTitleContainer">
           <h1 id="feedTitleText" >{{ title }}
-						{% if source_link %}
-						<a id="feedSource" href="{{ source_link }}">[{{ _('WWW') }}]</a>
-						{% endif %}
+              {% if source_link %}
+              <a id="feedSource" href="{{ source_link }}">[{{ _('WWW') }}]</a>
+              {% endif %}
             <a id="feedSource" href="{{ href }}">[{{ _('XML') }}]</a>
           </h1>
           <h2 id="feedSubtitleText" >{{ subtitle }}</h2>

@@ -556,6 +556,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 settings.ALLOWED_FILE_EXTENSIONS:
             self.path = MyHandler.directory + self.path  # for Python 3.4
             ret =  super().do_GET()
+        elif self.path == "/robots.txt":
+            self.path = MyHandler.directory + self.path  # for Python 3.4
+            ret =  super().do_GET()
         else:
             print(self.path)
             # return super().do_GET()

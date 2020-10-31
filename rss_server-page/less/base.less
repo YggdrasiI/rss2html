@@ -33,10 +33,15 @@ body {
   border-radius: 10px;
   padding: 3em;
   padding-inline-start: 30px;
-  //margin: 2em auto;
-  margin: -2em auto 2em; // for sticky header
+  margin: 2em auto;
   background: @color4; /* -moz-Field */
 
+}
+#feedHeaderContainer + #feedBody,
+#feedHeaderContainer + .feedWarn {
+	// Offset for sticky header.
+	// Rule only applied if element directly after header
+  margin: -2em auto 2em;
 }
 
 #feedHeaderContainer {

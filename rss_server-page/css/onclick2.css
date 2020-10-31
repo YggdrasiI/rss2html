@@ -68,11 +68,13 @@ label.menu_close2 {
 
 div.in1 {
   position:fixed;
-  top:0px; left:0px;
-  width:90%;
-  max-height: 90vh; /* viewport height percent */
+  top:0px; left:50%;
+	transform: translate(-50%, 0);
+  min-width:80%;
+  max-width: 90vw;
+  max-height: 90%;
+  margin: 4vh 0px;
   overflow-y: auto;
-  margin: 4vh 2em;
   z-index:2;
 
   border-radius: 10px;

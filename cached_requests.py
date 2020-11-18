@@ -150,11 +150,11 @@ def fetch_file(url, bCache=True, local_dir="rss_server-page/"):
             if cEl:
                 return (cEl, 304)
 
-        logger.debug('The server couldn\'t fulfill the request.')
-        logger.debug('Error code: ', e.code)
+        logger.debug('The server couldn\'t fulfill the request.'
+                'Error code: {} '.format(e.code))
     except URLError as e:
-        logger.debug('We failed to reach a server.')
-        logger.debug('Reason: ', e.reason)
+        logger.debug('We failed to reach a server.'
+                'Reason: {}'.format(e.reason))
         if cEl:
             return (cEl, 304)
 
@@ -239,7 +239,7 @@ def load_cache(*feed_lists):
                 # "Error was: {}".format(filename, e))
                 pass
             else:
-                # logger.debug("Reading of '{}' succeeded. ".format(filename))
+                logger.debug("Reading of '{}' succeeded. ".format(filename))
                 pass
 
 

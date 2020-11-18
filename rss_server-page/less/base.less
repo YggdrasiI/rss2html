@@ -88,9 +88,24 @@ div.feedHeaderHorzontalSpacer {
   margin-bottom: 0.5em;
   margin-inline-start: 1.4em;
   margin-inline-end: 1em;
-  padding-inline-start: 2.9em;
+  //padding-inline-start: 2.9em;
   font-size: 110%;
   color: gtk-info-bar-text;
+}
+.feedHeader:first-child {
+  margin-inline-start: 1.4em;
+  margin-inline-end: 1em;
+  padding-inline-start: 2.9em;
+}
+.feedHeader:nth-child(+3){
+	// Give sub-links of feed some space
+	// to avoid long vertical lines on slim screens.
+	min-width:6em;
+
+	// More vertical restriction
+	overflow-y: scroll;
+	max-height: 6em;
+	line-height: 1.5em;
 }
 
 .feedBackground {

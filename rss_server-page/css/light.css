@@ -79,9 +79,19 @@ div.feedHeaderHorzontalSpacer {
   margin-bottom: 0.5em;
   margin-inline-start: 1.4em;
   margin-inline-end: 1em;
-  padding-inline-start: 2.9em;
   font-size: 110%;
   color: gtk-info-bar-text;
+}
+.feedHeader:first-child {
+  margin-inline-start: 1.4em;
+  margin-inline-end: 1em;
+  padding-inline-start: 2.9em;
+}
+.feedHeader:nth-child(+3) {
+  min-width: 6em;
+  overflow-y: scroll;
+  max-height: 6em;
+  line-height: 1.5em;
 }
 .feedBackground {
   background: url("/icons/Feed-icon.svg") 0% 10% no-repeat;

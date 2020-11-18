@@ -351,10 +351,10 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 feed_url = feed.url if feed else feed_key
 
                 res = None
-                (text, code) = cached_requests.fetch_file(
+                (cEl, code) = cached_requests.fetch_file(
                         feed_url, bUseCache, MyHandler.directory)
 
-                if text is None:
+                if cEl is None:
                     error_msg = _('No feed found for this URI arguments.')
                     return self.show_msg(error_msg, True)
 
@@ -368,7 +368,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
                 # Generate etag
                 etag = '"{}p{}"'.format(
-                    hashlib.sha1((text if text is not None \
+                    hashlib.sha1((cEl.text if cEl.text is not None \
                                   else "").encode('utf-8')).hexdigest(),
                     page
                 )
@@ -386,7 +386,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     self.end_headers()
                     return None
 
-                # tree = ElementTree.XML(text)
+                # tree = ElementTree.XML(cEl.text)
                 # res = find_feed_keyword_values(tree)
 
                 if not feed:
@@ -395,7 +395,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 else:
                     bNew = False
 
-                feed_parser.parse_feed(feed, text)
+                feed_parser.parse_feed(feed, cEl.text)
 
                 # Note: without copy, changes like warnings on res
                 # would be stored peristend into feed.context.
@@ -755,10 +755,12 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             return self.show_msg(error_msg, True)
 
         """  # Not required
-        text = cached_requests.fetch_from_cache(feed)
-        if text is None:
-            (text, code) = cached_requests.fetch_file(
+        cEl = cached_requests.fetch_from_cache(feed)
+        if cEl is None:
+            (cEl, code) = cached_requests.fetch_file(
                     feed.url, MyHandler.directory)
+        else:
+            code = 304
         """
 
         url_hash2 = '{}'.format( hashlib.sha224(
@@ -898,7 +900,10 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                          settings.get_history_filename(session_user))
 
         # 2. Write changes
-        cached_requests.update_cache(feed.title, res, {})
+        # TODO: Was muss hier gespeichert werden? Erwartet wird
+        # reiner Text und nicht das 'res'-dict.
+        # cEl = CacheElement(res, {})
+        # cached_requests.update_cache(feed.title, cEl)
 
 
 # Call 'make ssl' to generate local test certificates.
@@ -925,7 +930,7 @@ def set_logger_levels():
     keys.insert(0, "root")
     # print("Logger keys: {}".format(keys))
 
-    print("Set Logging level on {}".format(numeric_level))
+    print("Set logging level on {}".format(numeric_level))
     logging.basicConfig(level=numeric_level)
     for key in keys:
         logging.getLogger(key).setLevel(numeric_level)
@@ -973,6 +978,16 @@ if __name__ == "__main__":
     # with socketserver.TCPServer(("", settings.PORT), MyHandler) as httpd:
     #    httpd.serve_forever()
 
+    # Preload feed xml files from earlier session
+    if settings.CACHE_DIR:
+        __l1 = len(cached_requests._CACHE)
+        cached_requests.gen_cache_dirname(True)
+        cached_requests.load_cache(settings.FAVORITES, settings.HISTORY)
+        cached_requests.load_cache(*(settings.USER_FAVORITES.values()))
+        cached_requests.load_cache(*(settings.USER_HISTORY.values()))
+        __l2 = len(cached_requests._CACHE)
+        logger.info("Loaded {} feeds from disk into cache.".format(__l2 - __l1))
+
     try:
         httpd = genMyHTTPServer()((settings.HOST, settings.PORT), MyHandler, settings)
     except OSError:
@@ -1010,5 +1025,10 @@ if __name__ == "__main__":
     except:
         httpd.shutdown()
         raise
+
+    if settings.CACHE_DIR:
+        cached_requests.store_cache(settings.FAVORITES, settings.HISTORY)
+        cached_requests.store_cache(*(settings.USER_FAVORITES.values()))
+        cached_requests.store_cache(*(settings.USER_HISTORY.values()))
 
     logger.info("END program")

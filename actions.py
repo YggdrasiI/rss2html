@@ -207,12 +207,12 @@ def factory__ssh_cmd(ssh_hostname, ssh_cmd, identity_file=None, port=None):
 
 def get_item_for_url(feed, url, settings):
     if True:  # if not feed.items:
-        (text, code) = cached_requests.fetch_file(feed.url)
-        if not text:
+        (cEl, code) = cached_requests.fetch_file(feed.url)
+        if not cEl or not cEl.text:
             logger.error("Fetching uncached feed '{}' failed.".format(feed.url))
             return None
 
-        feed_parser.parse_feed(feed, text)
+        feed_parser.parse_feed(feed, cEl.text)
         for entry in feed.context["entries"]:
             for enclosure in entry["enclosures"]:
                 logger.info("Compare {} with {}".format(

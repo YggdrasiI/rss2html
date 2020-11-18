@@ -58,7 +58,12 @@ USERS = {
 # Set LOGLEVEL variable to overwrite level globally.
 # LOGLEVEL = "DEBUG"
 
+# Minimal time between two requests to the xml file of a feed
 CACHE_EXPIRE_TIME_S = 600
+# Save/load cached feed xmls on server stop/start.
+# CACHE_DIR = '/dev/shm/'
+CACHE_DIR = None  # Disabled if None
+
 MAX_FEED_BYTE_SIZE = 1E7
 ALLOWED_FILE_EXTENSIONS = [".css", ".png", ".jpg", ".svg", ".js"]
 

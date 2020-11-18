@@ -413,7 +413,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
                 # Warn if feed url might changes
                 parsed_feed_url = res["href"]
-                if not url_update and parsed_feed_url and parsed_feed_url != feed_url:
+                if (not url_update and parsed_feed_url
+                    and parsed_feed_url != feed_url):
                     res.setdefault("warnings", []).append({
                         "title": _("Warning"),
                         "msg": _(

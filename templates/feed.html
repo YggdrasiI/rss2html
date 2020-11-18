@@ -29,18 +29,22 @@
 
 <div id="feedBody">
     <div id="feedTitle">
-        <a id="feedTitleLink">
-            {% if image %}
+      {% if image %}
+        <a id="feedTitleLink"
+           {% if source_link %}href="{{ source_link }}"
+           {% endif %}
+          >
             <img id="feedTitleImage" src="{{ image.url }}"
                                      title="{{ image.title }}" />
-            {% endif %}
         </a>
+      {% else %}
+        {% if source_link %}
+        <a id="feedTitleLink" href="{{ source_link }}">[{{ _('WWW') }}]</a>
+        {% endif %}
+      {% endif %}
         <div id="feedTitleContainer">
           <h1 id="feedTitleText" >{{ title }}
-              {% if source_link %}
-              <a id="feedSource" href="{{ source_link }}">[{{ _('WWW') }}]</a>
-              {% endif %}
-            <a id="feedSource" href="{{ href }}">[{{ _('XML') }}]</a>
+            <a id="feedSource" href="{{ source_xml_link }}">[{{ _('XML') }}]</a>
           </h1>
           <h2 id="feedSubtitleText" >{{ subtitle }}</h2>
         </div>

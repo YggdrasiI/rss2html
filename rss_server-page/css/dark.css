@@ -358,6 +358,14 @@ a:visited {
   max-width: 100%;
   height: auto;
 }
+@media all and (max-width: 35em) {
+  body {
+    padding: 0 1em;
+  }
+  a#feedSource {
+    display: none;
+  }
+}
 :root {
   /* This variable differs between dark and light themes
    and will be used by action_icons.css*/

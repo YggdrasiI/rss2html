@@ -50,13 +50,14 @@ def find_feed_keyword_values(feed, tree):
     context.setdefault("title", "Undefined")
     context.setdefault("href", "")
     context.setdefault("feed_lang", "en")
+    context.setdefault("source_xml_link", feed.url)
 
     def search_href():
         if (atom_node.attrib.get("rel") == "self" and
             atom_node.attrib.get("type") in ["application/rss+xml",
                                                  "application/xml"]
            ):
-            context["href"] = atom_node.attrib.get("href", "")
+            context["source_xml_link"] = atom_node.attrib.get("href", "")
             context["title"] = atom_node.attrib.get(
                 "title", context["title"])
 

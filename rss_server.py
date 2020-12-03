@@ -246,11 +246,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         query_components = parse_qs(content)
 
         if self.path == "/login" or \
-           "login" in query_components.get("form_id"):
+           "login" in query_components.get("form_id", []):
             return self.handle_login(query_components)
 
         if self.path == "/logout" or \
-           "logout" in query_components.get("form_id"):
+           "logout" in query_components.get("form_id", []):
             return self.handle_logout(query_components)
 
         msg = 'Post values: {}'.format(str(query_components))

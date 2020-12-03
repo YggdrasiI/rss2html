@@ -10,9 +10,10 @@ DEBUG?=1
 
 # Fallback position for packages which are not installed.
 SITE_PACKAGES=site-packages
-PIP_PACKAGES='Jinja2>=2.10' \
-			 'httplib2' \
-			 'babel>=2.6' \
+PIP_PACKAGES=$(shell cat "requirements.txt")
+# 'Jinja2>=2.10' \
+#			 'httplib2' \
+#			 'babel>=2.6' \
 #			 'python-pam' \
 #			 'webassets-babel>=0.3' \
 
@@ -158,3 +159,6 @@ rss_server-page/less/%.css: rss_server-page/less/%.less \
 
 run_feed_provider:
 	cd non-public && python3 -m http.server 8889
+
+md:
+	python3 -m markdown -f /dev/shm/README.html README.md

@@ -178,6 +178,29 @@ def play_with_mpv(feed, url, settings):
     double_fork(mpv)
 
 
+def factory__local_cmd(lcmd):
+    # Returns action function handler.
+    # Split cmd into list of arguments.
+    #
+    # Example: factory__local_cmd(["notify-send", "RSS VIEWER", "{url}"])
+
+    def action(feed, url, settings):
+        def local_cmd():
+            resolved_lcmd = [token.format(url=url) for token in lcmd]
+
+            cmd = tuple(resolved_lcmd)
+            logging.debug("Local cmd: {}".format(cmd))
+
+            nullsink = open(os.devnull, 'w')
+            nullsource = open(os.devnull, 'r')
+            return Popen(cmd, stdin=nullsource,
+                         stdout=nullsink, stderr=nullsink)
+
+        double_fork(local_cmd)
+
+    return action
+
+
 def factory__ssh_cmd(ssh_hostname, ssh_cmd, identity_file=None, port=None):
     # Returns action function handler
     #

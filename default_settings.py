@@ -100,24 +100,24 @@ ACTION_SECRET = None  # None => Random value at each start.
 If you want define more actions add following to your
 local setttings.py:
 
-from default_settings import ACTIONS
+	from default_settings import ACTIONS
 
-def can_action_name(feed, url, settings):
-    return True
+	def can_action_name(feed, url, settings):
+			# Return True if your action should be possible for this url
+			return True
 
-def action_name(feed, url, settings):
-    return True
+	def action_name(feed, url, settings):
+			# Add your stuff here
+			return True
 
-ACTIONS.update({
-    "my_action" : {
-        # Action for this url
-        "handler": lambda url: print(url),
-        # True if your action should be possible for this url
-        "check": lambda url: return True,
-        "title": "Description",
-        "icon": "icons/gnome_download.png",
-    },
-})
+	ACTIONS.update({
+			"my_action" : {
+					"handler": action_name,
+					"check": can_action_name,
+					"title": "Description",
+					"icon": "icons/gnome_download.png",
+			},
+	})
 """
 
 ACTIONS = {

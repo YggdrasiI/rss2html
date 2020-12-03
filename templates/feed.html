@@ -65,7 +65,7 @@
         <label for="toggle-0" class="menu_close1"></label>
     </div>
 </div>
-<iframe name="non_js_fallback" class"non_js_fallback" title="Displays api return values"></iframe> 
+<iframe name="non_js_fallback" class="non_js_fallback" title="Displays api return values"></iframe> 
 
 {% endblock %}
 
@@ -137,7 +137,8 @@
             class="action_open">Actions‣</label></div>
     <input type="radio" name="menu" id="action_toggle-{{ idx1 }}-{{ idx2 }}" class="menu_clickbox">
     <div class="in1_action in1_action_no_ani"><label for="action_toggle-0" class="menu_close2">✖</label>
-        <span class="enclosure_filename">{{ en.enclosure_filename }}</span>
+        <span class="enclosure_filename">{{
+            en.enclosure_filename|clipped_media_name(60) }}</span>
         <ul class="enclosure_actions">
             {% for action in en.actions %}
             <li>

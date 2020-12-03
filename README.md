@@ -21,17 +21,17 @@ Python packages Jinja>=2.10 babel>=2.6
 
 ## Start
 
-Call **make run** and visit *http://localhost:8888*
+Call `make run` and visit <http://localhost:8888>
 
 Take a look into the *Setup section* to see how you could
 configure the program.  
 If you want install the programm as background daemon,
-call **make install_service**. It requires the systemd init system.
+call `make install_service`. It requires the systemd init system.
 
 
 ## Setup
 
-1. Install unmet Python dependencies by **make check_env**.
+1. Install unmet Python dependencies by `make check_env`.
 2. (Optional) The settings are defined in *default_settings.py*.  
 	If you want override values create *settings.py* and place your
 	changes there:
@@ -46,7 +46,7 @@ call **make install_service**. It requires the systemd init system.
 	Place this file into *$HOME/.config/rss2html* (Linux) or  
 	*%APPDATA%/rss2html* (Windows) or this folder.
 
-3. Start background service: **python3 rss_server.py [-d]**
+3. Start background service: `python3 rss_server.py [-d]`
 
 4. Visit *localhost:8888/?feed=[your feed url]* to view a feed.  
 	The content presentation is similar to Firefox's <= 63.x.
@@ -139,7 +139,7 @@ trigger a command on an other host. The allowed commands
 are defined in *rss2html.sh* on the remote machine.  
 
 1. Create new key for rss2html:
-**ssh-keygen -f ~/.ssh/rss2html -P ""**
+`ssh-keygen -f ~/.ssh/rss2html -P ""`
 
 2. Copy *rss2html_ssh.sh.example* to *rss2html.sh* and add your
 commands into the script. The keyword (here: PLAY) should match
@@ -172,10 +172,10 @@ The command-prefix restricts the accesses on this single script.
 ## Developing
 ### Add a new language
 1. Add language code in *Makefile* to SUPPORTED_LANGS variable.
-2. Run **make babel_compile**
+2. Run `make babel_compile`
 
 
 ### Update existing localization's
-1. Run **make babel_prepare babel_update** to update \*.pot- and \*.po-files
+1. Run `make babel_prepare babel_update` to update \*.pot- and \*.po-files
 2. Edit *./locale/{LANG CODE}/LC_MESSAGES/messages.po*
-3. Run **make babel_compile**
+3. Run `make babel_compile`

@@ -65,6 +65,8 @@
         <label for="toggle-0" class="menu_close1"></label>
     </div>
 </div>
+<iframe name="non_js_fallback" class"non_js_fallback" title="Displays api return values"></iframe> 
+
 {% endblock %}
 
 {% macro feed(entry, feed_loop, with_content_full) %}
@@ -97,6 +99,7 @@
     </div>
 </div>
 <div class="div_after_feed"></div>
+
 {% endmacro %}
 
 {% macro feed_full_content(entry, loop) %}
@@ -139,7 +142,8 @@
             {% for action in en.actions %}
             <li>
                 <a href="{{ action.url }}" title="{{ action.title }}"
-                                           class="bgicon_{{ action.name }}">
+                                           class="bgicon_{{ action.name }}"
+																					 target="non_js_fallback">
                     {{ action.title }}
                 </a>
             </li>

@@ -348,6 +348,21 @@ a:active {
 a:visited {
   color: #551a8b;
 }
+/* Fallback for graphical feedback in non-javascript case. */
+ul.enclosure_actions li a:visited,
+ul.feed_actions li a:visited {
+  color: #888;
+}
+ul.enclosure_actions li a:hover,
+ul.feed_actions li a:hover {
+  background-color: rgba(60, 60, 60, 0.4);
+}
+.non_js_fallback {
+  border: 0px;
+  height: 200px;
+  width: 600px;
+  display: none;
+}
 /* Set wordpress smiley size (seen on minkorrekt)*/
 .wp-smiley {
   height: 1em;

@@ -156,3 +156,5 @@ rss_server-page/less/%.css: rss_server-page/less/%.less \
 	rss_server-page/less/plugin_css_invert.js
 	lessc "$<" "$@"
 
+run_feed_provider:
+	cd non-public && python3 -m http.server 8889

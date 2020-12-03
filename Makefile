@@ -162,3 +162,5 @@ run_feed_provider:
 
 md:
 	python3 -m markdown -f /dev/shm/README.html README.md
+	test -d /dev/shm/screenshots || cp -r screenshots /dev/shm/.
+	python3 -m markdown -f /dev/shm/screenshots/README.html screenshots/README.md

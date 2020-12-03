@@ -179,3 +179,6 @@ The command-prefix restricts the accesses on this single script.
 1. Run `make babel_prepare babel_update` to update \*.pot- and \*.po-files
 2. Edit *./locale/{LANG CODE}/LC_MESSAGES/messages.po*
 3. Run `make babel_compile`
+
+## Screenshots
+[![Overview in dark theme](screenshots/screenshot_01.png)](screenshots/README.md)

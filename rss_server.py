@@ -9,6 +9,7 @@ from xml.etree import ElementTree
 from urllib.parse import urlparse, parse_qs, quote, unquote
 from threading import Thread
 import http.server
+from http import cookies
 import hashlib
 import socket
 import socketserver
@@ -233,6 +234,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     # Save value in session to avoid re-evaluation
                     self.session.c["lang"] = match_prefix[0]
                     self.session.c["lang"]["max-age"] = 86000
+                    try:
+                        self.session.c["lang"]["samesite"] = "Strict"
+                    except cookies.CookieError:
+                        pass  # Requires Python >= 3.8
+
                     self.save_session = True
                     return match_prefix[0]
 
@@ -717,6 +723,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
             # Store value in Cookie for further requests
             self.session.c["css_style"] = css_style
+            try:
+                self.session.c["css_style"]["samesite"] = "Strict"
+            except cookies.CookieError:
+                pass  # Requires Python >= 3.8
+
             if not css_style:
                 self.session.c["css_style"]["max-age"] = -1
             self.save_session = True

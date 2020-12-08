@@ -89,7 +89,7 @@ div.feedHeaderHorzontalSpacer {
 }
 .feedHeader:nth-child(+3) {
   min-width: 6em;
-  overflow-y: scroll;
+  overflow-y: auto;
   max-height: 6em;
   line-height: 1.5em;
 }

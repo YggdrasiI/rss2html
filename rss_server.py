@@ -96,6 +96,12 @@ def load_xml(filename):
 
     return None
 
+def qget(query_components, key, default_value=None):
+    # Helper function to return latest value of "?key=&key=" queries
+    # or default value.
+    #
+    # query_component is of type(parse_qs(content))
+    return query_components.get(key, [default_value])[-1]
 
 def genMyHTTPServer():
 # The definition of the MyTCPServer class is wrapped
@@ -287,18 +293,18 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         feed_feched = False
         error_msg = None
         show_index = False
-        feed_key = query_components.get("feed", [None])[-1]  # key, url or feed title
-        filepath = query_components.get("file")  # From 'open with' dialog
-        bUseCache = query_components.get("cache", ["1"])[-1] != "0"
-        url_update = query_components.get("url_update", ["0"])[-1] != "0"
-        add_favs = query_components.get("add_fav", [])
-        to_rm = query_components.get("rm", [])
+        feed_key = qget(query_components, "feed")  # key, url or feed title
+        filepath = qget(query_components, "file")  # From 'open with' dialog
+        bUseCache = (qget(query_components, "cache", "1") != "0")
+        url_update = (qget(query_components, "url_update", "0") != "0")
+        add_favs = qget(query_components, "add_fav", [])
+        to_rm = qget(query_components, "rm", [])
         etag = None
 
 
         # entryid=0: Newest entry of feed. Thus, id not stable due feed updates
         try:
-            entryid = int(query_components.get("entry", )[-1])
+            entryid = int(qget(query_components, "entry", None))
         except:
             entryid = None
 
@@ -708,7 +714,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
     def handle_change_css_style(self, query_components):
         try:
-            css_style = query_components.get("css_style", [None])[-1]
+            css_style = qget(query_components, "css_style", None)
             if not css_style in CSS_STYLES: # for "None" and wrong values
                 css_style = None
 
@@ -743,7 +749,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         try:
             aname = query_components["a"][-1]
             url = unquote(query_components["url"][-1])
-            feed_name = unquote(query_components.get("feed", [""])[-1])
+            feed_name = unquote(qget(query_components, "feed", ""))
             url_hash = query_components["s"][-1]
             action = settings.ACTIONS[aname]
         except (KeyError, IndexError):
@@ -820,8 +826,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         return self.show_msg(msg)
 
     def handle_login(self, query_components):
-        user = query_components.get("user", [""])[-1]
-        password = query_components.get("password", [""])[-1]
+        user = qget(query_components, "user", "")
+        password = qget(query_components, "password", "")
         logger.debug("User: '{}'".format(user))
 
         if self.session.init(user, password=password, settings=settings):

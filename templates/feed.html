@@ -8,7 +8,9 @@
         </div>
         <div id="feedHeaderContainerSpacer"></div>
         <div dir="ltr" class="feedHeader">
+            {% if entries %}
             {{ page_links(feed2.name, entries|length, entry_list_size, feed_page) }}
+            {% endif %}
         </div>
         <div id="feedHeaderContainerSpacer"></div>
         <div dir="ltr" class="feedHeader">

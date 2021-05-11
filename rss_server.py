@@ -105,9 +105,9 @@ def qget(query_components, key, default_value=None):
 
 def genMyHTTPServer():
 # The definition of the MyTCPServer class is wrapped
-# because settings module only maps to the right module
+# because settings module only maps to the correct module
 # at runtime (after load_config() call).
-# Before it maps on default_settings.
+# At compile time it maps on 'default_settings'.
 
     if hasattr(http.server, "ThreadingHTTPServer"):
         ServerClass = http.server.ThreadingHTTPServer
@@ -122,6 +122,8 @@ def genMyHTTPServer():
         # Required for IPv6 hostname
         address_family = socket.AF_INET6 if ":" in settings.HOST \
                 else socket.AF_INET
+
+        request_queue_size = 100
 
         def __init__(self, *largs, **kwargs):
             super().__init__(*largs, **kwargs)
@@ -297,8 +299,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         filepath = qget(query_components, "file")  # From 'open with' dialog
         bUseCache = (qget(query_components, "cache", "1") != "0")
         url_update = (qget(query_components, "url_update", "0") != "0")
-        add_favs = qget(query_components, "add_fav", [])
-        to_rm = qget(query_components, "rm", [])
+        add_favs = query_components.get("add_fav", [])  # List!
+        to_rm = query_components.get("rm", [])          # List!
         etag = None
 
 

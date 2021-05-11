@@ -10,7 +10,7 @@ DEBUG?=1
 
 # Fallback position for packages which are not installed.
 SITE_PACKAGES=site-packages
-PIP_PACKAGES=$(shell cat "requirements.txt")
+PIP_PACKAGES=$(shell cat "requirements.txt" | sed "s/.*/\"\0\"/")
 # 'Jinja2>=2.10' \
 #			 'httplib2' \
 #			 'babel>=2.6' \
@@ -99,7 +99,7 @@ clean:
 		&& git clean -f -d .
 
 install_deps_local:
-	$(PYTHON_BIN) -m pip install -t $(SITE_PACKAGES) $(PIP_PACKAGES)
+PYTHONUSERBASE="$(SITE_PACKAGES)"	$(PYTHON_BIN) -m pip install -t $(SITE_PACKAGES) $(PIP_PACKAGES)
 
 install_deps_global:
 	sudo $(PYTHON_BIN) -m pip install $(PIP_PACKAGES)

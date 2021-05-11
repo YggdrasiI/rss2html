@@ -37,9 +37,10 @@ def get_config_folder():
             root_dir = os.path.join(os.getenv('HOME'), '.config')
 
     config_dir = os.path.join(root_dir, "rss2html")
+
     if not os.path.isdir(config_dir):
         try:
-            os.mkdir(config_dir)
+            os.makedirs(config_dir)  # os.mkdir(config_dir)
         except:
             config_dir = "."
 

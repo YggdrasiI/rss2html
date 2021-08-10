@@ -1038,13 +1038,35 @@ if __name__ == "__main__":
         protocol="https://" if settings.SSL else "http://",
         host=settings.HOST if settings.HOST else "localhost",
         port=settings.PORT))
-    try:
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        httpd.shutdown()
-    except:
-        httpd.shutdown()
-        raise
+
+    restart_service = True
+
+    # Sometimes, external request spamming leads to a failure
+    # of the http service after a few days.
+    # The service will be blocked by the OS until we restart it.
+    # As workaround, I added a loop to periodical restart the service..
+    def __shutdown_and_serve_again():
+        while True:
+            sleep(3600.0)
+            logger.info("Periodical restart of http service at port {}"
+                    .format(settings.PORT))
+            global restart_service
+            restart_service = True
+            httpd.shutdown()
+
+    t = Thread(target=__shutdown_and_serve_again)
+    t.daemon = True
+    t.start()
+
+    while restart_service:
+        restart_service = False
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            httpd.shutdown()
+        except:
+            httpd.shutdown()
+            raise
 
     if settings.CACHE_DIR:
         cached_requests.store_cache(settings.FAVORITES, settings.HISTORY)

@@ -90,9 +90,10 @@ def daemon_double_fork():
 
 
 def load_xml(filename):
-    with open(filename, 'rt') as f:
-        text = f.read(-1)
-        return text
+    # Reads file as byte string to match type of urllib3 response data
+    with open(filename, 'rb') as f:
+        byte_str = f.read(-1)
+        return byte_str
 
     return None
 
@@ -380,8 +381,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
                 # Generate etag
                 etag = '"{}p{}"'.format(
-                    hashlib.sha1((cEl.text if cEl.text is not None \
-                                  else "").encode('utf-8')).hexdigest(),
+                    hashlib.sha1((cEl.byte_str if cEl.byte_str is not None \
+                                  else "")).hexdigest(),
                     page
                 )
                 # logger.debug("Eval ETag '{}'".format(etag))
@@ -398,7 +399,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     self.end_headers()
                     return None
 
-                # tree = ElementTree.XML(cEl.text)
+                # tree = ElementTree.XML(cEl.byte_str.decode('utf-8'))
                 # res = find_feed_keyword_values(tree)
 
                 if not feed:
@@ -407,7 +408,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 else:
                     bNew = False
 
-                feed_parser.parse_feed(feed, cEl.text)
+                feed_parser.parse_feed(feed, cEl.byte_str)
 
                 # Note: without copy, changes like warnings on res
                 # would be stored peristend into feed.context.
@@ -473,11 +474,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 logger.debug("Read " + feed_filepath)
 
                 try:
-                    text = load_xml(feed_filepath)
-                    # tree = ElementTree.XML(text)
+                    byte_str = load_xml(feed_filepath)
+                    # tree = ElementTree.XML(byte_str.decode('utf-8'))
 
                     feed_new = Feed("", "no url")
-                    feed_parser.parse_feed(feed_new, text)
+                    feed_parser.parse_feed(feed_new, byte_str)
 
                 except FileNotFoundError:
                     error_msg = _("Feed XML document '{}' does not " \

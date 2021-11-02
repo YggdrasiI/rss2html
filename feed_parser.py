@@ -32,7 +32,10 @@ EN_LOCALE = ("en_US", "utf-8")
 
 
 def parse_feed(feed, text):
-    tree = ElementTree.XML(text)
+    if isinstance(text, bytes):
+        tree = ElementTree.XML(text.decode('utf-8'))
+    else:
+        tree = ElementTree.XML(text)
 
     find_feed_keyword_values(feed, tree)
 

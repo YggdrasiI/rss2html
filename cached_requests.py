@@ -11,8 +11,12 @@ logger = logging.getLogger(__name__)
 
 # from urllib.parse import urlparse, parse_qs, quote
 from urllib.parse import urlparse
-from urllib.request import Request, urlopen
-from urllib.error import URLError, HTTPError
+# from urllib.request import Request, urlopen
+# from urllib.error import URLError, HTTPError
+
+import certifi
+from urllib3 import PoolManager, Timeout
+from urllib3.exceptions import HTTPError, TimeoutError, ResponseError
 
 # For storage
 from hashlib import sha1
@@ -23,12 +27,18 @@ import default_settings as settings
 
 
 _CACHE = {}
+_HTTP = None
+_HTTP = PoolManager(
+    cert_reqs='CERT_REQUIRED',
+    ca_certs=certifi.where()
+)
 
 class CacheElement:
     # Putting this into _CACHE avoids copy of big underlying
     # strings because reference of object is returned
     def __init__(self, text, headers):
-        self.text = text
+        self.byte_str = text.encode('utf-8')
+        # self.text = text  # TODO: Remove redundant 'text' member variable
         self.headers = headers
         self.timestamp = int(time.time())
         self.bSaved = False
@@ -36,14 +46,16 @@ class CacheElement:
     @classmethod
     def from_bytes(cls, byte_str, headers):
         cEl = cls("", headers)
-        cEl.text = byte_str.decode('utf-8')
+        cEl.byte_str = byte_str
+        # cEl.text = byte_str.decode('utf-8')
         return cEl
 
     @classmethod
     def from_file(cls, filename, headers):
         cEl = cls("", headers)
-        with open(filename, 'rt', encoding='utf-8') as f:
-            cEl.text = f.read(-1)
+        with open(filename, 'rb',) as f:
+            cEl.byte_str = f.read(-1)
+            # cEl.text = cEl.byte_str.decode('utf-8')
             return cEl
 
         return None
@@ -51,7 +63,8 @@ class CacheElement:
     @classmethod
     def from_response(cls, res):
         cEl = cls("", dict(res.getheaders()))
-        cEl.text = res.read().decode('utf-8')
+        cEl.byte_str = res.data  # urllib3 style of response
+        # cEl.text = cEl.byte_str.decode('utf-8')
         return cEl
 
 def update_cache(key, cEl):
@@ -82,7 +95,7 @@ def fetch_file(url, bCache=True, local_dir="rss_server-page/"):
 
     cEl = _CACHE.get(url)
 
-    req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+    headers={'User-Agent': 'Mozilla/5.0'}
     # Prepare headers for lookup of modified content
     # This allows the target server to decide if we had already
     # the newest file version.
@@ -100,11 +113,13 @@ def fetch_file(url, bCache=True, local_dir="rss_server-page/"):
         # Give extern server enough information to decide
         # if we had already the newest version.
         if "ETag" in cEl.headers:
-            req.add_header('If-None-Match',
-                           cEl.headers.get('ETag'))
+            headers['If-None-Match'] = cEl.headers.get('ETag')
+            # req.add_header('If-None-Match',
+            #                cEl.headers.get('ETag'))
         if "Last-Modified" in cEl.headers:
-            req.add_header('If-Modified-Since',
-                           cEl.headers.get('Last-Modified'))
+            headers['If-Modified-Since'] = cEl.headers.get('Last-Modified')
+            # req.add_header('If-Modified-Since',
+            #                cEl.headers.get('Last-Modified'))
 
     try:
 
@@ -133,7 +148,10 @@ def fetch_file(url, bCache=True, local_dir="rss_server-page/"):
 
 
         # Request new version
-        response = urlopen(req, timeout=60)  # 10s problematic for 'Zeitsprung'
+        response = _HTTP.request('GET',
+                                url,
+                                timeout=Timeout(connect=3.2, read=60.0)
+                               )
         try:
             # Content-Length header optional/not set in all cases…
             content_len = int(response.getheader("Content-Length", 0))
@@ -152,9 +170,22 @@ def fetch_file(url, bCache=True, local_dir="rss_server-page/"):
 
         logger.debug('The server couldn\'t fulfill the request.'
                 'Error code: {} '.format(e.code))
-    except URLError as e:
-        logger.debug('We failed to reach a server.'
-                'Reason: {}'.format(e.reason))
+
+    # except URLError as e:
+    #     logger.debug('We failed to reach a server.'
+    #             'Reason: {}'.format(e.reason))
+    #     if cEl:
+    #         return (cEl, 304)
+    #     
+
+    # urllib3
+    except TimeoutError as e:
+        logger.debug("Server request timed out.")
+        if cEl:
+            return (cEl, 304)
+
+    except ResponseError as e:
+        logger.debug('ResponseError: '.format(str(e)))
         if cEl:
             return (cEl, 304)
 
@@ -172,15 +203,6 @@ def fetch_file(url, bCache=True, local_dir="rss_server-page/"):
         return (cEl, 200)
 
     return (None, 404)
-
-"""
-def load_xml_bin(filename):
-    with open(filename, 'rb') as f:
-        text = f.read(-1)  # bytes-obj
-        return text
-
-    return None
-"""
 
 
 def gen_cache_filename(feed_name):

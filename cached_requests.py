@@ -17,6 +17,7 @@ from urllib.parse import urlparse
 import certifi
 from urllib3 import PoolManager, Timeout
 from urllib3.exceptions import HTTPError, TimeoutError, ResponseError
+from io import BytesIO
 
 # For storage
 from hashlib import sha1
@@ -64,6 +65,41 @@ class CacheElement:
     def from_response(cls, res):
         cEl = cls("", dict(res.getheaders()))
         cEl.byte_str = res.data  # urllib3 style of response
+        # cEl.text = cEl.byte_str.decode('utf-8')
+        return cEl
+
+    @classmethod
+    def from_response_streamed(cls, res, prev_data):
+        cEl = cls("", dict(res.getheaders()))
+        # initial_buffer_len = int(res.getheader("Content-Length", 0))
+        f = BytesIO()
+        read_chunk_size = 2**16
+        search_chunk_size = 2**12  # <= read_chunk_size
+        # Do not use too small search_chunk_size! A false positive
+        # would be fatal.
+
+        # Read bytes from response and compare last bytes of this
+        # chunk with cached values. Break up reading if we can assume
+        # that the tail of the response matches the cached value.
+        num_new_bytes = f.write(res.read(read_chunk_size))
+        while num_new_bytes > 0:
+            search_len = search_chunk_size \
+                    if search_chunk_size < num_new_bytes \
+                    else num_new_bytes
+            f.seek(-search_len, 2)
+            pos_in_cache = prev_data.find(f.read(search_len))
+            if -1 < pos_in_cache:
+                # Fill data with previous value.
+                logger.debug("Fill up response after {} bytes with cached "
+                             "file. Position in cache: {}."\
+                             .format(f.tell(), pos_in_cache))
+                f.write(prev_data[pos_in_cache+search_len:])
+                break
+
+            num_new_bytes = f.write(res.read(read_chunk_size))
+
+        f.seek(0, 0)  # go back to start of file
+        cEl.byte_str = f.read(-1)
         # cEl.text = cEl.byte_str.decode('utf-8')
         return cEl
 
@@ -148,10 +184,12 @@ def fetch_file(url, bCache=True, local_dir="rss_server-page/"):
 
 
         # Request new version
-        response = _HTTP.request('GET',
-                                url,
-                                timeout=Timeout(connect=3.2, read=60.0)
-                               )
+        response = _HTTP.request('GET', url,
+                                 timeout=Timeout(connect=3.2, read=60.0),
+                                 preload_content=False
+                                )
+
+        content_len = 0
         try:
             # Content-Length header optional/not set in all cases…
             content_len = int(response.getheader("Content-Length", 0))
@@ -176,7 +214,7 @@ def fetch_file(url, bCache=True, local_dir="rss_server-page/"):
     #             'Reason: {}'.format(e.reason))
     #     if cEl:
     #         return (cEl, 304)
-    #     
+    #
 
     # urllib3
     except TimeoutError as e:
@@ -191,7 +229,21 @@ def fetch_file(url, bCache=True, local_dir="rss_server-page/"):
 
     else:
         # everything is fine
-        cEl = CacheElement.from_response(response)
+
+        if cEl and bCache and len(cEl.byte_str) > 10000:
+            cEl =  CacheElement.from_response_streamed(response, cEl.byte_str)
+        else:
+            cEl = CacheElement.from_response(response)
+
+        response.release_conn()  # preload_content=False requires this
+
+        # Check needed for responses without Content-Length header
+        # and responses with wrong header vaules.
+        if len(cEl.byte_str) > settings.MAX_FEED_BYTE_SIZE:
+            raise Exception("Feed file exceedes maximal size. {0} > {1}"
+                            "".format(len(cEl.byte_str),
+                                      settings.MAX_FEED_BYTE_SIZE))
+
         update_cache(url, cEl)
 
         if settings.CACHE_DIR and False:

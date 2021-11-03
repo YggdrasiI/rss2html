@@ -156,6 +156,10 @@ h2 {
   text-decoration: none;
   color: inherit;
 }
+#feedTitleText a {
+  text-decoration: none;
+  color: inherit;
+}
 a[href] img {
   border: none;
 }

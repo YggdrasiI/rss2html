@@ -46,6 +46,7 @@ def action_icon_dummy_classes(handler):
         handler.send_header('Cache-Control', "public, max-age=0, ")
         handler.send_header('Content-Location', "/css/action_icons.css")
         handler.send_header('Vary', "ETag, User-Agent")
+        handler.send_header('Keep-Alive', 'timeout=0, max=0')
         handler.end_headers()
         return None
 
@@ -61,6 +62,7 @@ def action_icon_dummy_classes(handler):
     # Other headers
     handler.send_header('Content-Length', output.tell())
     handler.send_header('Content-type', 'text/css')
+    handler.send_header('Keep-Alive', 'timeout=0, max=0')
     handler.end_headers()
 
     # Push content

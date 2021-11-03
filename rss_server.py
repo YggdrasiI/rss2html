@@ -3,7 +3,7 @@
 
 import sys
 import os.path
-from datetime import datetime
+from datetime import datetime  # , timedelta, timezone
 from xml.etree import ElementTree
 
 from urllib.parse import urlparse, parse_qs, quote, unquote
@@ -37,6 +37,7 @@ from session import LoginFreeSession, ExplicitSession, PamSession
 
 from static_content import action_icon_dummy_classes
 
+
 import logging
 import logging.config
 logging.config.fileConfig('logging.conf')
@@ -64,8 +65,16 @@ XML_NAMESPACES = {'content': 'http://purl.org/rss/1.0/modules/content/',
                   'atom10': 'http://www.w3.org/2005/Atom',
                  }
 
+# TIMEZONE = str(datetime.now(timezone(timedelta(0))).astimezone().tzinfo)
+# DATE_HEADER_FORMAT = "%a, %d %h %Y %T {}".format(TIMEZONE)
+
 def check_process_already_running():
-    # TODO
+    # from tendo import singleton  # hm, to much dependencies
+    # try:
+    #     me = singleton.SingleInstance() # will sys.exit(-1) if other instance is running
+    # except SingleInstanceException:
+    #     return True
+
     return False
 
 
@@ -139,14 +148,17 @@ def genMyHTTPServer():
 
 
 class MyHandler(http.server.SimpleHTTPRequestHandler):
-    server_version = "RSS_Server/0.1"
+    server_version = "RSS_Server/0.2"
 
     # Note: ETag ignored for 1.0, but protcol version 1.1
-    # requires header 'Content-Lenght' for all requests. Otherwise,
+    # requires header 'Content-Length' for all requests. Otherwise,
     # the browsers will wait forever for more data...
     #
     # ETag in FF still ignored
     ## protocol_version = "HTTP/1.1"
+    protocol_version = 'HTTP/1.1'
+
+
     directory="/rss_server-page"  # for Python 3.4
 
     def __init__(self, *largs, **kwargs):
@@ -160,6 +172,14 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         super().__init__(*largs, **kwargs)  # for Python 3.4
         # super().__init__(*largs, directory="rss_server-page", **kwargs)
+
+    def end_headers(self):
+        # Add HTTP/1.1 header data required for each request.
+        # Pipelining of multiple requests not supported.
+        self.send_header('Keep-Alive', 'timeout=0, max=0')
+        # self.send_header('Expires', self.date_time_string(1695975089))
+        super().end_headers()
+
 
     def get_favorites(self):
         session_user = self.session.get_logged_in("user")
@@ -325,6 +345,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         # in _("") calls in the py's files itself.)
         set_gettext(self.server.html_renderer, self.context)
 
+
         if self.path == "/quit":
             ret = self.show_msg(_("Quit"))
 
@@ -387,8 +408,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                                   else "")).hexdigest(),
                     page
                 )
-                # logger.debug("Eval ETag '{}'".format(etag))
-                # logger.debug("Browser ETag '{}'".format(self.headers.get("If-None-Match", "")))
+                logger.debug("Eval ETag '{}'".format(etag))
+                logger.debug("Browser ETag '{}'".format(self.headers.get("If-None-Match", "")))
                 # logger.debug("Received headers:\n{}".format(self.headers))
 
                 # If feed is unchanged and tags match return nothing, but 304.
@@ -568,7 +589,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
             self.wfile.write(output.getvalue())
 
-        elif self.path == "/" or show_index:
+        elif self.path in ["/", "/index.html"] or show_index:
             # self.session.load(self)
             return self.write_index()
         elif os.path.splitext(urlparse(self.path).path)[1] in \
@@ -599,7 +620,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             "css_styles": CSS_STYLES,
         })
 
-        # logger.debug("Recived headers:\n{}".format(self.headers))
         html = self.server.html_renderer.run("index.html", self.context)
 
         output = BytesIO()
@@ -608,16 +628,19 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         # Etag
         etag = '"{}"'.format( hashlib.sha1(output.getvalue()).hexdigest())
-
         browser_etag = self.headers.get("If-None-Match", "")
+
+        logger.debug("\n\nETag of index page: {}".format(etag))
+        logger.debug("ETag from client:   {}\n\n".format(browser_etag))
+
         if etag == browser_etag and not self.save_session:
             self.send_response(304)
             self.send_header('ETag', etag)
-            # self.send_header('Cache-Control', "public, max-age=10, ")
-            self.send_header('Cache-Control', "public, max-age=0, ")
+            # self.send_header('Cache-Control', 'public, max-age=10, ')
+            self.send_header('Cache-Control', 'max-age=0, public ')
                             # "must-revalidate, post-check=0, pre-check=0")
-            self.send_header('Content-Location', "/index.html")
-            self.send_header('Vary', "ETag, User-Agent")
+            self.send_header('Content-Location', '/index.html')
+            self.send_header('Vary', 'User-Agent')
             # self.send_header('Expires', "Wed, 21 Oct 2021 07:28:00 GMT")
             self.end_headers()
             return None
@@ -633,13 +656,27 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         # Cache-Control, Content-Location, Date (is already included),
         # ETag, Expires (overwritten by max-age, but still required?!)
         # and Vary.
+
         self.send_header('ETag', etag)
-        self.send_header('Cache-Control', "public, max-age=10, ")
-                        # "must-revalidate, post-check=0, pre-check=0")
-        self.send_header('Content-Location', "/index.html")
-        self.send_header('Vary', "ETag, User-Agent")
-        # self.send_header('Expires', "Wed, 21 Oct 2021 07:28:00 GMT")  # Won't help in FF
-        # self.send_header('Last-Modified', "Wed, 21 Oct 2019 07:28:00 GMT")  # Won't help in FF
+        # self.send_header('Cache-Control', 'public')
+        self.send_header('Cache-Control', 'max-age=60, public')
+        self.send_header('Content-Location', '/index.html')
+        #self.send_header('Content-Location', '/{}.html'.format(etag))
+        
+        # tmp_date = datetime.utcnow()
+        # Das führt zu doppeltem Date-Header!
+        # self.send_header('Date', tmp_date.strftime(DATE_HEADER_FORMAT))
+
+        # tmp_date += timedelta(seconds=1000060)
+        # self.send_header('Expires', tmp_date.strftime(DATE_HEADER_FORMAT))
+        #... Expires ignored if max-age is given. Added to check effect on ETag feature
+        self.send_header('Vary', 'User-Agent')
+
+        # For Safari
+        # tmp_date += timedelta(seconds=-120)
+        # self.send_header('Last-Modified', tmp_date.strftime(DATE_HEADER_FORMAT))
+        # self.send_header('Cache-Control', 'max-age=0, must-revalidate')
+        # self.send_header('Expires', '-1')
 
         if self.save_session:
             self.session.save()
@@ -976,11 +1013,12 @@ if __name__ == "__main__":
 
     feed_parser.find_installed_en_locale()
 
-    if check_process_already_running():
-        logger.info("Server process is already running.")
-        os._exit(0)
+    if not ("-m" in sys.argv or "--multiple" in sys.argv):
+        if check_process_already_running():
+            logger.info("Server process is already running.")
+            os._exit(0)
 
-    if "-d" in sys.argv:
+    if "-d" in sys.argv or "--daemon" in sys.argv:
         if not daemon_double_fork():
             # Only continue in forked process..
             os._exit(0)

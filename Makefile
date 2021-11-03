@@ -1,5 +1,5 @@
 FOLDER=$(realpath .)
-USER=$(shell whoami)
+USER?=$(shell whoami)
 PYTHON_BIN?=$(shell which python3 || which python)
 SYSTEMD_INSTALL_DIR?=/etc/systemd/system
 
@@ -47,6 +47,9 @@ help:
 
 run: check_env ssl
 	PYTHONPATH='$(SITE_PACKAGES)' $(PYTHON_BIN) rss_server.py
+
+runas:
+	sudo -u $(USER) PYTHONPATH='$(SITE_PACKAGES)' $(PYTHON_BIN) rss_server.py
 
 %.service: %.service.template
 	@echo "Create systemd service file for startup."

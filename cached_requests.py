@@ -267,7 +267,7 @@ def gen_cache_dirname(bCreateFolder=False):
     if not settings.CACHE_DIR:
         return None
 
-    dirname = os.path.join(settings.CACHE_DIR, ".rss_server_cache")
+    dirname = os.path.join(settings.CACHE_DIR, "rss_server_cache")
     if bCreateFolder and not os.path.isdir(dirname):
         try:
             mkdir(dirname)

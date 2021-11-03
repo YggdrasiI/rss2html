@@ -98,8 +98,14 @@ clean:
 		&& test -n "$${RSS_READER_CLEAN}" -a "$${RSS_READER_CLEAN}" != "no" \
 		&& git clean -f -d .
 
+# Note about --system flag: --target can not be combined with --user
+# The --system flag disables the implicit --user.
+# Problem occoured with Python 3.5 and pip 9.0.1
+install_deps_local_old:
+	$(PYTHON_BIN) -m pip install --target $(SITE_PACKAGES) --system $(PIP_PACKAGES)
+
 install_deps_local:
-PYTHONUSERBASE="$(SITE_PACKAGES)"	$(PYTHON_BIN) -m pip install -t $(SITE_PACKAGES) $(PIP_PACKAGES)
+	$(PYTHON_BIN) -m pip install --target $(SITE_PACKAGES) $(PIP_PACKAGES)
 
 install_deps_global:
 	sudo $(PYTHON_BIN) -m pip install $(PIP_PACKAGES)

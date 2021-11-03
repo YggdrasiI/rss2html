@@ -145,7 +145,7 @@ def fetch_file(url, bCache=True, local_dir="rss_server-page/"):
         logger.debug("Skip request because current data is fresh.")
         return (cEl, 304)
 
-    if cEl and bCache:
+    if cEl:  # and bCache:
         # Give extern server enough information to decide
         # if we had already the newest version.
         if "ETag" in cEl.headers:
@@ -185,11 +185,11 @@ def fetch_file(url, bCache=True, local_dir="rss_server-page/"):
 
         # Request new version
         response = _HTTP.request('GET', url,
+                                 headers=headers,
                                  timeout=Timeout(connect=3.2, read=60.0),
                                  preload_content=False
                                 )
 
-        content_len = 0
         try:
             # Content-Length header optional/not set in all cases…
             content_len = int(response.getheader("Content-Length", 0))
@@ -200,14 +200,15 @@ def fetch_file(url, bCache=True, local_dir="rss_server-page/"):
         except ValueError:
             pass
 
-    except HTTPError as e:
-        if e.code == 304:  # Not modified => Return cached value
-            logger.debug("Extern server replies, no new data available. Return cached value")
-            if cEl:
-                return (cEl, 304)
+    # old urllib approach
+    # except HTTPError as e:
+    #     if e.code == 304:  # Not modified => Return cached value
+    #         logger.debug("Extern server replies: No new data available. Return cached value")
+    #         if cEl:
+    #             return (cEl, 304)
 
-        logger.debug('The server couldn\'t fulfill the request.'
-                'Error code: {} '.format(e.code))
+    #     logger.debug('The server couldn\'t fulfill the request.'
+    #             'Error code: {} '.format(e.code))
 
     # except URLError as e:
     #     logger.debug('We failed to reach a server.'
@@ -228,6 +229,11 @@ def fetch_file(url, bCache=True, local_dir="rss_server-page/"):
             return (cEl, 304)
 
     else:
+        if response.status == 304:  # Not modified => Return cached value
+            logger.debug("Extern server replies: No new data available. Return cached value")
+            if cEl:
+                return (cEl, 304)
+
         # everything is fine
 
         if cEl and bCache and len(cEl.byte_str) > 10000:

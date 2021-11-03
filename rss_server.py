@@ -410,7 +410,10 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 else:
                     bNew = False
 
-                feed_parser.parse_feed(feed, cEl.byte_str)
+                if code == 304 and len(feed.context)>0:
+                    logger.debug("Skip parsing of feed and re-use previous")
+                else:
+                    feed_parser.parse_feed(feed, cEl.byte_str)
 
                 # Note: without copy, changes like warnings on res
                 # would be stored peristend into feed.context.

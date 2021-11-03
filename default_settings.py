@@ -60,6 +60,10 @@ USERS = {
 
 # Minimal time between two requests to the xml file of a feed
 CACHE_EXPIRE_TIME_S = 600
+
+# Maximal memory footprint of cache (and a few more internal objects)
+CACHE_MEMORY_LIMIT = 1E7 # 1E8
+
 # Save/load cached feed xmls on server stop/start.
 # CACHE_DIR = '/dev/shm/'
 CACHE_DIR = None  # Disabled if None

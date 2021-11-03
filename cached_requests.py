@@ -44,6 +44,16 @@ class CacheElement:
         self.timestamp = int(time.time())
         self.bSaved = False
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # del state[...]
+        return state
+
+    def __setstate__(self):
+        # Objects initialized by pickle.loads are
+        # tagged as already saved
+        self.bSaved = True
+
     @classmethod
     def from_bytes(cls, byte_str, headers):
         cEl = cls("", headers)
@@ -103,6 +113,7 @@ class CacheElement:
         # cEl.text = cEl.byte_str.decode('utf-8')
         return cEl
 
+
 def update_cache(key, cEl):
     if key == "":
         return
@@ -110,6 +121,10 @@ def update_cache(key, cEl):
     cEl.bSaved = False
     _CACHE[key] = cEl
 
+
+def trim_cache():
+    # Unload data if maximal memory footprint is exceeded
+    pass
 
 def fetch_from_cache(feed):
     try:
@@ -230,6 +245,7 @@ def fetch_file(url, bCache=True, local_dir="rss_server-page/"):
 
     else:
         if response.status == 304:  # Not modified => Return cached value
+            cEl.timestamp = int(time.time())  # Our local data is still fresh
             logger.debug("Extern server replies: No new data available. Return cached value")
             if cEl:
                 return (cEl, 304)
@@ -293,7 +309,6 @@ def store_cache(*feed_lists):
             if not cEl or cEl.bSaved:
                 continue
 
-            cEl.bSaved = True
             try:
                 with open(os.path.join(dirname, filename), 'wb') as f:
                     f.write(dumps(cEl))
@@ -301,6 +316,7 @@ def store_cache(*feed_lists):
                 logger.debug("Writing of '{}' failed. "
                 "Error was: {}".format(filename, e))
             else:
+                cEl.bSaved = True
                 logger.debug("Writing of '{}' succeeded. ".format(filename))
 
 
@@ -313,7 +329,7 @@ def load_cache(*feed_lists):
                 with open(os.path.join(dirname, filename), 'rb') as f:
                     cEl = loads(f.read(-1))
                     update_cache(feed.url, cEl)
-                    cEl.bSaved = True
+                    # cEl.bSaved = True  # shifted logic into class
             except Exception as e:
                 # logger.debug("Reading of '{}' failed. "
                 # "Error was: {}".format(filename, e))

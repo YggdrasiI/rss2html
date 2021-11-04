@@ -237,22 +237,20 @@ def fetch_file(url, bCache=True, local_dir="rss_server-page/"):
     #
 
     # urllib3
-    except TimeoutError as e:
-        logger.debug("Server request timed out.")
-        if cEl:
-            return (cEl, 304)
-
-    except (MaxRetryError, ResponseError, SSLError) as e:
+    except (TimeoutError, MaxRetryError, ResponseError, SSLError) as e:
         logger.debug('{}: '.format(type(e).__name__, str(e)))
         # raise e
         if cEl:
+            # Our data is old, but the server connection failed.
+            # Do not hassle server directly again.
+            cEl.timestamp = now - settings.CACHE_EXPIRE_TIME_S/4
             return (cEl, 304)
         else:
             return (None, 500)
 
     else:
         if response.status == 304:  # Not modified => Return cached value
-            cEl.timestamp = int(time.time())  # Our local data is still fresh
+            cEl.timestamp = now  # Our local data is still fresh
             logger.debug("Extern server replies: No new data available. Return cached value")
             if cEl:
                 return (cEl, 304)

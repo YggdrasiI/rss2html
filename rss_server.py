@@ -391,7 +391,10 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                         feed_url, bUseCache, MyHandler.directory)
 
                 if cEl is None:
-                    error_msg = _('No feed found for this URI arguments.')
+                    if code == 500:
+                        error_msg = _('Cannot fetch data for this feed.')
+                    else:
+                        error_msg = _('No feed found for this URI arguments.')
                     return self.show_msg(error_msg, True)
 
                 # Parse 'page' uri argument (affects etag!)

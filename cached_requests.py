@@ -16,8 +16,10 @@ from urllib.parse import urlparse
 
 import certifi
 from urllib3 import PoolManager, Timeout
-from urllib3.exceptions import HTTPError, TimeoutError, ResponseError
+from urllib3.exceptions import HTTPError, TimeoutError, ResponseError,\
+        MaxRetryError, SSLError
 from io import BytesIO
+# from ssl import SSLError
 
 # For storage
 from hashlib import sha1
@@ -31,6 +33,7 @@ _CACHE = {}
 _HTTP = None
 _HTTP = PoolManager(
     cert_reqs='CERT_REQUIRED',
+    # cert_reqs='CERT_NONE',
     ca_certs=certifi.where()
 )
 
@@ -49,9 +52,10 @@ class CacheElement:
         # del state[...]
         return state
 
-    def __setstate__(self):
+    def __setstate__(self, d):
         # Objects initialized by pickle.loads are
         # tagged as already saved
+        self.__dict__.update(d)
         self.bSaved = True
 
     @classmethod
@@ -202,7 +206,7 @@ def fetch_file(url, bCache=True, local_dir="rss_server-page/"):
         response = _HTTP.request('GET', url,
                                  headers=headers,
                                  timeout=Timeout(connect=3.2, read=60.0),
-                                 preload_content=False
+                                 preload_content=False,
                                 )
 
         try:
@@ -238,10 +242,13 @@ def fetch_file(url, bCache=True, local_dir="rss_server-page/"):
         if cEl:
             return (cEl, 304)
 
-    except ResponseError as e:
-        logger.debug('ResponseError: '.format(str(e)))
+    except (MaxRetryError, ResponseError, SSLError) as e:
+        logger.debug('{}: '.format(type(e).__name__, str(e)))
+        # raise e
         if cEl:
             return (cEl, 304)
+        else:
+            return (None, 500)
 
     else:
         if response.status == 304:  # Not modified => Return cached value
@@ -332,7 +339,7 @@ def load_cache(*feed_lists):
                     # cEl.bSaved = True  # shifted logic into class
             except Exception as e:
                 # logger.debug("Reading of '{}' failed. "
-                # "Error was: {}".format(filename, e))
+                #         "Error was: {}".format(filename, e))
                 pass
             else:
                 logger.debug("Reading of '{}' succeeded. ".format(filename))

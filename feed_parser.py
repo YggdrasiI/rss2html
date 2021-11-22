@@ -19,29 +19,37 @@ from urllib.parse import quote, unquote
 import logging
 logger = logging.getLogger(__name__)
 
+from feed import Feed
 import default_settings as settings  # Overriden in load_config()
 
 XML_NAMESPACES = {'content': 'http://purl.org/rss/1.0/modules/content/',
                   'atom': 'http://www.w3.org/2005/AtomX',
                   'atom10': 'http://www.w3.org/2005/Atom',
                   'bitlove': 'http://bitlove.org',
+                  'media': 'https://www.rssboard.org/media-rss',
+                  'feedburner': 'http://rssnamespace.org/feedburner/ext/1.0',
                  }
 
 ORIG_LOCALE = locale.getlocale()  # running user might be non-english
 EN_LOCALE = ("en_US", "utf-8")
 
-
 def parse_feed(feed, text):
-    if isinstance(text, bytes):
-        tree = ElementTree.XML(text.decode('utf-8'))
-    else:
-        tree = ElementTree.XML(text)
+    try:
+        if isinstance(text, bytes):
+            tree = ElementTree.XML(text.decode('utf-8'))
+        else:
+            tree = ElementTree.XML(text)
+    except ElementTree.ParseError as e:
+        logger.error("ParseError: '{}'".format(e))
+        return False
 
     find_feed_keyword_values(feed, tree)
 
     feed.title = feed.context["title"]
     if feed.name == "":  # New feed got title as name
         feed.name = feed.context["title"]
+
+    return True
 
 
 def find_feed_keyword_values(feed, tree):
@@ -165,55 +173,27 @@ def find_feed_keyword_values(feed, tree):
 
 
 def find_enclosures(feed, item_node):
-    enclosures = []
+    enclosures = set()  # Set to avoid duplicates
+
     for e_node in item_node.findall('./enclosure'):
-        e = {}
-        try:
-            url = e_node.attrib["url"]
-            """# Escape arguments?!
-            url2 = url.split("?", 1)
-            if len(url2) > 1:
-                url2[1] = urlencode(url2[1])
+        e = __Enclosure(e_node)  # {}
+        enclosures.add(e)
 
-            url = "?".join(url2)
-            """
-            e["enclosure_url"] = url
-        except (AttributeError, KeyError):
-            e["enclosure_url"] = "Undefined"
+    # Other format for enclosures (with node other properties)
+    for e_node in item_node.findall('./media:content', XML_NAMESPACES):
+        e = __Enclosure(e_node, "media:content")  # {}
+        enclosures.add(e)
 
-        e["enclosure_filename"] = os.path.basename(e["enclosure_url"])
+    for e_group in item_node.findall('./media:group', XML_NAMESPACES):
+        for e_node in e_group.findall('./media:content', XML_NAMESPACES):
+            e = __Enclosure(e_node, "media:content")  # {}
+            enclosures.add(e)
 
-        try:
-            e["enclosure_guid"] = e_node.attrib["guid"]
-        except (AttributeError, KeyError):
-            e["enclosure_guid"] = str(e["enclosure_url"].__hash__())
-
-        try:
-            e["enclosure_type"] = e_node.attrib["type"]
-        except (AttributeError, KeyError):
-            e["enclosure_type"] = "Undefined"
-
-        try:
-            lBytes = int(e_node.attrib["length"])
-            if lBytes >= 1E9:
-                l = "{:.4} GB".format(lBytes/1E9)
-            elif lBytes >= 1E6:
-                l = "{:.4} MB".format(lBytes/1E6)
-            elif lBytes >= 1E3:
-                l = "{:.4} kB".format(lBytes/1E3)
-            else:
-                l = "{} B".format(lBytes)
-
-            e["enclosure_length"] = l
-        except (AttributeError, KeyError, ValueError):
-            e["enclosure_length"] = "0"
-
-        # Extend by dict with actions
+    # Extend enclosures by dict with actions
+    for e in enclosures:
         add_enclosure_actions(feed, e)
 
-        enclosures.append(e)
-
-    return enclosures
+    return list(enclosures)
 
 
 def add_enclosure_actions(feed, e):
@@ -223,7 +203,7 @@ def add_enclosure_actions(feed, e):
     url = e["enclosure_url"]
     e["actions"] = []
 
-    # feeds opened by filename (?file=...) has no name 
+    # feeds opened by filename (?file=...) has no name
     # at this stage. Use title from xml file.
     name = feed.name if feed.name else feed.context.get("title", "")
 
@@ -338,3 +318,83 @@ def parse_pubDate(s, date_format=None):
     return s
 
 
+# Format length of file for humans
+def bytes_str(lBytes):
+    if lBytes >= 1E9:
+        l = "{:.4} GB".format(lBytes/1E9)
+    elif lBytes >= 1E6:
+        l = "{:.4} MB".format(lBytes/1E6)
+    elif lBytes >= 1E3:
+        l = "{:.4} kB".format(lBytes/1E3)
+    else:
+        l = "{} B".format(lBytes)
+    return l
+
+
+# Helper class for dict to filter out duplicates.
+class __Enclosure(dict):
+    def __hash__(self):
+        return self.get("enclosure_url", "").__hash__()
+
+    """ Currently not needed
+    def __cmp__(self, b):
+        if self.get("enclosure_url", -1) == b.get("enclosure_url"):
+            return 0
+        return super(self).__cmp__(b)
+    """
+
+    def __init__(self, e_node, e_node_name=None):
+        try:
+            url = e_node.attrib["url"]
+            """# Escape arguments?!
+            url2 = url.split("?", 1)
+            if len(url2) > 1:
+                url2[1] = urlencode(url2[1])
+
+            url = "?".join(url2)
+            """
+            self["enclosure_url"] = url
+        except (AttributeError, KeyError):
+            self["enclosure_url"] = "Undefined"
+
+        self["enclosure_filename"] = os.path.basename(self["enclosure_url"])
+
+        try:  # param not included in media:content
+            self["enclosure_guid"] = e_node.attrib["guid"]
+        except (AttributeError, KeyError):
+            self["enclosure_guid"] = str(self["enclosure_url"].__hash__())
+
+        try:
+            self["enclosure_type"] = e_node.attrib["type"]
+        except (AttributeError, KeyError):
+            self["enclosure_type"] = "Undefined"
+
+        try:
+            if e_node_name in ["media:content"]:
+                lBytes = int(e_node.attrib["fileSize"])
+            else:
+                lBytes = int(e_node.attrib["length"])
+
+            self["enclosure_length"] = bytes_str(lBytes)
+        except (AttributeError, KeyError, ValueError):
+            self["enclosure_length"] = "0"
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+
+    settings.load_config(globals())
+    settings.update_submodules(globals())
+
+    if len(sys.argv) < 2:
+        logger.error("No filename of xml feed file given.")
+        sys.exit(-1)
+
+    filename = sys.argv[1]
+    feed = Feed("Test feed", "local file")
+    text = ""
+    with open(filename, 'r') as f:
+        text = f.read(-1)
+
+
+    parse_feed(feed, text)

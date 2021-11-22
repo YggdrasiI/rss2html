@@ -109,6 +109,12 @@ def load_config(main_globals):
         # settings = main_globals.get("settings")
         pass
 
+    # Generate secret token if none is given
+    if settings.ACTION_SECRET is None:
+        settings.ACTION_SECRET = str(randint(0, 1E15))
+        logger.info("settings.ACTION_SECRET not defined. Using random value.")
+
+
     load_default_favs(main_globals)
 
 

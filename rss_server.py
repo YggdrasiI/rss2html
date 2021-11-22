@@ -436,8 +436,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
                 if code == 304 and len(feed.context)>0:
                     logger.debug("Skip parsing of feed and re-use previous")
-                else:
-                    feed_parser.parse_feed(feed, cEl.byte_str)
+                elif not feed_parser.parse_feed(feed, cEl.byte_str):
+                    error_msg = _('Parsing of Feed XML failed.')
+                    return self.show_msg(error_msg, True)
 
                 # Note: without copy, changes like warnings on res
                 # would be stored peristend into feed.context.
@@ -507,7 +508,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     # tree = ElementTree.XML(byte_str.decode('utf-8'))
 
                     feed_new = Feed("", "no url")
-                    feed_parser.parse_feed(feed_new, byte_str)
+                    if not feed_parser.parse_feed(feed_new, byte_str):
+                        error_msg = _('Parsing of Feed XML failed.')
+                        return self.show_msg(error_msg, True)
 
                 except FileNotFoundError:
                     error_msg = _("Feed XML document '{}' does not " \
@@ -1025,11 +1028,6 @@ if __name__ == "__main__":
         if not daemon_double_fork():
             # Only continue in forked process..
             os._exit(0)
-
-    # Generate secret token if none is given
-    if settings.ACTION_SECRET is None:
-        settings.ACTION_SECRET = str(randint(0, 1E15))
-
 
     # Create empty favorites files if none exists
     if not os.path.lexists(settings.get_favorites_path()):

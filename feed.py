@@ -17,10 +17,13 @@ class Feed:
         self.context = {}
 
     def __repr__(self):
+        def escape_str(s):
+            return s.replace("\\","\\\\").replace("\"", "\\\"")
+
         return 'Feed("{name}", "{url}" {title})'.format(
-            name=self.name,
-            url=self.url,
-            title=', "{}"'.format(self.title) if self.title else "",
+            name=escape_str(self.name),
+            url=escape_str(self.url),
+            title=', "{}"'.format(escape_str(self.title)) if self.title else "",
         )
 
 '''

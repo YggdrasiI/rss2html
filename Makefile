@@ -108,10 +108,10 @@ install_deps_local_old:
 	$(PYTHON_BIN) -m pip install --target $(SITE_PACKAGES) --system $(PIP_PACKAGES)
 
 install_deps_local:
-	$(PYTHON_BIN) -m pip install --target $(SITE_PACKAGES) $(PIP_PACKAGES)
+	$(PYTHON_BIN) -m pip install -U --target $(SITE_PACKAGES) $(PIP_PACKAGES)
 
 install_deps_global:
-	sudo $(PYTHON_BIN) -m pip install $(PIP_PACKAGES)
+	sudo $(PYTHON_BIN) -m pip install -U $(PIP_PACKAGES)
 
 # ====================================================
 # Required for developers, only

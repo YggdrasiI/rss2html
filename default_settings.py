@@ -63,10 +63,10 @@ CACHE_EXPIRE_TIME_S = 600
 
 # Maximal memory footprint of cache (and a few more internal objects)
 CACHE_MEMORY_LIMIT = 5E7 # 50 MB
-CACHE_DISK_LIMIT = 10 * CACHE_MEMORY_LIMIT
+CACHE_DISK_LIMIT = 10 * CACHE_MEMORY_LIMIT  # Only required if CACHE_DIR is set
 
 # Save/load cached feed xmls on server stop/start.
-# CACHE_DIR = '/dev/shm/'
+# CACHE_DIR = '$HOME/.cache'
 CACHE_DIR = None  # Disabled if None
 
 MAX_FEED_BYTE_SIZE = 1E7
@@ -154,8 +154,11 @@ FAVORITES = [
 
 # New approach distinct between users.
 USER_FAVORITES = {
-    "default": FAVORITES,  # username in LoginFreeSession-case
+    #"default": FAVORITES,  # username in LoginFreeSession-case
 }
+
+HISTORY = []
+USER_HISTORY = {}
 
 # ==========================================================
 # Helper function for proper loading of settings. Sketch for proper reading
@@ -167,4 +170,5 @@ USER_FAVORITES = {
 from settings_helper import get_config_folder, \
         load_config, load_default_favs, load_users, update_submodules, \
         get_favorites_filename, get_history_filename, \
-        get_settings_path, get_favorites_path
+        get_settings_path, get_favorites_path, \
+        all_feeds

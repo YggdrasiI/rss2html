@@ -173,6 +173,7 @@ def update_cache(key, cEl, bFromDisk=False):
 
     trim_cache()  # called too often here?!
 
+
 __trim_cache_counter = 0
 def trim_cache(force_memory=None, force_disk=None):
     # Unload data if maximal memory footprint is exceeded
@@ -209,6 +210,7 @@ def trim_cache(force_memory=None, force_disk=None):
     if force_disk:
         cache_reduce_disk_footprint(settings.CACHE_DISK_LIMIT)
 
+
 def fetch_from_cache(feed):
     try:
         filename = feed.cache_name()
@@ -217,25 +219,8 @@ def fetch_from_cache(feed):
     except KeyError:
         pass
 
-    try:
-        # cEl = _CACHE[feed.title]
-        filename = gen_hash(feed.url)
-        cEl = _CACHE[filename]
-        logger.debug("cache_name() was not right?! This line should not be reached!")
-        return cEl
-    except KeyError:
-        pass
-
-    try:
-        # cEl = _CACHE[feed.title]
-        filename = gen_hash(feed.title)
-        cEl = _CACHE[filename]
-        logger.debug("cache_name() was not right?! This line should not be reached!")
-        return cEl
-    except KeyError:
-        pass
-
     return None
+
 
 def fetch_file(url, no_lookup_for_fresh=True, local_dir="rss_server-page/"):
     logger.debug("Url: " + url)
@@ -454,11 +439,41 @@ def cache_memory_footprint():
 
 def cache_reduce_memory_footprint(upper_bound):
     # Unload oldest elements
+
+    # 1. Loop over Feed-Elements to build 'cEl->Feed' map for step 2.
+    #
+    #   Preimage of this map can be real subset of _CACHE.keys().
+
+    def create_filename_to_feed_map():
+        cache_map = {}  # filename->feed - map
+        footprint_feeds = 0
+        for feed in settings.all_feeds(settings):
+            filename = feed.cache_name()
+            if not filename in _CACHE and feed.context:
+                # Outdated feed?! Clear .context dict
+                logger.debug("Clean feed {} ".format(feed.name))
+                feed.context = {}
+
+            footprint_feeds += feed.context.__sizeof__()
+            cache_map[feed.cache_name()] = feed
+
+        logger.debug("Footprint of all context-vars: {}".format(footprint_feeds))
+        return cache_map
+
+    cache_map = create_filename_to_feed_map()
+
+    # 2. Loop over cache sorted by timestamp.
     footprint = 0
     to_remove = []
     for (filename, cEl) in sorted(_CACHE.items(),
             key=lambda x: x[1].timestamp, reverse=True):
         footprint2 = footprint + cEl.memory_footprint()
+        try:
+            feed = cache_map[filename]
+            footprint2 += len(feed.context)
+        except KeyError:
+            pass
+
         if footprint2 > upper_bound:
             to_remove.append(filename)
         else:
@@ -472,6 +487,12 @@ def cache_reduce_memory_footprint(upper_bound):
         if not cEl.bSaved:
             cEl.store(filename)
         del _CACHE[filename]
+
+        try:
+            feed = cache_map[filename]
+            feed.context = {}
+        except KeyError:
+            pass
 
 
     # footprint of leftover elements
@@ -509,6 +530,8 @@ if __name__ == "__main__":
 
     url = "https://www.deutschlandfunk.de/forschung-aktuell-102.xml"
     lfeeds = [Feed("Test feed", url)]
+
+    settings.FAVORITES.extend(lfeeds)
     settings.CACHE_DIR = "."
 
     dirname = gen_cache_dirname(True)  # Creates dir
@@ -527,6 +550,9 @@ if __name__ == "__main__":
     print("Get file second time…")
     (_, code) = fetch_file(url, local_dir=".")
     print("Http status code: {}".format(code))
+
+    # Simulate feed parsing
+    lfeeds[0].context["key"] = "foo bar"
 
     if dirname:
         print("Save cache")

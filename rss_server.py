@@ -1063,6 +1063,7 @@ if __name__ == "__main__":
 
     # Preload feed xml files from earlier session
     if settings.CACHE_DIR:
+        settings.CACHE_DIR = os.path.expandvars(settings.CACHE_DIR)
         __l1 = len(cached_requests._CACHE)
         cached_requests.gen_cache_dirname(True)
         cached_requests.load_cache(settings.FAVORITES, settings.HISTORY)

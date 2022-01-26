@@ -172,7 +172,7 @@ def load_users(main_globals):
 
     # 1. Favs
     if not hasattr(main_globals.get("settings"), "USER_FAVORITES"):
-        main_globals.get("settings").USER_FAVORITES = {}
+        main_globals.get("settings").USER_FAVORITES = {}  # {"default": [] }
 
     prefix = "favorites_"
     suffix = ".py"
@@ -184,8 +184,7 @@ def load_users(main_globals):
 
     # 2. Same for histories
     if not hasattr(main_globals.get("settings"), "USER_HISTORY"):
-        main_globals.get("settings").USER_HISTORY = {
-            "default": [] }
+        main_globals.get("settings").USER_HISTORY = {}  # {"default": [] }
 
     prefix = "history_"
     suffix = ".py"
@@ -230,3 +229,17 @@ def update_submodules(main_globals):
         if isinstance(v, ModuleType):
             _r(v)
 
+
+# Generator for flat list over all (loaded) feeds.
+# settings-arg is a little bit clumsy...
+def all_feeds(settings, *extra_feed_lists):
+    def _foo(*lists):
+        for l in lists:
+            for feed in l:
+                yield feed
+
+    return _foo(
+            settings.FAVORITES, settings.HISTORY,
+            *settings.USER_FAVORITES.values(),
+            *settings.USER_HISTORY.values(),
+            *extra_feed_lists)

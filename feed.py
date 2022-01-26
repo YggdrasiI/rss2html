@@ -46,7 +46,7 @@ class Feed:
         # Generate id for this feed. Should only be called once for
         # each feed. (The url of a feed can change in the future.)
         #
-        # Prefer url as basis and use name, title as fallback 
+        # Prefer url as basis and use name, title as fallback
         candidates = [self.url, self.name, self.title]
         for c in candidates:
             if c:

@@ -21,12 +21,18 @@ def get_clipped_media_name(media_name, max_len):
     if len(media_name) <= max_len:
         return media_name
 
+    # Remove params
+    if "?" in media_name:
+        media_name = media_name[:media_name.find("?")]
+
     last_dot = media_name.rfind(".")
-    if last_dot == -1 or max_len < 10:
+    extension_len = (len(media_name) - last_dot)
+    if (last_dot == -1 or max_len < 10 or
+            extension_len >= max_len-10 ):
         return media_name[:max_len] + "…"
 
     return "{}…{}".format(
-        media_name[:max_len - (len(media_name) - last_dot)],
+        media_name[:max_len - extension_len],
         media_name[last_dot+1:]
     )
 

@@ -62,7 +62,8 @@ USERS = {
 CACHE_EXPIRE_TIME_S = 600
 
 # Maximal memory footprint of cache (and a few more internal objects)
-CACHE_MEMORY_LIMIT = 1E7 # 1E8
+CACHE_MEMORY_LIMIT = 5E7 # 50 MB
+CACHE_DISK_LIMIT = 10 * CACHE_MEMORY_LIMIT
 
 # Save/load cached feed xmls on server stop/start.
 # CACHE_DIR = '/dev/shm/'

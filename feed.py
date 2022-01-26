@@ -5,26 +5,53 @@ import os.path
 import re
 from urllib.parse import unquote
 
+# For storage
+from hashlib import sha1
+
 import logging
 logger = logging.getLogger(__name__)
 
 class Feed:
-    def __init__(self, name, url, title=None):
-        self.name = name
+    def __init__(self, name, url, title=None, uid=None):
+        self.name = name         # For url pattern /?feed=name
         self.url = unquote(url)  # Normalize into unquoted form
-        self.title = title
+        self.title = title       # Title given by RSS or None
+        self._uid = uid           # Unique id generated from above data
         self.items = []
         self.context = {}
 
     def __repr__(self):
         def escape_str(s):
-            return s.replace("\\","\\\\").replace("\"", "\\\"")
+            return s.replace('\\','\\\\').replace('"', '\\"')
 
-        return 'Feed("{name}", "{url}" {title})'.format(
+        return 'Feed("{name}", "{url}"{title}{uid})'.format(
             name=escape_str(self.name),
             url=escape_str(self.url),
-            title=', "{}"'.format(escape_str(self.title)) if self.title else "",
+            title=', title="{}"'.format(escape_str(self.title)) if self.title else "",
+            uid=', uid="{}"'.format(self._uid) if self._uid else "",
         )
+
+
+    def cache_name(self):
+        # Return assoziated cache filename
+        return self.get_uid()
+
+    def get_uid(self):
+        if not self._uid:
+            self.gen_uid()
+
+        return self._uid
+
+    def gen_uid(self):
+        # Generate id for this feed. Should only be called once for
+        # each feed. (The url of a feed can change in the future.)
+        #
+        # Prefer url as basis and use name, title as fallback 
+        candidates = [self.url, self.name, self.title]
+        for c in candidates:
+            if c:
+                self._uid = gen_hash(c)
+                return
 
 '''
     def add_items(self, items):
@@ -126,6 +153,7 @@ def clear_history(feedsA, feedsB):
     for feed in found:
         feedsB.remove(feed)
 
+
 def update_favorites(feeds, folder="", filename="favorites.py"):
     """ Updates FAVORITES variable into favorites.py (or explict given filename)
 
@@ -177,3 +205,24 @@ FAVORITES = [
         f.write(config_file_content)
 
 
+# Format length of file for humans
+def bytes_str(lBytes):
+    if lBytes >= 1E9:
+        l = "{:.4} GB".format(lBytes/1E9)
+    elif lBytes >= 1E6:
+        l = "{:.4} MB".format(lBytes/1E6)
+    elif lBytes >= 1E3:
+        l = "{:.4} kB".format(lBytes/1E3)
+    else:
+        l = "{} B".format(lBytes)
+    return l
+
+
+def gen_hash(s):
+    # Note: Avoid str.__hash__(). It's salted.
+
+    if isinstance(s, str):
+        s = s.encode('utf-8')
+
+    sha = sha1(s)
+    return sha.hexdigest()[:16]

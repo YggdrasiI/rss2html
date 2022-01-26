@@ -117,7 +117,8 @@ def load_config(main_globals):
 
     load_default_favs(main_globals)
 
-
+# TODO: Remove interpretation of files during loading.
+#       User input can manipulate content of files!
 def load_default_favs(main_globals):
     # Read FAVORITES from favorites.py and HISTORY from history.py
     # Use as fallback values from settings.py.

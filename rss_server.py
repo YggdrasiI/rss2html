@@ -98,9 +98,9 @@ def daemon_double_fork():
     return False
 
 
-def load_xml(filename):
+def load_xml(filepath):
     # Reads file as byte string to match type of urllib3 response data
-    with open(filename, 'rb') as f:
+    with open(filepath, 'rb') as f:
         byte_str = f.read(-1)
         return byte_str
 
@@ -159,7 +159,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
 
 
-    directory="/rss_server-page"  # for Python 3.4
+    directory="rss_server-page"  # for Python 3.4
 
     def __init__(self, *largs, **kwargs):
         Session = SESSION_TYPES.get(settings.LOGIN_TYPE, ExplicitSession)
@@ -315,7 +315,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         query_components = parse_qs(urlparse(self.path).query)
         feed_feched = False
         error_msg = None
-        show_index = False
         feed_key = qget(query_components, "feed")  # key, url or feed title
         filepath = qget(query_components, "file")  # From 'open with' dialog
         bUseCache = (qget(query_components, "cache", "1") != "0")
@@ -333,12 +332,12 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 
         if add_favs:
-            show_index = True
             self.do_add_favs(add_favs)
+            return self.session_redirect('/')
 
         if to_rm:
-            show_index = True
             self.do_rm_feed(to_rm)
+            return self.session_redirect('/')
 
         # Switch _ to language of request.
         # (Note: In templates Jinja2 translates, but not
@@ -500,36 +499,47 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         elif filepath:
             # No cache read in this variant
             try:
-                feed_filepath = filepath[-1]
-                logger.debug("Read " + feed_filepath)
+                www_dir = os.path.realpath(MyHandler.directory)
+                if os.path.isabs(filepath):
+                    feed_filepath = filepath
+                else:
+                    feed_filepath = os.path.join(www_dir, filepath)
+                    feed_filepath = os.path.realpath(feed_filepath)
+
+                if not feed_filepath.startswith(www_dir):
+                    logger.debug("Datei NICHT aus www-Dir")
+
+                # TODO: Restrict reading on several allowed paths here?!
+                # Currently only the failing parsing below prevents users
+                # from reading arbitary files.
+                logger.debug("Read {}".format(feed_filepath))
 
                 try:
                     byte_str = load_xml(feed_filepath)
-                    # tree = ElementTree.XML(byte_str.decode('utf-8'))
 
-                    feed_new = Feed("", "no url")
+                    feed_new = Feed("", filepath)
                     if not feed_parser.parse_feed(feed_new, byte_str):
                         error_msg = _('Parsing of Feed XML failed.')
                         return self.show_msg(error_msg, True)
 
                 except FileNotFoundError:
                     error_msg = _("Feed XML document '{}' does not " \
-                                  "exists.".format(feed_filepath))
+                                  "exists.".format(filepath))
                     return self.show_msg(error_msg, True)
                 except ElementTree.ParseError:
                     error_msg = _("Parsing of feed XML document '{}' " \
-                                  "failed.".format(feed_filepath))
+                                  "failed.".format(filepath))
                     return self.show_msg(error_msg, True)
                 except Exception as e:
                     raise(e)
                     error_msg = _("Loading of feed XML document '{}' " \
-                                  "failed.".format(feed_filepath))
+                                  "failed.".format(filepath))
                     return self.show_msg(error_msg, True)
 
                 # res = find_feed_keyword_values(tree)
                 res = feed_new.context
 
-                self.update_cache_filepath(feed_new)
+                self.update_cache_filepath(feed_new, byte_str)
                 res["nocache_link"] = res["title"]
                 res["session_user"] = session_user
 
@@ -595,7 +605,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
             self.wfile.write(output.getvalue())
 
-        elif self.path in ["/", "/index.html"] or show_index:
+        elif self.path in ["/", "/index.html"]:
             # self.session.load(self)
             return self.write_index()
         elif os.path.splitext(urlparse(self.path).path)[1] in \
@@ -668,7 +678,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Cache-Control', 'max-age=60, public')
         self.send_header('Content-Location', '/index.html')
         #self.send_header('Content-Location', '/{}.html'.format(etag))
-        
+
         # tmp_date = datetime.utcnow()
         # Das führt zu doppeltem Date-Header!
         # self.send_header('Date', tmp_date.strftime(DATE_HEADER_FORMAT))
@@ -928,7 +938,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                          settings.get_history_filename(session_user))
 
 
-    def update_cache_filepath(self, feed_new):
+    def update_cache_filepath(self, feed_new, byte_str):
         """ Update cache and history and old feed entry, if found."""
 
         res = feed_new.context
@@ -937,40 +947,50 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                         self.get_favorites(),
                         self.get_history())[0]
 
+        # 2. Update favorites/history files.
         if feed:
-            # The feed title acts as an unique key.
-            # Replace feed with feed_new, but check
-            # it the url had changed.
+            # The feed name (human), uid (machine) acts as unique keys.
+            # Replace feed with feed_new, but transfer
+            # this fields into new instance
             feed_new.name = feed.name
+            feed_new._uid = feed._uid
 
-            # Replace feed url if extracted href field
-            # indicates a newer url for a feed with this title.
+            # If a new url is found, save feed immediately, but not
+            # at end of program.
             parsed_feed_url = res["href"]
             if parsed_feed_url and parsed_feed_url != feed.url:
-                # feed.url = parsed_feed_url
-                # self.save_feed_change(feed)
                 self.save_feed_change(feed_new)
 
             feed = feed_new
         else:
-            feed = feed_new
 
-            # Extract feed url from xml data because it is not
-            # given directly!
-            feed.url = res.get("href", "")
+            # Extract feed url from xml data because no url is
+            # given directly if file was loaded from disk.
+            url = res.get("href", "")
 
+            # Update other values.
+            title = res.get("title", feed_new.title)
+            name = feed_new.name
+            if name == "" and title:
+                name = title
+
+            # Create new instance. This will generate a proper uid
+            # from url/name
+            feed = Feed(name, url, title=title)
+            feed.context = res
+
+            # A new feed can not be found in favorites.
+            # Save it into the history file.
             session_user = self.session.get_logged_in("user")
-            # Add this (new) feed to history.
             hist = self.get_history()
             hist.append(feed)
             save_history(hist, settings.get_config_folder(),
                          settings.get_history_filename(session_user))
 
-        # 2. Write changes
-        # TODO: Was muss hier gespeichert werden? Erwartet wird
-        # reiner Text und nicht das 'res'-dict.
-        # cEl = CacheElement(res, {})
-        # cached_requests.update_cache(feed.title, cEl)
+        # 3. Write changes in cache.
+        # Note that this clears saved headers for this feed.
+        cEl =  cached_requests.CacheElement.from_bytes(byte_str)
+        cached_requests.update_cache(feed.cache_name(), cEl)
 
 
 # Call 'make ssl' to generate local test certificates.
@@ -1051,6 +1071,10 @@ if __name__ == "__main__":
         __l2 = len(cached_requests._CACHE)
         logger.info("Loaded {} feeds from disk into cache.".format(__l2 - __l1))
 
+        cached_requests.trim_cache(force_memory=True, force_disk=False)
+        __l3 = len(cached_requests._CACHE)
+        logger.info("Trim on {} elements in cache.".format(__l3))
+
     try:
         httpd = genMyHTTPServer()((settings.HOST, settings.PORT), MyHandler, settings)
     except OSError:
@@ -1097,6 +1121,9 @@ if __name__ == "__main__":
             restart_service = True
             httpd.shutdown()
 
+            # Cache cleanup
+            cached_requests.trim_cache()  # Currently redundant
+
     t = Thread(target=__shutdown_and_serve_again)
     t.daemon = True
     t.start()
@@ -1112,6 +1139,7 @@ if __name__ == "__main__":
             raise
 
     if settings.CACHE_DIR:
+        logger.info("Save cache on disk")
         cached_requests.store_cache(settings.FAVORITES, settings.HISTORY)
         cached_requests.store_cache(*(settings.USER_FAVORITES.values()))
         cached_requests.store_cache(*(settings.USER_HISTORY.values()))

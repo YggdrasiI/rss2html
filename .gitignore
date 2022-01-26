@@ -112,3 +112,4 @@ site-packages
 non-public
 ssl_rss_server.crt
 ssl_rss_server.key
+rss_server_cache/

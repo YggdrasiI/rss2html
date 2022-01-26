@@ -19,7 +19,7 @@ from urllib.parse import quote, unquote
 import logging
 logger = logging.getLogger(__name__)
 
-from feed import Feed
+from feed import Feed, bytes_str
 import default_settings as settings  # Overriden in load_config()
 
 XML_NAMESPACES = {'content': 'http://purl.org/rss/1.0/modules/content/',
@@ -316,19 +316,6 @@ def parse_pubDate(s, date_format=None):
     # raise Exception("Can not parse pubDate '{}'".format(s))
     logger.warn("Can not parse pubDate '{}'.".format(s))
     return s
-
-
-# Format length of file for humans
-def bytes_str(lBytes):
-    if lBytes >= 1E9:
-        l = "{:.4} GB".format(lBytes/1E9)
-    elif lBytes >= 1E6:
-        l = "{:.4} MB".format(lBytes/1E6)
-    elif lBytes >= 1E3:
-        l = "{:.4} kB".format(lBytes/1E3)
-    else:
-        l = "{} B".format(lBytes)
-    return l
 
 
 # Helper class for dict to filter out duplicates.

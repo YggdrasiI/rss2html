@@ -140,7 +140,7 @@ def download_with_wget(feed, url, settings):
             os.makedirs(target_dir, exist_ok=True)
             # => I.e. creates 'My Podcast 1'
         except OSError:
-            logging.error("Can not create '{}'".format(target_dir))
+            logger.error("Can not create '{}'".format(target_dir))
             return None
 
         nullsink = open(os.devnull, 'w')
@@ -189,7 +189,7 @@ def factory__local_cmd(lcmd):
             resolved_lcmd = [token.format(url=url) for token in lcmd]
 
             cmd = tuple(resolved_lcmd)
-            logging.debug("Local cmd: {}".format(cmd))
+            logger.debug("Local cmd: {}".format(cmd))
 
             nullsink = open(os.devnull, 'w')
             nullsource = open(os.devnull, 'r')
@@ -216,7 +216,7 @@ def factory__ssh_cmd(ssh_hostname, ssh_cmd, identity_file=None, port=None):
 
             cmd = tuple(cmd)
 
-            logging.debug("SSH-Cmd: {}".format(cmd))
+            logger.debug("SSH-Cmd: {}".format(cmd))
 
             nullsink = open(os.devnull, 'w')
             nullsource = open(os.devnull, 'r')

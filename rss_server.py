@@ -1011,7 +1011,7 @@ def set_logger_levels():
 
     numeric_level = getattr(logging, loglevel.upper(), None)
     if not isinstance(numeric_level, int):
-        raise ValueError('Invalid log level: %s' % loglevel)
+        raise ValueError('Invalid log level: {}'.format(loglevel))
 
     keys = list(logging.root.manager.loggerDict.keys())
     keys.insert(0, "root")

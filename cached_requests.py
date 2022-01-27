@@ -3,6 +3,7 @@
 
 import time
 import ssl
+from sys import getsizeof
 import os.path
 from os import mkdir
 
@@ -62,7 +63,7 @@ class CacheElement:
 
     def memory_footprint(self):
         # Estimation of memory footprint of this object.
-        return len(self.byte_str)
+        return getsizeof(self.byte_str)
 
     def store(self, filename):
         dirname = gen_cache_dirname()
@@ -443,6 +444,24 @@ def cache_reduce_memory_footprint(upper_bound):
     # 1. Loop over Feed-Elements to build 'cEl->Feed' map for step 2.
     #
     #   Preimage of this map can be real subset of _CACHE.keys().
+    def get_size(obj, seen=None):
+        # Estimates memory consumption of nested dicts.
+        # Reduced variant from
+        #  https://github.com/bosswissam/pysize/blob/master/pysize.py
+        size = getsizeof(obj)
+        if seen is None:
+            seen = set()
+        obj_id = id(obj)
+        if obj_id in seen:
+            return 0
+
+        seen.add(obj_id)
+        if isinstance(obj, dict):
+            size += sum((get_size(v, seen) for v in obj.values()))
+            size += sum((get_size(k, seen) for k in obj.keys()))
+        elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
+            size += sum((get_size(i, seen) for i in obj))
+        return size
 
     def create_filename_to_feed_map():
         cache_map = {}  # filename->feed - map
@@ -454,7 +473,7 @@ def cache_reduce_memory_footprint(upper_bound):
                 logger.debug("Clean feed {} ".format(feed.name))
                 feed.context = {}
 
-            footprint_feeds += feed.context.__sizeof__()
+            footprint_feeds += get_size(feed.context)
             cache_map[feed.cache_name()] = feed
 
         logger.debug("Footprint of all context-vars: {}".format(footprint_feeds))
@@ -552,7 +571,7 @@ if __name__ == "__main__":
     print("Http status code: {}".format(code))
 
     # Simulate feed parsing
-    lfeeds[0].context["key"] = "foo bar"
+    lfeeds[0].context["key"] = str(globals())
 
     if dirname:
         print("Save cache")

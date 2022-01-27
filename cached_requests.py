@@ -89,7 +89,7 @@ class CacheElement:
             #        "Error was: {}".format(filename, e))
             return None
         else:
-            logger.debug("Reading of '{}' succeeded. ".format(filename))
+            # logger.debug("Reading of '{}' succeeded. ".format(filename))
             pass
 
         return cEl
@@ -166,7 +166,7 @@ def update_cache(key, cEl, bFromDisk=False):
             pass
         return
 
-    logger.debug("update_cache for {}, {}".format(key, bFromDisk))
+    #logger.debug("update_cache for {}, {}".format(key, bFromDisk))
     if not bFromDisk:
         cEl.bSaved = False
     _CACHE[key] = cEl

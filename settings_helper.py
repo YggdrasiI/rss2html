@@ -9,6 +9,8 @@ from importlib import import_module
 from types import ModuleType
 from glob import glob
 
+from validators import validate_favorites, ValidatorException
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -117,8 +119,6 @@ def load_config(main_globals):
 
     load_default_favs(main_globals)
 
-# TODO: Remove interpretation of files during loading.
-#       User input can manipulate content of files!
 def load_default_favs(main_globals):
     # Read FAVORITES from favorites.py and HISTORY from history.py
     # Use as fallback values from settings.py.
@@ -127,6 +127,17 @@ def load_default_favs(main_globals):
         sys.path.insert(0, config_dir)
 
     settings = main_globals.get("settings")
+
+    # 0. Validate files
+    for module_name in ["favorites", "history"]:
+        try:
+            validate_favorites(module_name)
+        except ValidatorException as e:
+            logger.info("Validation of '{}' failed!\n" \
+                    "\tError: {}".format(module_name,e))
+            settings.FAVORITES = []
+            settings.HISTORY = []
+            return
 
     # 1. favorites
     try:
@@ -155,6 +166,13 @@ def load_users(main_globals):
 
         user_module_name = os.path.basename(filename)[:-len(suffix)]
         username = user_module_name[len(prefix):]
+
+        # Validate that module has expected content
+        try:
+            validate_favorites(user_module_name)
+        except ValidatorException as e:
+            logger.info("Validation of '{}' failed!\n" \
+                    "\tError: {}".format(f,e))
 
         # Unload module if file was already read
         try:

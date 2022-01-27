@@ -6,7 +6,7 @@
 
 from ast import parse, walk
 import _ast
-from importlib.util import find_spec 
+from importlib.util import find_spec
 
 import logging
 logger = logging.getLogger(__name__)
@@ -20,10 +20,10 @@ WHITELIST = {
         "sys",
         "os.path",
     ],
-    _ast.Call: [ 
-        "Feed", "print", 
+    _ast.Call: [
+        "Feed", "print",
     ],
-    _ast.Assign: [ 
+    _ast.Assign: [
         "FAVORITES", "HISTORY"
     ]
 }
@@ -117,21 +117,21 @@ from feed import Feed
 
 FAVORITES = [Feed("A", "url1"),
      Feed("B", "url4" + "ext" if True else "url5"),
-    ]   
+    ]
 
 HISTORY = [Feed("A", "url1"),
      Feed(url="swapped order", name="C"),
-    ]   
+    ]
 '''
 
     invalid_function_calls = '''\
-HISTORY = [ 
+HISTORY = [
     Feed("A", "url1") if (print("Gefahr!") or exec(compile("import os", "<test>", mode="exec"))) else Feed("X", "url1"),
 ]
 '''
 
     invalid_indent = '''\
-    HISTORY = [ 
+    HISTORY = [
     Feed("A", "url1") if (print("Gefahr!") or exec(compile("import os", "<test>", mode="exec"))) else Feed("X", "url1"),
 ]
 '''
@@ -145,10 +145,10 @@ import os
         c = globals()[var]
         try:
             validate_favorites(code=c)
-            print(f"'{var}' is valid code\n")
+            print("'{}' is valid code\n".format(var))
         except ValidatorException as e:
-            print(f"Invalid code found in '{var}'")
-            print(f"Error: {e}\n")
+            print("Invalid code found in '{}'".format(var))
+            print("Error: {}\n".format(e))
 
 
     # Test reading from file and module
@@ -161,18 +161,18 @@ import os
 
     try:
         validate_favorites(filepath=test_file)
-        print(f"'{test_file}' contains valid code\n")
+        print("'{}' contains valid code\n".format(test_file))
     except ValidatorException as e:
-        print(f"Invalid code found in '{test_file}'")
-        print(f"Error: {e}\n")
+        print("Invalid code found in '{}'".format(test_file))
+        print("Error: {}\n".format(e))
 
     try:
         module_name=os.path.splitext(test_file)[0]
         validate_favorites(module_name=module_name)
-        print(f"'{module_name}' is valid module\n")
+        print("'{}' is valid module\n".format(modul_name))
     except ValidatorException as e:
-        print(f"Invalid code found in '{modul_name}'")
-        print(f"Error: {e}\n")
+        print("Invalid code found in '{}'".format(modul_name))
+        print("Error: {}\n".format(e))
 
 
     os.unlink(test_file)  # Clean up

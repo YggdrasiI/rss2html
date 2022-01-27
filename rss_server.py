@@ -410,8 +410,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                                   else "")).hexdigest(),
                     page
                 )
-                logger.debug("Eval ETag '{}'".format(etag))
-                logger.debug("Browser ETag '{}'".format(self.headers.get("If-None-Match", "")))
+                #logger.debug("Eval ETag '{}'".format(etag))
+                #logger.debug("Browser ETag '{}'".format(self.headers.get("If-None-Match", "")))
                 # logger.debug("Received headers:\n{}".format(self.headers))
 
                 # If feed is unchanged and tags match return nothing, but 304.
@@ -562,7 +562,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Content-type', 'text/html')
             self.send_header('Cache-Control', "public, max-age=10, ")
             if etag:
-                logger.debug("Add ETag '{}'".format(etag))
+                # logger.debug("Add ETag '{}'".format(etag))
                 self.send_header('ETag', etag)
                 self.send_header('Vary', "ETag, User-Agent")
 
@@ -646,8 +646,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         etag = '"{}"'.format( hashlib.sha1(output.getvalue()).hexdigest())
         browser_etag = self.headers.get("If-None-Match", "")
 
-        logger.debug("\n\nETag of index page: {}".format(etag))
-        logger.debug("ETag from client:   {}\n\n".format(browser_etag))
+        # logger.debug("\n\nETag of index page: {}".format(etag))
+        # logger.debug("ETag from client:   {}\n\n".format(browser_etag))
 
         if etag == browser_etag and not self.save_session:
             self.send_response(304)

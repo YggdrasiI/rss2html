@@ -231,11 +231,14 @@ def factory__ssh_cmd(ssh_hostname, ssh_cmd, identity_file=None, port=None):
 def get_item_for_url(feed, url, settings):
     if True:  # if not feed.items:
         (cEl, code) = cached_requests.fetch_file(feed.url)
-        if not cEl or not cEl.text:
+        if not cEl or not cEl.byte_str:
             logger.error("Fetching uncached feed '{}' failed.".format(feed.url))
             return None
 
-        feed_parser.parse_feed(feed, cEl.text)
+        if len(feed.context)>0:
+            logger.debug("Skip parsing of feed and re-use previous")
+        else:
+            feed_parser.parse_feed(feed, cEl.byte_str)
         for entry in feed.context["entries"]:
             for enclosure in entry["enclosures"]:
                 logger.info("Compare {} with {}".format(

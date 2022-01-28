@@ -171,6 +171,10 @@ class LoginFreeSession(Session):
         # user, session_id and session_hash are arbitary
         self.login_ok = True
 
+        # Overwrite user value.
+        # It can be != default if LOGIN_TYPE was changed.
+        self.c["user"] = "default"
+
 
 # Check agains explicit list of users from settings.py
 class ExplicitSession(Session):

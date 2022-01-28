@@ -10,6 +10,7 @@ from types import ModuleType
 from glob import glob
 from random import randint
 
+from session import LoginType
 from validators import validate_favorites, ValidatorException
 
 import logging
@@ -109,14 +110,27 @@ def load_config(main_globals):
         # and != main_globals["settings"]
         main_globals["settings"] = settings
     except ImportError:
-        # settings = main_globals.get("settings")
+        logger.warn("No 'settings.py' found. Loading default values.")
+        import default_settings as settings
         pass
 
     # Generate secret token if none is given
     if settings.ACTION_SECRET is None:
         settings.ACTION_SECRET = str(randint(0, 1E15))
-        logger.info("settings.ACTION_SECRET not defined. Using random value.")
+        logger.warn("settings.ACTION_SECRET not defined. Using random value.")
 
+    # Check LOGIN_TYPE and convert to Enum
+    try:
+        settings._LOGIN_TYPE = LoginType(settings.LOGIN_TYPE)
+    except ValueError:
+        logger.warn("Invalid value ({}) for settings.LOGIN_TYPE. "
+                    "Valid values are: {}. Fallback on None.".format(
+                        settings.LOGIN_TYPE,
+                        ", ".join(['"{}"'.format(v.value) if v.value else "None"
+                                   for (k,v) in LoginType.__members__.items()])
+                    ))
+        settings.LOGIN_TYPE = None
+        settings._LOGIN_TYPE = LoginType(None)
 
     load_default_favs(main_globals)
 
@@ -236,7 +250,7 @@ def update_submodules(main_globals):
                                  format(m.__name__))
                     m.settings = settings
                 else:
-                    logger.warning("Found variable named 'settings' in module" \
+                    logger.warn("Found variable named 'settings' in module" \
                                 "'{}'. This name should ne be used.".\
                                  format(m.__name__))
 

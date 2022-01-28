@@ -33,7 +33,7 @@ import default_settings as settings  # Overriden in load_config()
 import icon_searcher
 import cached_requests
 
-from session import LoginFreeSession, ExplicitSession, PamSession
+from session import LoginType, init_session
 
 from static_content import action_icon_dummy_classes
 
@@ -47,12 +47,6 @@ logging.root.setLevel(0)
 logging.basicConfig(level=0)'''
 logger = None
 
-SESSION_TYPES = {
-    None: LoginFreeSession,
-    "single_user": LoginFreeSession,
-    "users": ExplicitSession,
-    "pam": PamSession,
-}
 
 CSS_STYLES = {
     "default.css": _("Default theme"),
@@ -162,8 +156,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
     directory="rss_server-page"  # for Python 3.4
 
     def __init__(self, *largs, **kwargs):
-        Session = SESSION_TYPES.get(settings.LOGIN_TYPE, ExplicitSession)
-        self.session = Session(self, settings.ACTION_SECRET)
+        self.session = init_session(self, settings)
 
         # Flag to send session cookies without login form.
         # The header info will send for visit of index- or feed-page.
@@ -296,7 +289,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         self.session.load()
         self.save_session = False  # To send session headers without login form.
 
-        if settings.LOGIN_TYPE == "single_user" and \
+        if settings._LOGIN_TYPE == LoginType.SINGLE_USER and \
            not self.session.get("user"):
             logger.debug("Generate new ID for default user!")
             # Login as "default" user and trigger send of headers
@@ -777,7 +770,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             if not css_style in CSS_STYLES: # for "None" and wrong values
                 css_style = None
 
-            if settings.LOGIN_TYPE is None:
+            if settings._LOGIN_TYPE is LoginType.NONE:
                 # Note: This saves not the values permanently, but for this
                 # instance. It will be used if no user cookie overwrites the value.
                 self.server.html_renderer.extra_context["system_css_style"] = \
@@ -817,7 +810,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         if self.session.get_logged_in("user") == "":
             error_msg = _('Action requires login. ')
-            if settings.LOGIN_TYPE is None:
+            if settings._LOGIN_TYPE is LoginType.NONE:
                 error_msg += _("Define LOGIN_TYPE in 'settings.py'. " \
                                "Proper values can be found in " \
                                "'default_settings.py'. ")
@@ -1088,16 +1081,16 @@ if __name__ == "__main__":
         wrap_SSL(httpd,
                 settings.SSL_KEY_PATH, settings.SSL_CRT_PATH)
 
-    if settings.LOGIN_TYPE is None:
+    if settings._LOGIN_TYPE is LoginType.NONE:
         warn( _("Note: Actions for enclosured media files are disabled because LOGIN_TYPE is None."))
 
-    if settings.LOGIN_TYPE == "single_user":
+    if settings._LOGIN_TYPE == LoginType.SINGLE_USER:
         warn( _("Warning: Without definition of users, everyone " \
                  "with access to this page can add feeds or trigger " \
                  "the associated actions." )
               + _("This could be dangerous if you use user defined actions. "))
 
-    if settings.LOGIN_TYPE in ["users", "pam"] and not settings.SSL:
+    if settings._LOGIN_TYPE in [LoginType.USERS, LoginType.PAM] and not settings.SSL:
         warn( _("Warning: Without SSL login credentials aren't encrypted. ")
               + _("This could be dangerous if you use user defined actions. "))
 

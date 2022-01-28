@@ -5,9 +5,17 @@ from http import cookies
 from hashlib import sha224, sha1
 from random import randint
 from subprocess import Popen, PIPE, TimeoutExpired
+from enum import Enum
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+class LoginType(Enum):
+    NONE = None
+    SINGLE_USER = "single_user"
+    USERS = "users"
+    PAM = "pam"
 
 """
 try:
@@ -151,11 +159,23 @@ class Session():
         # self.request.wfile.write(self.c.output().encode('utf-8'))
 
 
-# Login everyone as "default" user
 class LoginFreeSession(Session):
-    # def __init__(self, request, secret):
-    #     super().__init__(request, secret)
+    # No users at all. Do not touch cookies and failing on each
+    # operation which needs a login.
 
+    def init(self, user, **kwargs):
+        # Do not set/overwrite cookie values
+        # self.login_ok = False
+        return True
+
+    def load(self):
+        # self.c.load(self.request.headers.get("Cookie", ""))
+        # self.login_ok = False
+        pass
+
+
+# Login everyone as "default" user
+class DefaultUserSession(Session):
     def init(self, user, **kwargs):
         self.c["user"] = user
         # self.c["session_id"] = "0"
@@ -163,7 +183,6 @@ class LoginFreeSession(Session):
         self.c["session_hash"] = "0"
         self.add_cookie_directives()
         self.login_ok = True
-
         return True
 
     def load(self):
@@ -232,4 +251,15 @@ class PamSession(Session):
 
         return False
 
+
+SESSION_TYPES = {
+    LoginType.NONE: LoginFreeSession,
+    LoginType.SINGLE_USER: DefaultUserSession,
+    LoginType.USERS: ExplicitSession,
+    LoginType.PAM: PamSession,
+}
+
+def init_session(request, settings):
+    Session = SESSION_TYPES.get(settings._LOGIN_TYPE, ExplicitSession)
+    return Session(request, settings.ACTION_SECRET)
 

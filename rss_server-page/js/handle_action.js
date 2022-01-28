@@ -44,12 +44,24 @@ function call_link(url, feedback_element){
 			console.log(msg.innerText);
 
 			// Print status message text
-			var textnode = document.createTextNode(msg.innerText);
-			if (feedback_element.lastChild.nodeType == 3){
-				feedback_element.replaceChild(textnode, feedback_element.lastChild);
-			}else{
-				feedback_element.appendChild(textnode);
-			}
+      var as_text = false;
+      if (as_text) {
+          var textnode = document.createTextNode(msg.innerText);
+          if (feedback_element.lastChild.nodeType == 3){
+              feedback_element.replaceChild(textnode, feedback_element.lastChild);
+          }else{
+              feedback_element.appendChild(textnode);
+          }
+      }else{
+          var node = document.createElement("div");
+          node.id = "status_message"
+          node.innerHTML = msg.innerHTML;
+          if (feedback_element.lastChild.id == "status_message"){
+              feedback_element.replaceChild(node, feedback_element.lastChild);
+          }else{
+              feedback_element.appendChild(node);
+          }
+      }
 		}else{
 			console.log("Action request error: " + String(xhr.status) );
 		}

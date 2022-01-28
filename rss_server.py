@@ -767,7 +767,12 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
     def handle_change_css_style(self, query_components):
         try:
             css_style = qget(query_components, "css_style", None)
-            if not css_style in CSS_STYLES: # for "None" and wrong values
+            if not css_style in CSS_STYLES:  # for "None" and wrong values
+                css_style = None
+
+            if css_style == "default.css":
+                # Do not save the style in cookie/renderer if it's already
+                # the value which will provided anyway.
                 css_style = None
 
             if settings._LOGIN_TYPE is LoginType.NONE:

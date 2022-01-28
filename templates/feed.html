@@ -64,7 +64,7 @@
         {% for entry in entries %}
         {{ feed_full_content(entry, loop) }}
         {% endfor %}
-        <label for="toggle-0" class="menu_close1"></label>
+        <label for="toggle-0" class="menu_close1 {{ extra_css_cls }}"></label>
     </div>
 </div>
 <iframe name="non_js_fallback" class="non_js_fallback" title="Displays api return values"></iframe> 
@@ -154,7 +154,7 @@
         </ul>
     </div>
 
-    <label for="action_toggle-0" class="menu_close1"></label>
+    <label for="action_toggle-0" class="menu_close1 {{ extra_css_cls }}"></label>
     {#
     <!-- On the same hirarchy level after all elements (or after each element) -->
     <label for="action_toggle-0" class="menu_close1"></label>

@@ -169,9 +169,11 @@ class LoginFreeSession(Session):
         return True
 
     def load(self):
-        # self.c.load(self.request.headers.get("Cookie", ""))
+        # Cookie loading still required for css style sheed
+        self.c.load(self.request.headers.get("Cookie", ""))
+        # Delete user related cookie values, if any
+        self.clear()
         # self.login_ok = False
-        pass
 
 
 # Login everyone as "default" user

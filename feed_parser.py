@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
-# Parse feed xml files into feed.context dict. 
+# Parse feed xml files into feed.context dict.
 # The context can be propagated into the html renderer.
 #
 
@@ -146,9 +146,9 @@ def find_feed_keyword_values(feed, tree):
         if not settings.DETAIL_PAGE:
             content_full = ""
 
-        context["extra_css_cls"] = ("in1_ani"
-                                         if settings.DETAIL_PAGE_ANIMATED else
-                                         "in1_no_ani")
+        context["extra_css_cls"] = ("menu_animated"
+                                    if settings.DETAIL_PAGE_ANIMATED else
+                                    "menu_not_animated")
 
         entry["content_short"] = content_short
         entry["content_full"] = content_full

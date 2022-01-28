@@ -42,22 +42,36 @@ label.menu_open {
 
 /* Do unselect radio buttons by clicking nearby window border. */
 label.menu_close1 {
-  display:none;
+ /* Animations by transition can not be combined with display-none. Using height:0px now.*/
+  /*display:none;*/
   position:fixed;
   top:0px; left:0px;
   width:100%;
-  height:100%;
   cursor:pointer;
-  z-index:1;
 
-  /*background-color:gray;
-  opacity:0.25;*/
+	/* For Animation */
+  height:0px;
+}
+
+label.menu_animated {
+	opacity:0.0;
+
+	/* Reset of height needs to be delayed until the animation is over */
+	/* Delay of opacity animation to wait on animation of div.menu_animated */
+  transition: opacity 0.25s ease-in 1s, height 0.0s linear 1.25s;
 }
 
 /* This element will be shown if one of the clickboxes is enabled .*/
 /* Place 'toggle-0' after this one.                                */
 input.menu_clickbox[type=radio]:checked ~ label.menu_close1 {
-  display:inherit;
+  /*display:inherit;*/
+  height:100%;
+}
+
+input.menu_clickbox[type=radio]:checked ~ label.menu_animated {
+  /*background-color: red;*/
+	opacity:0.25;
+	transition: opacity 0.5s ease-in-out;
 }
 
 label.menu_close2 {
@@ -81,22 +95,25 @@ div.in1 {
   /*background: Field;*/ /* Background of popup */
 }
 
-div.in1_no_ani {
+div.menu_not_animated {
   display:none;
 }
 
 /* Toggled State */
-input.menu_clickbox[type=radio]:checked + div.in1_no_ani {
+input.menu_clickbox[type=radio]:checked + div.menu_not_animated {
   display:inherit;
 }
 
 /* Optional animation */
-div.in1_ani {
-  transition: all 0.5s ease-in-out; 
+div.menu_animated {
   clip-path: circle(0% at 50% 50%);
+	/* No Delay on blending out animation, Here, menu_close1 waits. */
+  transition: clip-path 0.5s ease-in-out 0s;
 }
-input.menu_clickbox[type=radio]:checked + div.in1_ani {
+input.menu_clickbox[type=radio]:checked + div.menu_animated {
   clip-path: circle(100% at 50% 50%);
+	/* Delay added to wait on opacity transition of menu_close1 */
+  transition: clip-path 0.5s ease-in-out 0.5s;
 }
 
 iframe.content_frame {

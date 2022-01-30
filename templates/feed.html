@@ -64,7 +64,7 @@
         {% for entry in entries %}
         {{ feed_full_content(entry, loop) }}
         {% endfor %}
-        <label for="toggle-0" class="menu_close1 {{ extra_css_cls }}"></label>
+        <label for="toggle-0" class="menu_close1 {{ menu_animation_cls }}"></label>
     </div>
 </div>
 <iframe name="non_js_fallback" class="non_js_fallback" title="Displays api return values"></iframe> 
@@ -107,7 +107,7 @@
 {% macro feed_full_content(entry, loop) %}
 <input type="radio" name="menu" id="toggle-{{ loop.index }}" class="menu_clickbox">
 {% if entry.content_full %}
-<div class="ani {{ extra_css_cls }}"><div class="in1">
+<div class="ani {{ menu_animation_cls }}"><div class="in1">
     <label for="toggle-0" class="menu_close2">Close</label>
     {{ entry.content_full }}
 </div></div>
@@ -138,7 +138,8 @@
     <div class="in2_action"><label for="action_toggle-{{ idx1 }}-{{ idx2 }}"
             class="action_open">Actions‣</label></div>
     <input type="radio" name="menu" id="action_toggle-{{ idx1 }}-{{ idx2 }}" class="menu_clickbox">
-    <div class="in1_action in1_action_no_ani"><label for="action_toggle-0" class="menu_close2">✖</label>
+    <div class="ani_action {{ menu_animation_cls }}">
+      <div class="in1_action"><label for="action_toggle-0" class="menu_close2">✖</label>
         <span class="enclosure_filename">{{
             en.enclosure_filename|clipped_media_name(60) }}</span>
         <ul class="enclosure_actions">
@@ -146,15 +147,16 @@
             <li>
                 <a href="{{ action.url }}" title="{{ action.title }}"
                                            class="bgicon_{{ action.name }}"
-																					 target="non_js_fallback">
+                                           target="non_js_fallback">
                     {{ action.title }}
                 </a>
             </li>
             {% endfor %}
         </ul>
+      </div>
     </div>
 
-    <label for="action_toggle-0" class="menu_close1 {{ extra_css_cls }}"></label>
+    <label for="action_toggle-0" class="menu_close1 {{ menu_animation_cls }}"></label>
     {#
     <!-- On the same hirarchy level after all elements (or after each element) -->
     <label for="action_toggle-0" class="menu_close1"></label>

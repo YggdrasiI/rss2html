@@ -300,6 +300,13 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         session_user = self.session.get_logged_in("user")
         self.context["gui_lang"] = self.eval_gui_lang()
 
+        # for CSS menus (onclick3.css, onclick3_actions.css)
+        self.context["menu_animation_cls"] = (
+                "animated"
+                if settings.DETAIL_PAGE_ANIMATED else
+                "not_animated")
+
+
         # User CSS-Style can overwrite server value
         user_css_style = self.session.get("css_style")
         if user_css_style and user_css_style in CSS_STYLES:

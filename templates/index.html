@@ -40,6 +40,7 @@
       {% endfor %}
     </ul>
     <!-- Dummy node for clickable menus -->
+    <label for="action_toggle-0" class="menu_close1 {{ menu_animation_cls }}"></label>
     <input type="radio" name="menu" id="action_toggle-0" class="menu_clickbox">
 
     <h2 class="add_feed" id="feedSubtitleText">{{ _('Add feed') }}</h2>
@@ -92,18 +93,19 @@
 
     {# Container of feed actions #}
     <input type="radio" name="menu" id="action_toggle-f-{{ idx }}" class="menu_clickbox">
-    <div class="in1_action in1_action_no_ani"><label for="action_toggle-0" class="menu_close2">✖</label>
-    <span class="enclosure_filename">{{ feed.title }}</span>
+    <div class="ani_action {{ menu_animation_cls }}">
+      <div class="in1_action"><label for="action_toggle-0" class="menu_close2">✖</label>
+        <span class="enclosure_filename">{{ feed.title }}</span>
 
-    {# Definiton of actions #}
-    <ul class="feed_actions">
-            <li>
-    <a href="//{{ host }}/?rm={{ feed.name|urlencode }}" title="{{
-        _('Remove feed') }}">✖</a>
-            </li>
-    </ul>
+        {# Definiton of actions #}
+        <ul class="feed_actions">
+          <li>
+            <a href="//{{ host }}/?rm={{ feed.name|urlencode }}" title="{{
+                     _('Remove feed') }}">✖</a>
+          </li>
+        </ul>
+      </div>
     </div>
-    <label for="action_toggle-0" class="menu_close1"></label>
 </span>
 
 {# main section in feed title #}
@@ -113,8 +115,6 @@
 {%- endmacro %}
 
 {% macro list_history(feed, host, idx) -%}
-<span class="manage_feed">
-</span>
 {# Right 'floated' section in feed title #}
 <span class="manage_feed">
     {# Clickable element for feed actions #}
@@ -125,21 +125,22 @@
 
     {# Container of feed actions #}
     <input type="radio" name="menu" id="action_toggle-h-{{ idx }}" class="menu_clickbox">
-    <div class="in1_action in1_action_no_ani"><label for="action_toggle-0" class="menu_close2">✖</label>
-    <span class="enclosure_filename">{{ feed.title }}</span>
+    <div class="ani_action {{ menu_animation_cls }}">
+      <div class="in1_action"><label for="action_toggle-0" class="menu_close2">✖</label>
+      <span class="enclosure_filename">{{ feed.title }}</span>
 
-        {# Definiton of actions #}
-        <ul class="feed_actions">
-            <li>
-                <a href="//{{ host }}/?add_fav={{ feed.name|urlencode }}" title="{{
-                         _('Add to favorites') }}">➕&#xFE0E;</a>
-            </li><li>
-                <a href="//{{ host }}/?rm={{ feed.name|urlencode }}" title="{{
-                         _('Remove feed') }}">✖</a>
-            </li>
-        </ul>
+          {# Definiton of actions #}
+          <ul class="feed_actions">
+              <li>
+                  <a href="//{{ host }}/?add_fav={{ feed.name|urlencode }}" title="{{
+                           _('Add to favorites') }}">➕&#xFE0E;</a>
+              </li><li>
+                  <a href="//{{ host }}/?rm={{ feed.name|urlencode }}" title="{{
+                           _('Remove feed') }}">✖</a>
+              </li>
+          </ul>
+      </div>
     </div>
-    <label for="action_toggle-0" class="menu_close1"></label>
 </span>
 
 {# main section in feed title #}

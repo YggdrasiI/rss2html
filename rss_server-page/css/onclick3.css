@@ -1,0 +1,194 @@
+/* Variant of onlick approach with transition-animation
+ * on two elements and display:none on third (most inner) element.
+ * 
+ * Note that the most inner element will directly hidden during
+ * the outblending animation. You can not timing the display-property
+ * with CSS-only.
+ *
+ * Requirements in DOM tree:
+ *   .in1 : Element with complete content.
+ *   .in2 : Element with abstract of content.
+ *
+ *   .ani : Parent Element of in2 for optional animation.
+ *          It is important to made them not on in2 due 
+ *          the display:none-Property there.
+ *
+ *   .in1 label.menu_close2: Label to close complete content display
+ *   .in2 label.menu_open:   Label to open complete content display
+ *   .menu_close1: Label to close complete content display
+ *
+ *   Optional:
+ *   .animated : Add this class to '.menu_close1' and '.ani' Elements.
+ *   .not_animated : Or this one if no animation is desired.
+ *
+ * Minimal example:
+<html>
+	<head>
+		<link rel="stylesheet" href="css/onclick3.css" type="text/css" media="all" />
+		<style>
+		div.ani {
+			border-radius: 10px;
+			background-color:#314;
+			padding-left:1em;
+		}
+		body { color:#CCC; background-color:#222; }
+		</style>
+	</head>
+	<body>
+		<!-- First menu element 'toggle-1' -->
+		<div class="in2"><label for="toggle-1" class="menu_open">Open 1</label>Short content</div>
+		<input type="radio" id="toggle-1" class="menu_clickbox">
+		<div class="ani"
+			<div class="in1"><label for="toggle-0" class="menu_close2">Close</label>
+				<p>Big Content</p>
+			</div>
+		</div>
+    <!-- More elements with [id|for]=toggle-2, toggle-3,… -->
+
+    <!-- On the same hirarchy level after all elements (or after each element) -->
+    <label for="toggle-0" class="menu_close1"></label>
+
+    <!-- After elements -->
+    <input type="radio" id="toggle-0" class="menu_clickbox">
+    <!-- End -->
+	</body>
+</html>
+ *
+ */
+
+/** First layer **/
+/* Hide radio buttons on all helper 'toggle-*' <label>'s */
+input.menu_clickbox[type=radio] {
+  display:none;
+}
+
+label.menu_open {
+  cursor:pointer;
+
+  float:left;
+  font-family:bold;
+  margin-right:1em;
+}
+
+/* This element will be shown if one of the clickboxes is enabled and can
+ * be used to unselect the open menu entry by clicking nearby the window borders.*/
+/* Place 'toggle-0' directly after 'menu_close1' one.              */
+label.menu_close1 {
+  position:fixed;
+  top:0px; left:0px;
+  width:100%;
+  cursor:pointer;
+
+	/* Your Stuff here */
+  background-color:gray;
+	opacity: 0.25;
+}
+input.menu_clickbox[type=radio]:checked ~ label.menu_close1 {
+
+}
+
+/* Extra declarations for menu_close1 in non-animated variant */
+label.menu_close1.not_animated {
+  display:none;
+  height:100%;
+}
+input.menu_clickbox[type=radio]:checked ~ label.menu_close1.not_animated {
+  display:inherit;
+}
+
+/* Extra declarations for menu_close1 in animated variant */
+label.menu_close1.animated {
+  /*display:none;*/
+ /* Animations by transition can not be combined with display-none.
+	* Using height:0px instead.*/
+  height:0px;
+	opacity:0.0;
+
+	/* Delay of opacity animation to wait on div.animated.i
+	 * The animation interleaving to speed up closing animation. */
+	/* Reset of height needs to be delayed until the animation is over */
+  transition: opacity 0.5s ease-in 0.25s, height 0.0s linear 0.75s;
+}
+input.menu_clickbox[type=radio]:checked ~ label.menu_close1.animated {
+  height:100%;
+	opacity:0.25;
+	transition: opacity 0.5s ease-in-out;
+}
+
+
+/** Secord layer **/
+div.ani {
+  position:fixed;
+  top:0px; left:50%;
+	transform: translate(-50%, 0);
+  min-width:80%;
+  max-width: 90vw;
+  max-height: 90%;
+  margin: 4vh 0px;
+  overflow-y: auto;
+  z-index:2;
+
+	/* Your Stuff here */
+  /*border-radius: 10px;
+  background-color:#314;
+	padding-left:1em;*/
+}
+
+/* Extra declarations for div.ani in non-animated variant */
+div.ani.not_animated {
+}
+input.menu_clickbox[type=radio]:checked + div.ani.not_animated {
+}
+
+/* Extra declarations for div.ani in animated variant */
+div.ani.animated {
+  clip-path: circle(0% at 50% 50%);
+	/* No Delay on blending out animation, Here, menu_close1 waits. */
+  transition: clip-path 0.5s ease-in-out 0s;
+
+
+  /* Ugly Workaround: Ohne Höhenangabe schrumpft es auf Höhe Null, wenn der Inhalt
+	 * mit 'display:none' ausgeblendet wird. Daher muss ich hier eine Höhe
+	 * angeben, um die Ausblend-Animation zu sehen... */
+	/* In Chrome gibt es jetzt content-visibility, aber noch nicht
+	 * im FF. Damit könnte das Höhenproblem behebbar sein?! */
+  min-height: 90%;
+
+}
+input.menu_clickbox[type=radio]:checked + div.ani.animated {
+  clip-path: circle(100% at 50% 50%);
+	/* Delay added to wait on opacity transition of menu_close1 */
+  transition: clip-path 0.5s ease-in-out 0.5s;
+}
+
+/** Third layer **/
+div.in1 {
+}
+
+div.ani div.in1  {
+  display:none;
+}
+
+/* Toggled State */
+input.menu_clickbox[type=radio]:checked + div.ani > div.in1 {
+  display:inherit;
+}
+
+label.menu_close2 {
+  cursor:pointer;
+  float:right;
+  padding:0.5em;
+  padding-top:0em;
+}
+
+
+/* ?! To avoid rendering of hidden content ?! */
+iframe.content_frame {
+    height:100%;
+    width:100%;
+    display:none;
+    border:0px solid transparent;
+}
+input.menu_clickbox[type=radio]:checked + div.in1 iframe.content_frame {
+    display:inherit;
+}

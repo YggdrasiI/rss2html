@@ -107,10 +107,10 @@
 {% macro feed_full_content(entry, loop) %}
 <input type="radio" name="menu" id="toggle-{{ loop.index }}" class="menu_clickbox">
 {% if entry.content_full %}
-<div class="in1 {{ extra_css_cls }}">
+<div class="ani {{ extra_css_cls }}"><div class="in1">
     <label for="toggle-0" class="menu_close2">Close</label>
     {{ entry.content_full }}
-</div>
+</div></div>
 {% endif %}
 {% endmacro %}
 

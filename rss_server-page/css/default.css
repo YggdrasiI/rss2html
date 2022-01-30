@@ -228,7 +228,7 @@ a[href] img {
   background: #262626;
   /* -moz-Field */
 }
-div.in1 {
+div.ani {
   border: 1px solid #686a6d;
   /* THreeDShadow */
   padding: 0.5em;
@@ -321,16 +321,17 @@ content security restrictions. */
   width: 100%;
 }
 /* END 'style='-replacements */
-/* BEGIN Colour information for onclick2.css */
+/* BEGIN Colour information for onclick3.css */
 label.menu_close1 {
   background-color: gray;
+  opacity: 0.25;
 }
-div.in1 {
+div.ani {
   background: #262626;
 }
-/* END Colour information for onclick2.css */
-/* BEGIN Colour information for onclick_actions.css */
-div.in1_action {
+/* END Colour information for onclick3.css */
+/* BEGIN Colour information for onclick3_actions.css */
+div.ani_action {
   background-color: #333434;
   border: 1px solid #686a6d;
 }
@@ -338,7 +339,7 @@ ul.enclosure_actions li a {
   color: #62d9a9;
   background-color: #333434;
 }
-/* END Colour information for onclick_actions.css */
+/* END Colour information for onclick3_actions.css */
 ul.feed_actions li a {
   color: #62d9a9;
   background-color: #333434;

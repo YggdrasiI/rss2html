@@ -167,7 +167,8 @@ def find_feed_keyword_values(feed, tree):
 
     context["entries"] = entries
     context["entry_list_first_id"] = 0
-    context["entry_list_size"] = max(1, settings.ENTRIES_PER_PAGE)
+    context["entry_list_size"] = (settings.ENTRIES_PER_PAGE
+            if settings.ENTRIES_PER_PAGE > 0 else 10)
     return context
 
 

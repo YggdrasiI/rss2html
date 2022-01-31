@@ -293,8 +293,15 @@ def fetch_file(url, no_lookup_for_fresh=True, local_dir="rss_server-page/"):
         response = _HTTP.request('GET', url,
                                  headers=headers,
                                  timeout=Timeout(connect=3.2, read=60.0),
+                                 retries=1,
                                  preload_content=False,
                                 )
+        # Note about timeout/MaxRetriesError: 
+        #    If the DNS resolving hangs, it does not count
+        #    into the timeout?! Thus it will hang longer than
+        #    expected. urllib3 suggests a second thread to abort
+        #    after fixed amout of time, if it hangs.
+        # TODO
 
         try:
             # Content-Length header optional/not set in all cases…
@@ -325,7 +332,7 @@ def fetch_file(url, no_lookup_for_fresh=True, local_dir="rss_server-page/"):
 
     # urllib3
     except (TimeoutError, MaxRetryError, ResponseError, SSLError) as e:
-        logger.debug('{}: '.format(type(e).__name__, str(e)))
+        logger.debug('{}: {}'.format(type(e).__name__, str(e)))
         # raise e
         if cEl:
             # Our data is old, but the server connection failed.

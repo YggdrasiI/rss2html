@@ -1,7 +1,8 @@
 FOLDER=$(realpath .)
-USER?=$(shell whoami)
+USER?=$(shell ${SUDO_USER-:$USER})
 PYTHON_BIN?=$(shell which python3 || which python)
 SYSTEMD_INSTALL_DIR?=/etc/systemd/system
+SINCE?=1 day
 
 # To use subcommand output as file [ cat <(echo "Test") ]
 SHELL=/bin/bash
@@ -30,28 +31,32 @@ PYBABEL=$(shell echo -n "PYTHONPATH='$(SITE_PACKAGES)' ./site-packages/bin/pybab
 help:
 	@echo -e "Common targets:\n" \
 		"make run                 -- Start daemon. Quit with Ctl+C.\n" \
-		"make install_service     -- Install systemd service for automatic start\n" \
-		"                            Service will started as user '${USER}'\n" \
-		"make uninstall_service   -- Uninstall systemd service\n" \
 		"make install_deps_local  -- Install dependencies locally for this user\n" \
 		"make install_deps_global -- Install dependencies global on system\n" \
+		"USER=${USER} make install_service     -- Install systemd service for automatic start\n" \
+		"                            Service will started as user '${USER}'\n" \
+		"make uninstall_service   -- Uninstall systemd service\n" \
 		"\n" \
 		"    For developpers: \n" \
+		"make css                 -- Build CSS from LESS files.\n" \
 		"make babel_update        -- Localization: Apply source code changes in po-Files\n" \
 		"make ssl                 -- Generate self signed certificates to test HTTPS.\n" \
 		"                            This certicate is self-signed, thus the browers\n" \
 		"                            will warns the users. If needed, replace\n" \
 		"                            ssl_rss_server.[key|crt] by better ones. " \
-		"make css                 -- Build CSS from LESS files.\n" \
+		"USER=${USER} make runas  -- Start server as selected user\n" \
 		"" \
 
 run: check_env ssl
 	PYTHONPATH='$(SITE_PACKAGES)' $(PYTHON_BIN) rss_server.py
 
-runas:
+runas: check_env
 	sudo -u $(USER) PYTHONPATH='$(SITE_PACKAGES)' $(PYTHON_BIN) rss_server.py
 
 %.service: %.service.template
+	echo "Create service file for user '$(USER)'."
+	test "$(USER)" != "root" \
+		|| (echo "Selected user for template is root. Aborting creation." && false)
 	@echo "Create systemd service file for startup."
 	sed -e "s#{USER}#$(USER)#g" \
 		-e "s#{FOLDER}#$(FOLDER)#g" \
@@ -92,6 +97,9 @@ css: rss_server-page/less/default.css \
 	rss_server-page/less/light.css \
 	rss_server-page/less/dark.css
 	mv rss_server-page/less/*.css rss_server-page/css/.
+
+log:
+	journalctl -u rss_server --since "$(SINCE) ago"
 
 # ====================================================
 clean:

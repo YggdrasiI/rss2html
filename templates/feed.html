@@ -55,16 +55,23 @@
         {% for entry in entries[entry_list_first_id:entry_list_first_id+entry_list_size] %}
         {{ feed(entry, loop, False) }}
         {% endfor %}
-
-        {# This needs do be defined after above elements #}
-        <input type="radio" name="menu" id="toggle-0" class="menu_clickbox">
         <!-- End -->
     </div>
     <div id="fullContents">
-        {% for entry in entries %}
+        {% for entry in entries[entry_list_first_id:entry_list_first_id+entry_list_size] %}
         {{ feed_full_content(entry, loop) }}
         {% endfor %}
+
+				{#
+				These labels will be shown if the CSS rule
+				input.menu_clickbox[type=radio]:checked ~ label.menu_close1
+				triggers for input fields above this elements. 
+				Label is followed by an other input field (matching for/id).
+				This does not trigger the CSS-rule.
+				#}
         <label for="toggle-0" class="menu_close1 {{ menu_animation_cls }}"></label>
+        {# This needs do be defined after above elements #}
+        <input type="radio" name="menu" id="toggle-0" class="menu_clickbox">
     </div>
 </div>
 <iframe name="non_js_fallback" class="non_js_fallback" title="Displays api return values"></iframe> 
@@ -139,7 +146,7 @@
             class="action_open">Actions‣</label></div>
     <input type="radio" name="menu" id="action_toggle-{{ idx1 }}-{{ idx2 }}" class="menu_clickbox">
     <div class="ani_action {{ menu_animation_cls }}">
-      <div class="in1_action"><label for="action_toggle-0" class="menu_close2">✖</label>
+			<div class="in1_action"><label for="action_toggle-{{ idx1 }}-0" class="menu_close2">✖</label>
         <span class="enclosure_filename">{{
             en.enclosure_filename|clipped_media_name(60) }}</span>
         <ul class="enclosure_actions">
@@ -153,13 +160,14 @@
             </li>
             {% endfor %}
         </ul>
+				<label for="action_toggle-{{ idx1 }}-0" class="menu_close1 {{ menu_animation_cls }}"></label>
+				<input type="radio" name="menu" id="action_toggle-{{ idx1 }}-0" class="menu_clickbox">
       </div>
     </div>
 
-    <label for="action_toggle-0" class="menu_close1 {{ menu_animation_cls }}"></label>
     {#
     <!-- On the same hirarchy level after all elements (or after each element) -->
-    <label for="action_toggle-0" class="menu_close1"></label>
+    <label for="action_toggle-0" class="menu_close1 {{ menu_animation_cls }}"></label>
 
     <!-- After elements -->
     <input type="radio" name="menu" id="action_toggle-0" class="menu_clickbox">

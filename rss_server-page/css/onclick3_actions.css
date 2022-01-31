@@ -1,7 +1,9 @@
 /* Extends/Adapts onclick2.css */
 /* Here 'in1...' classes are renamed to 'in1_action... */
 
+/** First layer **/
 
+/** Secord layer **/
 div.ani_action {
   position:fixed;
   top:10vh; left:10vw;
@@ -14,10 +16,53 @@ div.ani_action {
   /*background-color: #222222;*/
 }
 
-input.menu_clickbox[type=radio]:checked + div.in1_action iframe.content_frame {
+div.ani_action.not_animated {
+	display:none;
+}
+input.menu_clickbox[type=radio]:checked + div.ani_action.not_animated {
+	display:inherit;
+}
+
+/* Extra declarations for div.ani_action in animated variant */
+div.ani_action.animated{
+  clip-path: circle(0% at 50% 50%);
+	/* No Delay on blending out animation, Here, menu_close1 waits. */
+  transition: clip-path 0.5s ease-in-out 0s;
+
+
+  /* Ugly Workaround: Ohne Höhenangabe schrumpft es auf Höhe Null, wenn der Inhalt
+	 * mit 'display:none' ausgeblendet wird. Daher muss ich hier eine Höhe
+	 * angeben, um die Ausblend-Animation zu sehen... */
+	/* In Chrome gibt es jetzt content-visibility, aber noch nicht
+	 * im FF. Damit könnte das Höhenproblem behebbar sein?! */
+  min-height: 80%;
+}
+input.menu_clickbox[type=radio]:checked + div.ani_action.animated {
+  clip-path: circle(100% at 50% 50%);
+	/* Delay added to wait on opacity transition of menu_close1 */
+  transition: clip-path 0.5s ease-in-out 0.5s;
+}
+
+
+/** Third layer **/
+div.ani_action > div.in1_action {
+  display:none;
+}
+
+/* Toggled State */
+input.menu_clickbox[type=radio]:checked + div.ani_action > div.in1_action {
   display:inherit;
 }
 
+
+/* ?! To avoid rendering of hidden content ?! */
+/* Kann wahrscheinlich weg */
+input.menu_clickbox[type=radio]:checked + div.ani_action > div.in1_action iframe.content_frame {
+    display:inherit;
+}
+
+
+/* Opening label for action overlay menu */
 div.in2_action {
   display: inline;
 }
@@ -28,7 +73,6 @@ label.action_open {
 
   font-family:bold;
 }
-
 
 /* Definitions for content of action overlay menu */
 
@@ -129,35 +173,3 @@ div.in1_action .enclosure_filename{
   border-radius: 10px;
 }
 
-div.in1_action {
-  display:none;
-}
-
-/* Toggled State */
-input.menu_clickbox[type=radio]:checked + div.ani_action > div.in1_action {
-  display:inherit;
-}
-
-/* Optional animation */
-div.ani_action.animated{
-  clip-path: circle(0% at 50% 50%);
-	/* No Delay on blending out animation, Here, menu_close1 waits. */
-  transition: clip-path 0.5s ease-in-out 0s;
-
-
-  /* Ugly Workaround: Ohne Höhenangabe schrumpft es auf Höhe Null, wenn der Inhalt
-	 * mit 'display:none' ausgeblendet wird. Daher muss ich hier eine Höhe
-	 * angeben, um die Ausblend-Animation zu sehen... */
-	/* In Chrome gibt es jetzt content-visibility, aber noch nicht
-	 * im FF. Damit könnte das Höhenproblem behebbar sein?! */
-  min-height: 80%;
-}
-input.menu_clickbox[type=radio]:checked + div.ani_action.animated {
-  clip-path: circle(100% at 50% 50%);
-	/* Delay added to wait on opacity transition of menu_close1 */
-  transition: clip-path 0.5s ease-in-out 0.5s;
-}
-
-input.menu_clickbox[type=radio]:checked + div.in1_action iframe.content_frame {
-    display:inherit;
-}

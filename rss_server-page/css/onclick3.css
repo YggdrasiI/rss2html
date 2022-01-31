@@ -21,6 +21,17 @@
  *   .animated : Add this class to '.menu_close1' and '.ani' Elements.
  *   .not_animated : Or this one if no animation is desired.
  *
+ * How it works:
+ *   It's based around the 'a + b', 'a ~ c' selection rules and
+ *   the :checked-pseudo selector.
+ *   a::checked + b triggers for one selected input field and is showing
+ *                  a menu entry.
+ *   a::checked ~ c triggers for all input fields before c and is showing
+ *                  a fullscreen label to deselect a ( => exit menu)
+ *
+ *   To avoid rendering overhead on page load and to avoid redering of
+ *   invisible links (Screen reader, Tridactyl…) display:none is needed, too.
+ *
  * Minimal example:
 <html>
 	<head>
@@ -46,7 +57,7 @@
     <!-- More elements with [id|for]=toggle-2, toggle-3,… -->
 
     <!-- On the same hirarchy level after all elements (or after each element) -->
-    <label for="toggle-0" class="menu_close1"></label>
+    <label for="toggle-0" class="menu_close1 animated"></label>
 
     <!-- After elements -->
     <input type="radio" id="toggle-0" class="menu_clickbox">
@@ -81,16 +92,17 @@ label.menu_close1 {
 
 	/* Your Stuff here */
   background-color:gray;
-	opacity: 0.25;
 }
 input.menu_clickbox[type=radio]:checked ~ label.menu_close1 {
-
 }
 
 /* Extra declarations for menu_close1 in non-animated variant */
 label.menu_close1.not_animated {
   display:none;
   height:100%;
+
+	/* Your Stuff here */
+	opacity: 0.25;
 }
 input.menu_clickbox[type=radio]:checked ~ label.menu_close1.not_animated {
   display:inherit;
@@ -136,8 +148,10 @@ div.ani {
 
 /* Extra declarations for div.ani in non-animated variant */
 div.ani.not_animated {
+	display:none;
 }
 input.menu_clickbox[type=radio]:checked + div.ani.not_animated {
+	display:inherit;
 }
 
 /* Extra declarations for div.ani in animated variant */
@@ -162,10 +176,7 @@ input.menu_clickbox[type=radio]:checked + div.ani.animated {
 }
 
 /** Third layer **/
-div.in1 {
-}
-
-div.ani div.in1  {
+div.ani > div.in1  {
   display:none;
 }
 
@@ -183,12 +194,13 @@ label.menu_close2 {
 
 
 /* ?! To avoid rendering of hidden content ?! */
+/* Kann wahrscheinlich weg */
 iframe.content_frame {
     height:100%;
     width:100%;
     display:none;
     border:0px solid transparent;
 }
-input.menu_clickbox[type=radio]:checked + div.in1 iframe.content_frame {
+input.menu_clickbox[type=radio]:checked + div.ani > div.in1 iframe.content_frame {
     display:inherit;
 }

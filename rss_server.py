@@ -397,12 +397,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     return self.show_msg(error_msg, True)
 
                 # Parse 'page' uri argument (affects etag!)
-                page = 1
-                if settings.CONTENT_MAX_ENTRIES > 0:
-                    try:
-                        page = int(query_components.setdefault("page", ['1'])[-1])
-                    except:
-                        pass
+                page = int(query_components.setdefault("page", ['1'])[-1])
 
                 # Generate etag
                 etag = '"{}p{}"'.format(
@@ -444,9 +439,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 res = feed.context.copy()
 
                 # Select displayed range of feed entries
-                if settings.CONTENT_MAX_ENTRIES > 0:
+                if settings.ENTRIES_PER_PAGE > 0:
                     res["entry_list_first_id"] = (page-1) * \
-                            res["entry_list_size"]
+                            settings.ENTRIES_PER_PAGE
 
                     # feed.context["query_components"] = query_components
                     res["feed_page"] = page

@@ -66,8 +66,8 @@ CACHE_MEMORY_LIMIT = 5E7 # 50 MB
 CACHE_DISK_LIMIT = 10 * CACHE_MEMORY_LIMIT  # Only required if CACHE_DIR is set
 
 # Save/load cached feed xmls on server stop/start.
-# CACHE_DIR = '$HOME/.cache'
-CACHE_DIR = None  # Disabled if None
+CACHE_DIR = '$HOME/.cache'
+# CACHE_DIR = None  # Disabled if None
 
 MAX_FEED_BYTE_SIZE = 1E7
 ALLOWED_FILE_EXTENSIONS = [".css", ".png", ".jpg", ".svg", ".js"]
@@ -82,7 +82,7 @@ DETAIL_PAGE_ANIMATED = False
 # Limits on latest feed entries if > -1
 CONTENT_MAX_ENTRIES = -1
 
-# Split feed entries on multiple pages.
+# Split feed entries (up to CONTENT_MAX_ENTRIES) on multiple pages.
 ENTRIES_PER_PAGE = -1
 
 # Some podcast feeds uses very long <content:encoded>-Tags

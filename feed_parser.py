@@ -161,10 +161,13 @@ def find_feed_keyword_values(feed, tree):
         entries.append(entry)
         entries_len += len(content_full)
 
+        if (settings.CONTENT_MAX_ENTRIES > -1 and
+            settings.CONTENT_MAX_ENTRIES <= len(entries)):
+            break;
+
     context["entries"] = entries
     context["entry_list_first_id"] = 0
-    context["entry_list_size"] = settings.CONTENT_MAX_ENTRIES \
-            if settings.CONTENT_MAX_ENTRIES > 0 else len(entries)
+    context["entry_list_size"] = max(1, settings.ENTRIES_PER_PAGE)
     return context
 
 

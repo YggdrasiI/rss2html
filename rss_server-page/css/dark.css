@@ -322,10 +322,6 @@ content security restrictions. */
 }
 /* END 'style='-replacements */
 /* BEGIN Colour information for onclick3.css */
-label.menu_close1 {
-  background-color: gray;
-  opacity: 0.25;
-}
 div.ani {
   background: #262626;
 }
@@ -338,6 +334,9 @@ div.ani_action {
 ul.enclosure_actions li a {
   color: #62d9a9;
   background-color: #333434;
+}
+.in1_action label.menu_close2 {
+  font-size: 150%;
 }
 /* END Colour information for onclick3_actions.css */
 ul.feed_actions li a {

@@ -102,7 +102,10 @@
             <!-- On the same hirarchy level after all elements (or after each element) -->
 
             <!-- After elements -->
-            <input type="radio" name="menu" id="action_toggle-0" class="menu_clickbox">
+						{#
+						<label for="action_toggle-0" class="menu_close1 {{ menu_animation_cls }}"></label>
+						<input type="radio" name="menu" id="action_toggle-0" class="menu_clickbox">
+						#}
         </div>
         {% endif %}
     </div>
@@ -160,18 +163,16 @@
             </li>
             {% endfor %}
         </ul>
-				<label for="action_toggle-{{ idx1 }}-0" class="menu_close1 {{ menu_animation_cls }}"></label>
-				<input type="radio" name="menu" id="action_toggle-{{ idx1 }}-0" class="menu_clickbox">
       </div>
     </div>
 
-    {#
+    
     <!-- On the same hirarchy level after all elements (or after each element) -->
-    <label for="action_toggle-0" class="menu_close1 {{ menu_animation_cls }}"></label>
+		<label for="action_toggle-{{ idx1 }}-0" class="menu_close1 {{ menu_animation_cls }}"></label>
 
     <!-- After elements -->
-    <input type="radio" name="menu" id="action_toggle-0" class="menu_clickbox">
-    #}
+		<input type="radio" name="menu" id="action_toggle-{{ idx1 }}-0" class="menu_clickbox">
+   }
 
 </div>
 {% endmacro %}

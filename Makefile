@@ -12,11 +12,6 @@ DEBUG?=1
 # Fallback position for packages which are not installed.
 SITE_PACKAGES=site-packages
 PIP_PACKAGES=$(shell cat "requirements.txt" | sed "s/.*/\"\0\"/")
-# 'Jinja2>=2.10' \
-#			 'httplib2' \
-#			 'babel>=2.6' \
-#			 'python-pam' \
-#			 'webassets-babel>=0.3' \
 
 # Template releated
 # JINIJA_2_10=https://files.pythonhosted.org/packages/56/e6/332789f295cf22308386cf5bbd1f4e00ed11484299c5d7383378cf48ba47/Jinja2-2.10.tar.gz

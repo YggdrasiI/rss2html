@@ -15,16 +15,6 @@ class LoginType(Enum):
     NONE = None
     SINGLE_USER = "single_user"
     USERS = "users"
-    PAM = "pam"
-
-"""
-try:
-    from pam import pam
-    PAM=True
-except ImportError:
-    PAM=False
-"""
-
 
 class Session():
     def __init__(self, request, secret):
@@ -218,47 +208,10 @@ class ExplicitSession(Session):
         return False
 
 
-# Verify users over pam
-class PamSession(Session):
-    def init(self, user, password, **kwargs):
-        self.login_ok = False
-
-        """
-        if not PAM:
-            logger.debug("PAM login not available. Install python-pam.")
-            return False
-
-        # Requires read access on /etc/shadow
-        p = pam()
-        if p.authenticate(user, password):
-            return super().init(user, **kwargs)
-
-        logger.debug("PAM login failed for '{}'.".format(user))
-        return False
-        """
-
-        # Try out password over su-call
-        check_cmd=("su", "-c true", user)
-        su_proc = Popen(check_cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        su_proc.communicate(password.encode('utf-8'))
-        try:
-            su_proc.wait(2.0)  # Hm, limits brute force waiting time…
-        except TimeoutExpired:
-            return False
-
-        exit_code = su_proc.poll()
-        logger.debug("Exit_code: " + str(exit_code))
-        if (exit_code == 0):
-            return super().init(user, **kwargs)
-
-        return False
-
-
 SESSION_TYPES = {
     LoginType.NONE: LoginFreeSession,
     LoginType.SINGLE_USER: DefaultUserSession,
     LoginType.USERS: ExplicitSession,
-    LoginType.PAM: PamSession,
 }
 
 def init_session(request, settings):

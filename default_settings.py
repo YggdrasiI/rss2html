@@ -42,8 +42,6 @@ PUB_DATE_FORMAT = "%Y%m%d"
 #                        trigger all actions, defined below.
 #                        Use None if you do not want this.
 #               "users": Use USER-dict, below.
-#                 "pam": Allow login for every account on this
-#                        machine. Do NOT use this without SSL!
 LOGIN_TYPE = None
 
 # User list, used for LOGIN_TYPE == "list"

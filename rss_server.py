@@ -1106,7 +1106,7 @@ if __name__ == "__main__":
                  "the associated actions." )
               + _("This could be dangerous if you use user defined actions. "))
 
-    if settings._LOGIN_TYPE in [LoginType.USERS, LoginType.PAM] and not settings.SSL:
+    if settings._LOGIN_TYPE in [LoginType.USERS] and not settings.SSL:
         warn( _("Warning: Without SSL login credentials aren't encrypted. ")
               + _("This could be dangerous if you use user defined actions. "))
 

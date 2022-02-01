@@ -20,6 +20,7 @@ from random import randint
 from warnings import warn
 # from importlib import reload
 import ssl
+from enum import Enum, auto
 
 #from gettext import gettext as _
 from locale_gettext import gettext as _, set_gettext
@@ -58,6 +59,23 @@ XML_NAMESPACES = {'content': 'http://purl.org/rss/1.0/modules/content/',
                   'atom': 'http://www.w3.org/2005/AtomX',
                   'atom10': 'http://www.w3.org/2005/Atom',
                  }
+
+class ViewType(Enum):
+    INDEX_PAGE = auto()
+    ADD_FAVS = auto()
+    REMOVE_FEED = auto()
+    QUIT = auto()
+    RELOAD = auto()
+    LOGIN = auto()
+    LOGOUT = auto()
+    SHOW_LOGIN = auto()
+    CHANGE_STYLE = auto()
+    USER_ACTION = auto()
+    SHOW_FEED = auto()
+    SHOW_FEED_FROM_FILE = auto()
+    ACTION_ICONS_CSS = auto()
+    SYSTEM_ICON = auto()
+    PROVIDE_FILE = auto()
 
 # TIMEZONE = str(datetime.now(timezone(timedelta(0))).astimezone().tzinfo)
 # DATE_HEADER_FORMAT = "%a, %d %h %Y %T {}".format(TIMEZONE)
@@ -153,7 +171,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
 
 
-    directory="rss_server-page"  # for Python 3.4
+    # directory="rss_server-page"  # for Python 3.4
 
     def __init__(self, *largs, **kwargs):
         self.session = init_session(self, settings)
@@ -163,8 +181,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         self.save_session = False
         self.context = {}
 
-        super().__init__(*largs, **kwargs)  # for Python 3.4
-        # super().__init__(*largs, directory="rss_server-page", **kwargs)
+        # super().__init__(*largs, **kwargs)  # for Python 3.4
+        super().__init__(*largs, directory="rss_server-page", **kwargs)
 
     def end_headers(self):
         # Add HTTP/1.1 header data required for each request.
@@ -312,308 +330,107 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         if user_css_style and user_css_style in CSS_STYLES:
             self.context["user_css_style"] = user_css_style
 
-        query_components = parse_qs(urlparse(self.path).query)
-        feed_feched = False
-        error_msg = None
-        feed_key = qget(query_components, "feed")  # key, url or feed title
-        filepath = qget(query_components, "file")  # From 'open with' dialog
-        bUseCache = (qget(query_components, "cache", "1") != "0")
-        url_update = (qget(query_components, "url_update", "0") != "0")
-        add_favs = query_components.get("add_fav", [])  # List!
-        to_rm = query_components.get("rm", [])          # List!
-        etag = None
-
-
-        # entryid=0: Newest entry of feed. Thus, id not stable due feed updates
-        try:
-            entryid = int(qget(query_components, "entry", None))
-        except:
-            entryid = None
-
-
-        if add_favs:
-            self.do_add_favs(add_favs)
-            return self.session_redirect('/')
-
-        if to_rm:
-            self.do_rm_feed(to_rm)
-            return self.session_redirect('/')
-
         # Switch _ to language of request.
         # (Note: In templates Jinja2 translates, but not
         # in _("") calls in the py's files itself.)
         set_gettext(self.server.html_renderer, self.context)
 
+        query_components = parse_qs(urlparse(self.path).query)
+        view = self.eval_view(self.path, query_components)
 
-        if self.path == "/quit":
-            ret = self.show_msg(_("Quit"))
-
-            def __delayed_shutdown():
-                sleep(1.0)
-                self.server.shutdown()
-
-            t = Thread(target=__delayed_shutdown)
-            t.daemon = True
-            t.start()
+        ret = self.error_page_if_login_required(view)
+        if ret:
             return ret
 
-        elif self.path == "/reload":
+        if view == ViewType.QUIT:
+            return self.handle_quit()
+        if view == ViewType.ADD_FAVS:
+            add_favs = query_components.get("add_fav", [])  # List!
+            self.do_add_favs(add_favs)
+            return self.session_redirect('/')
+        if view == ViewType.REMOVE_FEED:
+            to_rm = query_components.get("rm", [])          # List!
+            self.do_rm_feed(to_rm)
+            return self.session_redirect('/')
+        elif view == ViewType.RELOAD:
             self.reload_favs()
             return self.session_redirect('/')
-        elif self.path.startswith("/login?"):
+        elif view == ViewType.LOGIN:
             return self.handle_login(query_components)
-        elif self.path == "/login":
+        elif view == ViewType.SHOW_LOGIN:
             return self.show_login()
-        elif self.path ==  "/logout":
+        elif view == ViewType.LOGOUT:
             return self.handle_logout(query_components)
-        elif self.path.startswith("/change_style"):
+        elif view == ViewType.CHANGE_STYLE:
             self.handle_change_css_style(query_components)
             return self.session_redirect('/')
-            # return self.write_index()
-        elif self.path.startswith("/action"):
-            try:
-                ret = self.handle_action(query_components)
-            except Exception as e:
-                error_msg = str(e)
-            else:
-                return ret
-
-        elif feed_key:
-            try:
-                feed = get_feed(feed_key,
-                                self.get_favorites(),
-                                self.get_history())[0]
-                feed_url = feed.url if feed else feed_key
-
-                res = None
-                (cEl, code) = cached_requests.fetch_file(
-                        feed_url, bUseCache, MyHandler.directory)
-
-                if cEl is None:
-                    if code == 500:
-                        error_msg = _('Cannot fetch data for this feed.')
-                    else:
-                        error_msg = _('No feed found for this URI arguments.')
-                    return self.show_msg(error_msg, True)
-
-                # Parse 'page' uri argument (affects etag!)
-                page = int(query_components.setdefault("page", ['1'])[-1])
-
-                # Generate etag
-                etag = '"{}p{}"'.format(
-                    hashlib.sha1((cEl.byte_str if cEl.byte_str is not None \
-                                  else "")).hexdigest(),
-                    page
-                )
-                #logger.debug("Eval ETag '{}'".format(etag))
-                #logger.debug("Browser ETag '{}'".format(self.headers.get("If-None-Match", "")))
-                # logger.debug("Received headers:\n{}".format(self.headers))
-
-                # If feed is unchanged and tags match return nothing, but 304.
-                if code == 304 and self.headers.get("If-None-Match", "") == etag:
-                    self.send_response(304)
-                    self.send_header('ETag', etag)
-                    self.send_header('Cache-Control', "public, max-age=10, ")
-                            # "must-revalidate, post-check=0, pre-check=0")
-                    self.send_header('Vary', "ETag, User-Agent")
-                    self.end_headers()
-                    return None
-
-                # tree = ElementTree.XML(cEl.byte_str.decode('utf-8'))
-                # res = find_feed_keyword_values(tree)
-
-                if not feed:
-                    feed = Feed("", feed_url)
-                    bNew = True
-                else:
-                    bNew = False
-
-                if code == 304 and len(feed.context)>0:
-                    logger.debug("Skip parsing of feed and re-use previous")
-                elif not feed_parser.parse_feed(feed, cEl.byte_str):
-                    error_msg = _('Parsing of Feed XML failed.')
-                    return self.show_msg(error_msg, True)
-
-                # Note: without copy, changes like warnings on res
-                # would be stored peristend into feed.context.
-                res = feed.context.copy()
-
-                # Select displayed range of feed entries
-                if settings.ENTRIES_PER_PAGE > 0:
-                    res["entry_list_first_id"] = (page-1) * \
-                            settings.ENTRIES_PER_PAGE
-
-                    # feed.context["query_components"] = query_components
-                    res["feed_page"] = page
-
-                self.update_cache_feed(feed, bNew)
-
-                # Warn if feed url might changes
-                parsed_feed_url = res["href"]
-                if (not url_update and parsed_feed_url
-                    and parsed_feed_url != feed_url):
-                    res.setdefault("warnings", []).append({
-                        "title": _("Warning"),
-                        "msg": _(
-                            """Feed url difference detected. It might
-                            be useful to <a href="/?{ARGS}&url_update=1">update</a> \
-                            the stored url.<br /> \
-                            Url in config/history file: {OLD_URL}<br /> \
-                            Url in feed xml file: {NEW_URL} \
-                            """).format(OLD_URL=feed_url,
-                                        NEW_URL=parsed_feed_url,
-                                        ARGS="feed=" + quote(str(feed_key)),
-                                       )
-                    })
-
-                res["nocache_link"] = True
-                res["session_user"] = session_user
-
-                # Replace stored url, if newer value is given.
-                if feed and url_update and res["href"]:
-                    feed_url = feed.url
-                    feed.url = res["href"]
-                    feed.title = res.get("title", feed.title)
-                    self.save_feed_change(feed)
-
-                if entryid:
-                    html = "TODO"
-                else:
-                    context = {}
-                    context.update(self.context)
-                    context.update(res)
-                    html = self.server.html_renderer.run("feed.html", context)
-
-            except ValueError as e:
-                error_msg = str(e)
-            except:
-                raise
-            else:
-                feed_feched = True
-
-        elif filepath:
-            # No cache read in this variant
-            try:
-                www_dir = os.path.realpath(MyHandler.directory)
-                if os.path.isabs(filepath):
-                    feed_filepath = filepath
-                else:
-                    feed_filepath = os.path.join(www_dir, filepath)
-                    feed_filepath = os.path.realpath(feed_filepath)
-
-                if not feed_filepath.startswith(www_dir):
-                    logger.debug("Datei NICHT aus www-Dir")
-
-                # TODO: Restrict reading on several allowed paths here?!
-                # Currently only the failing parsing below prevents users
-                # from reading arbitary files.
-                logger.debug("Read {}".format(feed_filepath))
-
-                try:
-                    byte_str = load_xml(feed_filepath)
-
-                    feed_new = Feed("", filepath)
-                    if not feed_parser.parse_feed(feed_new, byte_str):
-                        error_msg = _('Parsing of Feed XML failed.')
-                        return self.show_msg(error_msg, True)
-
-                except FileNotFoundError:
-                    error_msg = _("Feed XML document '{}' does not " \
-                                  "exists.".format(filepath))
-                    return self.show_msg(error_msg, True)
-                except ElementTree.ParseError:
-                    error_msg = _("Parsing of feed XML document '{}' " \
-                                  "failed.".format(filepath))
-                    return self.show_msg(error_msg, True)
-                except Exception as e:
-                    raise(e)
-                    error_msg = _("Loading of feed XML document '{}' " \
-                                  "failed.".format(filepath))
-                    return self.show_msg(error_msg, True)
-
-                # res = find_feed_keyword_values(tree)
-                res = feed_new.context
-
-                self.update_cache_filepath(feed_new, byte_str)
-                res["nocache_link"] = res["title"]
-                res["session_user"] = session_user
-
-                context = {}
-                context.update(self.context)
-                context.update(res)
-                html = self.server.html_renderer.run("feed.html", context)
-
-            except ValueError as e:
-                error_msg = str(e)
-            except:
-                raise
-            else:
-                feed_feched = True
-
-        if error_msg:
-            return self.show_msg(error_msg, True)
-        elif feed_feched:
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
-            self.send_header('Cache-Control', "public, max-age=10, ")
-            if etag:
-                # logger.debug("Add ETag '{}'".format(etag))
-                self.send_header('ETag', etag)
-                self.send_header('Vary', "ETag, User-Agent")
-
-            if self.save_session:
-                self.session.save()
-
-            output = BytesIO()
-            output.write(html.encode('utf-8'))
-            output.seek(0, os.SEEK_END)
-            self.send_header('Content-Length', output.tell())
-            self.end_headers()
-
-            self.wfile.write(output.getvalue())
-
-        elif self.path == "/css/action_icons.css":
+        elif view == ViewType.USER_ACTION:
+            return self.handle_action(query_components)
+        elif view == ViewType.SHOW_FEED:
+            return self.handle_show_feed(query_components)
+        elif view == ViewType.SHOW_FEED_FROM_FILE:
+            return self.handle_show_feed_from_file(query_components)
+        elif view == ViewType.ACTION_ICONS_CSS:
             return action_icon_dummy_classes(self)
-        elif self.path.startswith("/icons/system/"):
-            image = icon_searcher.get_cached_file(self.path)
-            if not image:
-                return self.send_error(404)
-
-            self.send_response(200)
-            if self.path.endswith(".svg"):
-                # text/xml would be wrong and FF won't display embedded svg
-                self.send_header('Content-type', 'image/svg+xml')
-            else:
-                self.send_header('Content-type', 'image')
-
-            self.send_header('Cache-Control', "public, max-age=86000, ")
-            # self.send_header('last-modified', self.date_time_string())
-            self.send_header('Last-Modified', "Wed, 21 Oct 2019 07:28:00 GMT")
-            self.send_header('Vary', "User-Agent")
-            # TODO: Image not cached :-(
-
-            output = BytesIO()
-            output.write(image)
-            output.seek(0, os.SEEK_END)
-            self.send_header('Content-Length', output.tell())
-            self.end_headers()
-
-            self.wfile.write(output.getvalue())
-
-        elif self.path in ["/", "/index.html"]:
-            # self.session.load(self)
+        elif view == ViewType.SYSTEM_ICON:
+            return self.system_icon(self)
+        elif view == ViewType.INDEX_PAGE:
             return self.write_index()
-        elif os.path.splitext(urlparse(self.path).path)[1] in \
-                settings.ALLOWED_FILE_EXTENSIONS:
-            self.path = MyHandler.directory + self.path  # for Python 3.4
-            ret =  super().do_GET()
-        elif self.path == "/robots.txt":
-            self.path = MyHandler.directory + self.path  # for Python 3.4
-            ret =  super().do_GET()
+        elif view == ViewType.PROVIDE_FILE:
+            # self.path = MyHandler.directory + self.path  # for Python 3.4
+            return super().do_GET()
         else:
             print(self.path)
             # return super().do_GET()
             return self.send_error(404)
+
+    def eval_view(self, path, query_components):
+        # eval handler for do_GET operation
+
+        session_user = self.session.get_logged_in("user")
+
+        feed_key = qget(query_components, "feed")  # key, url or feed title
+        filepath = qget(query_components, "file")  # From 'open with' dialog
+        #add_favs = query_components.get("add_fav", [])  # List!
+        #to_rm = query_components.get("rm", [])          # List!
+
+        if "add_fav" in query_components:
+            return ViewType.ADD_FAVS
+
+        if "rm" in query_components:
+            return ViewType.REMOVE_FEED
+
+        if self.path == "/quit":
+            return ViewType.QUIT
+        elif self.path == "/reload":
+            return ViewType.RELOAD
+        elif self.path.startswith("/login?"):
+            return ViewType.LOGIN
+        elif self.path == "/login":
+            return ViewType.SHOW_LOGIN
+        elif self.path ==  "/logout":
+            return ViewType.SHOW_LOGOUT
+        elif self.path.startswith("/change_style"):
+            return ViewType.CHANGE_STYLE
+        elif self.path.startswith("/action"):
+            return ViewType.USER_ACTION
+        elif feed_key:
+            return ViewType.SHOW_FEED
+        elif filepath:
+            return ViewType.SHOW_FEED_FROM_FILE
+        elif self.path == "/css/action_icons.css":
+            return ViewType.ACTION_ICONS_CSS
+        elif self.path.startswith("/icons/system/"):
+            return ViewType.SYSTEM_ICON
+        elif self.path in ["/", "/index.html"]:
+            return ViewType.INDEX_PAGE
+        elif os.path.splitext(urlparse(self.path).path)[1] in \
+                settings.ALLOWED_FILE_EXTENSIONS:
+            return ViewType.PROVIDE_FILE
+        elif self.path == "/robots.txt":
+            return ViewType.PROVIDE_FILE
+        else:
+            return None
 
     def write_index(self):
         session_user = self.session.get_logged_in("user")
@@ -803,6 +620,257 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         except KeyError:
                 raise Exception("CSS style with this name not defined")
 
+    def handle_show_feed(self, query_components):
+        session_user = self.session.get_logged_in("user", "")
+
+        feed_key = qget(query_components, "feed")  # key, url or feed title
+        bUseCache = (qget(query_components, "cache", "1") != "0")
+        url_update = (qget(query_components, "url_update", "0") != "0")
+        try:
+            feed = get_feed(feed_key,
+                            self.get_favorites(),
+                            self.get_history())[0]
+            feed_url = feed.url if feed else feed_key
+
+            res = None
+            (cEl, code) = cached_requests.fetch_file(
+                    feed_url, bUseCache, self.directory)
+
+            if cEl is None:
+                if code == 500:
+                    error_msg = _('Cannot fetch data for this feed.')
+                else:
+                    error_msg = _('No feed found for this URI arguments.')
+                return self.show_msg(error_msg, True)
+
+            # Parse 'page' uri argument (affects etag!)
+            page = int(query_components.setdefault("page", ['1'])[-1])
+
+            # Generate etag
+            etag = '"{}p{}"'.format(
+                hashlib.sha1((cEl.byte_str if cEl.byte_str is not None \
+                              else "")).hexdigest(),
+                page
+            )
+            #logger.debug("Eval ETag '{}'".format(etag))
+            #logger.debug("Browser ETag '{}'".format(self.headers.get("If-None-Match", "")))
+            # logger.debug("Received headers:\n{}".format(self.headers))
+
+            # If feed is unchanged and tags match return nothing, but 304.
+            if code == 304 and self.headers.get("If-None-Match", "") == etag:
+                self.send_response(304)
+                self.send_header('ETag', etag)
+                self.send_header('Cache-Control', "public, max-age=10, ")
+                        # "must-revalidate, post-check=0, pre-check=0")
+                self.send_header('Vary', "ETag, User-Agent")
+                self.end_headers()
+                return None
+
+            if not feed:
+                feed = Feed("", feed_url)
+                bNew = True
+            else:
+                bNew = False
+
+            if code == 304 and len(feed.context)>0:
+                logger.debug("Skip parsing of feed and re-use previous")
+            elif not feed_parser.parse_feed(feed, cEl.byte_str):
+                error_msg = _('Parsing of Feed XML failed.')
+                return self.show_msg(error_msg, True)
+
+            # Note: without copy, changes like warnings on res
+            # would be stored peristend into feed.context.
+            res = feed.context.copy()
+
+            # Select displayed range of feed entries
+            if settings.ENTRIES_PER_PAGE > 0:
+                res["entry_list_first_id"] = (page-1) * \
+                        settings.ENTRIES_PER_PAGE
+
+                # feed.context["query_components"] = query_components
+                res["feed_page"] = page
+
+            self.update_cache_feed(feed, bNew)
+
+            # Warn if feed url might changes
+            parsed_feed_url = res["href"]
+            if (not url_update and parsed_feed_url
+                and parsed_feed_url != feed_url):
+                res.setdefault("warnings", []).append({
+                    "title": _("Warning"),
+                    "msg": _(
+                        """Feed url difference detected. It might
+                        be useful to <a href="/?{ARGS}&url_update=1">update</a> \
+                        the stored url.<br /> \
+                        Url in config/history file: {OLD_URL}<br /> \
+                        Url in feed xml file: {NEW_URL} \
+                        """).format(OLD_URL=feed_url,
+                                    NEW_URL=parsed_feed_url,
+                                    ARGS="feed=" + quote(str(feed_key)),
+                                   )
+                })
+
+            res["nocache_link"] = True
+            res["session_user"] = session_user
+
+            # Replace stored url, if newer value is given.
+            if feed and url_update and res["href"]:
+                feed_url = feed.url
+                feed.url = res["href"]
+                feed.title = res.get("title", feed.title)
+                self.save_feed_change(feed)
+
+            if False:  #  entryid
+                html = "TODO"
+            else:
+                context = {}
+                context.update(self.context)
+                context.update(res)
+                html = self.server.html_renderer.run("feed.html", context)
+
+        except ValueError as e:
+            error_msg = str(e)
+            return self.show_msg(error_msg, True)
+        except:
+            raise
+        else:
+            return self.show_feed(html)
+
+
+    def handle_show_feed_from_file(self, query_components):
+        session_user = self.session.get_logged_in("user", "")
+
+        filepath = qget(query_components, "file")  # From 'open with' dialog
+        # No cache read in this variant
+        try:
+            www_dir = os.path.realpath(self.directory)
+            if os.path.isabs(filepath):
+                feed_filepath = filepath
+            else:
+                feed_filepath = os.path.join(www_dir, filepath)
+                feed_filepath = os.path.realpath(feed_filepath)
+
+            if not feed_filepath.startswith(www_dir):
+                logger.debug("Datei NICHT aus www-Dir")
+
+            # TODO: Restrict reading on several allowed paths here?!
+            # Currently only the failing parsing below prevents users
+            # from reading arbitary files.
+            logger.debug("Read {}".format(feed_filepath))
+
+            try:
+                byte_str = load_xml(feed_filepath)
+
+                feed_new = Feed("", filepath)
+                if not feed_parser.parse_feed(feed_new, byte_str):
+                    error_msg = _('Parsing of Feed XML failed.')
+                    return self.show_msg(error_msg, True)
+
+            except FileNotFoundError:
+                error_msg = _("Feed XML document '{}' does not " \
+                              "exists.".format(filepath))
+                return self.show_msg(error_msg, True)
+            except ElementTree.ParseError:
+                error_msg = _("Parsing of feed XML document '{}' " \
+                              "failed.".format(filepath))
+                return self.show_msg(error_msg, True)
+            except Exception as e:
+                # raise(e)
+                error_msg = _("Loading of feed XML document '{}' " \
+                              "failed.".format(filepath))
+                return self.show_msg(error_msg, True)
+
+            # res = find_feed_keyword_values(tree)
+            res = feed_new.context
+
+            self.update_cache_filepath(feed_new, byte_str)
+            res["nocache_link"] = res["title"]
+            res["session_user"] = session_user
+
+            context = {}
+            context.update(self.context)
+            context.update(res)
+            html = self.server.html_renderer.run("feed.html", context)
+
+        except ValueError as e:
+            error_msg = str(e)
+            return self.show_msg(error_msg, True)
+        except:
+            raise
+        else:
+            return self.show_feed(html)
+
+
+    def show_feed(self, html, etag=None):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.send_header('Cache-Control', "public, max-age=10, ")
+        if etag:
+            # logger.debug("Add ETag '{}'".format(etag))
+            self.send_header('ETag', etag)
+            self.send_header('Vary', "ETag, User-Agent")
+
+        if self.save_session:
+            self.session.save()
+
+        output = BytesIO()
+        output.write(html.encode('utf-8'))
+        output.seek(0, os.SEEK_END)
+        self.send_header('Content-Length', output.tell())
+        self.end_headers()
+
+        self.wfile.write(output.getvalue())
+
+    def system_icon(self):
+        image = icon_searcher.get_cached_file(self.path)
+        if not image:
+            return self.send_error(404)
+
+        self.send_response(200)
+        if self.path.endswith(".svg"):
+            # text/xml would be wrong and FF won't display embedded svg
+            self.send_header('Content-type', 'image/svg+xml')
+        else:
+            self.send_header('Content-type', 'image')
+
+        self.send_header('Cache-Control', "public, max-age=86000, ")
+        # self.send_header('last-modified', self.date_time_string())
+        self.send_header('Last-Modified', "Wed, 21 Oct 2019 07:28:00 GMT")
+        self.send_header('Vary', "User-Agent")
+        # TODO: Image not cached :-(
+
+        output = BytesIO()
+        output.write(image)
+        output.seek(0, os.SEEK_END)
+        self.send_header('Content-Length', output.tell())
+        self.end_headers()
+
+        self.wfile.write(output.getvalue())
+
+
+    def error_page_if_login_required(self, view):
+        session_user = self.session.get_logged_in("user", "")
+        _no_login_required = []
+        return None
+        if session_user == "" and view not in _no_login_required:
+            error_msg = _('Login required.')
+            return self.show_msg(error_msg, True)
+
+        return None
+
+
+    def handle_quit(self):
+        ret = self.show_msg(_("Quit"))
+
+        def __delayed_shutdown():
+            sleep(1.0)
+            self.server.shutdown()
+
+        t = Thread(target=__delayed_shutdown)
+        t.daemon = True
+        t.start()
+        return ret
+
     def reload_favs(self):
         settings.load_default_favs(globals())
         settings.load_users(globals())
@@ -811,6 +879,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         minimal = (False
                 if qget(query_components, "js", "0") != "0"
                 else True)
+        already_send = False  # mutex for multithreaded handling
         try:
             aname = query_components["a"][-1]
             url = unquote(query_components["url"][-1])
@@ -851,16 +920,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             error_msg = _('No feed found for given URI argument.')
             return self.show_msg(error_msg, True, minimal)
 
-        """  # Not required
-        cEl = cached_requests.fetch_from_cache(feed)
-        if cEl is None:
-            (cEl, code) = cached_requests.fetch_file(
-                    feed.url, MyHandler.directory)
-        else:
-            code = 304
-        """
-
-        if action["check"] is not None:
+        # Print error if pre-check of action fails
+        if action.get("check") is not None:
             check = action["check"]
             try:
                 if not check(feed, url, settings):
@@ -886,12 +947,21 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             error_msg = _('Running of handler for "{action_name}" failed. ' \
                           'Exception was: "{e}".')\
                     .format(action_name=action, e=e)
+            print(error_msg)
+            # Hm, durchs forken kann hier eine (zweite Antwort
+            # geschrieben werden obwohl die Antwort weiter unten
+            # schon gesendet wurde...?!
+            if not already_send:
+                already_send = True
             return self.show_msg(error_msg, True, minimal)
 
         # Handling sucessful
-        msg = _('Running of "{action_name}" for "{url}" started.') \
-                .format(action_name=action["title"], url=url)
-        return self.show_msg(msg, False, minimal)
+        sleep(2.0)
+        if not already_send:
+            msg = _('Running of "{action_name}" for "{url}" started.') \
+                    .format(action_name=action["title"], url=url)
+            already_send = True
+            return self.show_msg(msg, False, minimal)
 
     def handle_login(self, query_components):
         user = qget(query_components, "user", "")

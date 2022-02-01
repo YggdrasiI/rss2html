@@ -338,6 +338,15 @@ ul.enclosure_actions li a {
 .in1_action label.menu_close2 {
   font-size: 150%;
 }
+.non_js_fallback {
+  border: 0px solid transparent;
+  position: absolute;
+  left: 0px;
+  bottom: 0px;
+  width: 100%;
+  height: 200px;
+  z-index: -1;
+}
 /* END Colour information for onclick3_actions.css */
 ul.feed_actions li a {
   color: #62d9a9;

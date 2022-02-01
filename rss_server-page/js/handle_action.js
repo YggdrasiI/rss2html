@@ -5,8 +5,9 @@
  */
 
 function action_link(el){
-	call_link(el.href, el.parentElement.parentElement.parentElement);
-	console.log("Action url called:" + el.href);
+  var url = el.href+"&js=1";  // Add distinction to non-js call
+	call_link(url, el.parentElement.parentElement.parentElement);
+	console.log("Action url called:" + url);
 }
 
 function give_feedback(el, parent_handler){

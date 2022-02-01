@@ -77,13 +77,13 @@ ALLOWED_FILE_EXTENSIONS = [".css", ".png", ".jpg", ".svg", ".js"]
 DETAIL_PAGE = True
 
 # Show opening/close animation
-DETAIL_PAGE_ANIMATED = False
+DETAIL_PAGE_ANIMATED = True
 
 # Limits on latest feed entries if > -1
 CONTENT_MAX_ENTRIES = -1
 
 # Split feed entries (up to CONTENT_MAX_ENTRIES) on multiple pages.
-ENTRIES_PER_PAGE = -1
+ENTRIES_PER_PAGE = 10
 
 # Some podcast feeds uses very long <content:encoded>-Tags
 # This could cause issues during the rendering of the page (freezed browser

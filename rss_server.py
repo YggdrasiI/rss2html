@@ -699,7 +699,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         self.wfile.write(output.getvalue())
 
-    def show_msg(self, msg, error=False):
+    def show_msg(self, msg, error=False, minimal=False):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
 
@@ -712,9 +712,12 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         output = BytesIO()
         if error:
             self.context["msg_type"] = _("Error")
-            html = self.server.html_renderer.run("message.html", self.context)
         else:
             self.context["msg_type"] = _("Debug Info")
+
+        if minimal:
+            html = self.server.html_renderer.run("message_minimal.html", self.context)
+        else:
             html = self.server.html_renderer.run("message.html", self.context)
 
         output.write(html.encode('utf-8'))
@@ -805,15 +808,19 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         settings.load_users(globals())
 
     def handle_action(self, query_components):
+        minimal = (False
+                if qget(query_components, "js", "0") != "0"
+                else True)
         try:
             aname = query_components["a"][-1]
             url = unquote(query_components["url"][-1])
             feed_name = unquote(qget(query_components, "feed", ""))
             url_hash = query_components["s"][-1]
             action = settings.ACTIONS[aname]
+
         except (KeyError, IndexError):
             error_msg = _('URI arguments wrong.')
-            return self.show_msg(error_msg, True)
+            return self.show_msg(error_msg, True, minimal)
 
         if self.session.get_logged_in("user") == "":
             error_msg = _('Action requires login. ')
@@ -821,7 +828,20 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 error_msg += _("Define LOGIN_TYPE in 'settings.py'. " \
                                "Proper values can be found in " \
                                "'default_settings.py'. ")
-            return self.show_msg(error_msg, True)
+            return self.show_msg(error_msg, True, minimal)
+
+        # Check if url args were manipulated
+        url2 = url.replace("&js=1", "") # ignore flag added by js
+        url_hash2 = '{}'.format( hashlib.sha224(
+            (settings.ACTION_SECRET + url2 + aname).encode('utf-8')
+        ).hexdigest())
+        if url_hash != url_hash2:
+            error_msg = _('Wrong hash for this url argument.')
+            return self.show_msg(error_msg, True, minimal)
+
+        # Strip quotes and double quotes from user input
+        # for security reasons
+        url = url.replace("'","").replace('"','').replace('\\', '')
 
         # Get feed for this action (to eval download folder name, etc.)
         feed = get_feed(feed_name,
@@ -829,7 +849,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                         self.get_history())[0]
         if not feed:
             error_msg = _('No feed found for given URI argument.')
-            return self.show_msg(error_msg, True)
+            return self.show_msg(error_msg, True, minimal)
 
         """  # Not required
         cEl = cached_requests.fetch_from_cache(feed)
@@ -840,28 +860,17 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             code = 304
         """
 
-        url_hash2 = '{}'.format( hashlib.sha224(
-            (settings.ACTION_SECRET + url + aname).encode('utf-8')
-        ).hexdigest())
-        if url_hash != url_hash2:
-            error_msg = _('Wrong hash for this url argument.')
-            return self.show_msg(error_msg, True)
-
-        # Strip quotes and double quotes from user input
-        # for security reasons
-        url = url.replace("'","").replace('"','').replace('\\', '')
-
         if action["check"] is not None:
             check = action["check"]
             try:
                 if not check(feed, url, settings):
                     error_msg = _('Action not allowed for this file.')
-                    return self.show_msg(error_msg, True)
+                    return self.show_msg(error_msg, True, minimal)
             except Exception as e:
                 logger.debug("check-Handler of '{aname}' failed. " \
                              "Exception was: '{e}'.".format(aname=aname, e=e))
                 error_msg = _('Action not allowed for this file.')
-                return self.show_msg(error_msg, True)
+                return self.show_msg(error_msg, True, minimal)
 
         try:
             handler = action["handler"]
@@ -869,7 +878,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             logger.debug("Handler of action '{aname}' not defined." \
                          .format(aname))
             error_msg = _("Handler of action not defined.")
-            return self.show_msg(error_msg, True)
+            return self.show_msg(error_msg, True, minimal)
 
         try:
             handler(feed, url, settings)
@@ -877,12 +886,12 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             error_msg = _('Running of handler for "{action_name}" failed. ' \
                           'Exception was: "{e}".')\
                     .format(action_name=action, e=e)
-            return self.show_msg(error_msg, True)
+            return self.show_msg(error_msg, True, minimal)
 
         # Handling sucessful
         msg = _('Running of "{action_name}" for "{url}" started.') \
                 .format(action_name=action["title"], url=url)
-        return self.show_msg(msg)
+        return self.show_msg(msg, False, minimal)
 
     def handle_login(self, query_components):
         user = qget(query_components, "user", "")

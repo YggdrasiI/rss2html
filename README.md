@@ -125,7 +125,7 @@ following variant:
 
 	lexample = ["notify-send", "RSS VIEWER", "{url}"]
 	ACTIONS.update({
-	    "play_ssh" : { 
+	    "play_ssh" : {
 	        "handler": actions.factory__local_cmd(lexample),
 	        "check": lambda feed, url, settings: True,
 	        "title": _('Local example cmd'),
@@ -134,39 +134,42 @@ following variant:
 	})
 
 ### (Secure) way to trigger a command over SSH
-This sections shows how you could define an action to
-trigger a command on an other host. The allowed commands
-are defined in *rss2html.sh* on the remote machine.  
+This sections shows how you can trigger a command on an other
+host by invoking a script over SSH. This needes the generation
+of a new SSH Key and a binding of the script with this key.
+The allowed commands are defined in *scripts/rss2html.sh* on the remote machine.
+
+**Hint:** Step 1-3 can be completed by *scripts/install_ssh.sh*
 
 1. Create new key for rss2html:
 `ssh-keygen -f ~/.ssh/rss2html -P ""`
 
-2. Copy *rss2html_ssh.sh.example* to *rss2html.sh* and add your
+2. Copy *scripts/rss2html_ssh.sh.example* to *rss2html.sh* and add your
 commands into the script. The keyword (here: PLAY) should match
-with the value in step 2.  
+with the value in step 2.
 Copy the script onto your target system.
 
-3. Extend your *settings.py* by  
+3. Add following line in *~/.ssh/authorized_keys* on your remote system.
+The command-prefix restricts the accesses on this single script.
+	`command="{absolute path}/rss2html_ssh.sh" {Content of ~/.ssh/rss2html.pub}`
 
-		from default_settings import ACTIONS
+4. Extend your *settings.py* to propagate commands to webinterface by
+
+		`from default_settings import ACTIONS
 		import actions
 	
-		ssh_example = ("user@machine",
-		    "{absolute path}/rss2html_ssh.sh PLAY '{url}'",
-		    "~/.ssh/rss2html")
+		ssh_args = ("user@machine", "PLAY '{url}'", "~/.ssh/rss2html")
 		ACTIONS.update({
-		    "play_ssh" : { 
-		        "handler": actions.factory__ssh_cmd(*ssh_example),
+		    "play_ssh" : {
+		        "handler": actions.factory__ssh_cmd(*ssh_args),
 		        "check": actions.can_play,
 		        "title": _('SSH Play'),
 		        "icon": "icons/gnome_term.png",
 		    },
 		})
+		# ... Other
+		`
 
-4. Add following line in *~/.ssh/authorized_keys* on your remote system.  
-The command-prefix restricts the accesses on this single script.
-
-	command="{absolute path}/rss2html_ssh.sh" {Content of ~/.ssh/rss2html.pub}
 
 
 ## Developing

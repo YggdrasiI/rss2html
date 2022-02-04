@@ -1,0 +1,93 @@
+#!/bin/bash
+#
+# Allow start of a few commands over SSH. Used for
+# rss2html-programm to control this machine, e.g. starts file locally.
+# Minimal check of input arguments.
+#
+# Combine it with entry in .ssh/authorized_keys file:
+# command="[path to script]/rss2html_ssh.sh" [SSH KEY]
+
+check_args() {
+  IFS=' ' read -r -a ARG_ARRAY <<< "${SSH_ORIGINAL_COMMAND}"
+
+  # Allowed commands: PING, INFO, PLAY, DOWNLOAD
+  case "${ARG_ARRAY[0]}" in
+		PING)
+			echo "PONG"
+			;;
+    INFO)
+			print_info "${ARG_ARRAY[1]}"
+        ;;
+    PLAY)
+	    play_mpv "${ARG_ARRAY[1]}"
+      ;;
+
+    DOWNLOAD)
+	    download_wget "${ARG_ARRAY[1]}"
+      ;;
+    *)
+        echo "Command not defined/allowed on ssh server side."
+        ;;
+esac
+
+}
+
+unquote() {
+	# Convert "'s'" to "s" and '"s"' to 's'
+
+	if [ "${1:0:1}" = "'" -a "${1: -1}" = "'" ] ; then
+		echo "${1:1: -1}"
+	elif [ "${1:0:1}" = '"' -a "${1: -1}" = '"' ] ; then
+		echo "${1:1: -1}"
+	else
+		echo "$1"
+	fi
+}
+
+print_info() {
+	# Splitting avoids too long line for notify-send
+	SPLIT_LINE=$(echo "$1" | sed "s/.\{40\}/\0\n/g")
+	DISPLAY=:0.0 nohup notify-send "RSS_VIEWER" "$SPLIT_LINE" &
+}
+
+play_mpv() {
+	URL=$(unquote "$1")
+	nohup mpv "$URL" </dev/null >/dev/null 2>&1 &
+	disown
+}
+
+play_mpv_singleton() {
+	# Only play if mpv is not running
+	if [ "$(pgrep mpv)" = "" ] ; then
+		play_mpv "$1"
+	else
+		# Append new file to playlist
+		echo "Not implemented"
+	fi
+}
+
+download_wget() {
+	URL=$(unquote "$1")
+	nohup sh -c "wget --directory-prefix='/dev/shm/' \"${URL}\" && notify-send \"RSS_VIEWER\" \"Download finished\"" &
+	echo "Download of '$URL' started"
+}
+
+download_own_script() {
+	URL=$(unquote "$1")
+	nohup $HOME/bin/downloader.sh "$URL" </dev/null >/dev/null 2>&1 &
+	disown
+	echo "Download of '$URL' started"
+}
+
+
+if [ -n "$SSH_ORIGINAL_COMMAND" ]
+then
+    # echo "`/bin/date`: $SSH_ORIGINAL_COMMAND" >> /dev/shm/rss2html_ssh-command-log
+    # exec $SSH_ORIGINAL_COMMAND
+    check_args
+else
+    echo "Environment variable SSH_ORIGINAL_COMMAND not set."
+    echo "Fall back on default script arguments."
+    SSH_ORIGINAL_COMMAND="$@"
+    check_args
+fi

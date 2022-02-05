@@ -16,7 +16,7 @@ from urllib.parse import urlparse
 # from urllib.error import URLError, HTTPError
 
 import certifi
-from urllib3 import PoolManager, Timeout
+from urllib3 import PoolManager, Timeout, Retry
 from urllib3.exceptions import HTTPError, TimeoutError, ResponseError,\
         MaxRetryError, SSLError
 from io import BytesIO
@@ -292,8 +292,9 @@ def fetch_file(url, no_lookup_for_fresh=True, local_dir="rss_server-page/"):
         # Request new version
         response = _HTTP.request('GET', url,
                                  headers=headers,
-                                 timeout=Timeout(connect=3.2, read=60.0),
-                                 retries=1,
+                                 timeout=Timeout(connect=5.2, read=60.0),
+                                 # retries=1,
+                                 retries=Retry(3, redirect=20),
                                  preload_content=False,
                                 )
         # Note about timeout/MaxRetriesError: 

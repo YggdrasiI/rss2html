@@ -157,7 +157,8 @@ def find_feed_keyword_values(feed, tree):
             entry["pubDate"] = None
 
         entry["enclosures"] = find_enclosures(feed, item_node)
-
+        if len(entry["enclosures"]) == 0:
+            add_title_actions(feed, entry)
         entries.append(entry)
         entries_len += len(content_full)
 
@@ -223,16 +224,47 @@ def add_enclosure_actions(feed, e):
                 action=aname,
                 url=quote(url),
                 url_hash=url_hash)
-
         a = {
             "url": "{}?{}".format("/action", url_args),
             "title": action["title"],
             "icon": action["icon"],
             "name": aname,
         }
-
-
         e["actions"].append(a)
+
+
+def add_title_actions(feed, entry):
+    # like add_enclosure_actions but for title-url instead of enclosures
+
+    url = entry["url"]
+    entry["actions"] = []
+
+    # feeds opened by filename (?file=...) has no name
+    # at this stage. Use title from xml file.
+    name = feed.name if feed.name else feed.context.get("title", "")
+
+    for (aname, action) in settings.ACTIONS.items():
+        if action.get("check"):
+            if not action["check"](feed, url, settings):
+                continue
+
+        url_hash = '{}'.format( hashlib.sha224(
+            (settings.ACTION_SECRET + url + aname).encode('utf-8')
+        ).hexdigest())
+
+        # Quoting of feed and url at least for '#&?' chars.
+        url_args = "a={action}&feed={feed}&url={url}&s={url_hash}".format(
+                feed=quote(name),
+                action=aname,
+                url=quote(url),
+                url_hash=url_hash)
+        a = {
+            "url": "{}?{}".format("/action", url_args),
+            "title": action["title"],
+            "icon": action["icon"],
+            "name": aname,
+        }
+        entry["actions"].append(a)
 
 
 # ==========================================================

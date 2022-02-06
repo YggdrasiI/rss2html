@@ -82,6 +82,9 @@
     <h3><a href="{{ entry.url }}"><span>{{ entry.title }}</span></a>
         <span class="lastUpdated">{{ entry.pubDate|convert_pub_date }}</span>
     </h3>
+    {% if entry.actions %}
+        {{ title_action(entry, feed_loop.index) }}
+    {% endif %}
     <div class="feedEntryContent {% if entry.content_full %}click_out{% endif %}">
         <div class="in2">
             {% if entry.content_full %}
@@ -156,7 +159,7 @@
             <li>
                 <a href="{{ action.url }}" title="{{ action.title }}"
                                            class="bgicon_{{ action.name }}"
-																					 target="non_js_fallback-{{ idx1 }}-{{ idx2 }}">
+                                           target="non_js_fallback-{{ idx1 }}-{{ idx2 }}">
                     {{ action.title }}
                 </a>
             </li>
@@ -172,9 +175,42 @@
 
     <!-- After elements -->
 		<input type="radio" name="menu" id="action_toggle-{{ idx1 }}-0" class="menu_clickbox">
-   }
 
 </div>
+{% endmacro %}
+
+{% macro title_action(entry, idx1) %}
+
+    <div class="in2_action"><label for="action_toggle-title-{{ idx1 }}"
+            class="action_open">Actions‣</label></div>
+    <input type="radio" name="menu" id="action_toggle-title-{{ idx1 }}" class="menu_clickbox">
+    <div class="ani_action {{ menu_animation_cls }}">
+			<div class="in1_action"><label for="action_toggle-title-{{ idx1 }}-0" class="menu_close2">✖</label>
+        <span class="enclosure_filename">{{
+            entry.title|clipped_media_name(60) }}</span>
+        <ul class="enclosure_actions">
+            {% for action in entry.actions %}
+            <li>
+                <a href="{{ action.url }}" title="{{ action.title }}"
+                                           class="bgicon_{{ action.name }}"
+                                           target="non_js_fallback-title-{{ idx1 }}">
+                    {{ action.title }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        <noscript><iframe name="non_js_fallback-title-{{ idx1 }}" class="non_js_fallback" title="Displays api return values"></iframe></noscript>
+      </div>
+    </div>
+
+    
+    <!-- On the same hirarchy level after all elements (or after each element) -->
+		<label for="action_toggle-title-{{ idx1 }}-0" class="menu_close1 {{ menu_animation_cls }}"></label>
+
+    <!-- After elements -->
+		<input type="radio" name="menu" id="action_toggle-title-{{ idx1 }}-0" class="menu_clickbox">
+
+
 {% endmacro %}
 
 {% macro page_links(feed_name, num_entries, stride, cur_page) %}

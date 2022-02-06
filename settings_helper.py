@@ -188,6 +188,7 @@ def load_users(main_globals):
         except ValidatorException as e:
             logger.info("Validation of '{}' failed!\n" \
                     "\tError: {}".format(f,e))
+            return
 
         # Unload module if file was already read
         try:

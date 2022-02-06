@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Creates a Process pool for actions called by the RSS server.
-# 
+#
 # • Immidealty thrown errors by the actions will provided to the user
 # • Errors thrown after N seconds will be logged, only.
 # • Number of actions (M) and max time (T) for every action can set.
@@ -12,16 +12,17 @@
 #       '#actions >= M' and '∃process P with T(P) >= T'
 #   if true, a new action-process will replace P and
 #   otherwise no new action can be created.
-# 
+#
 #  Another variant to kill old/pending prozesses would be Pebble, see
 #  https://stackoverflow.com/questions/20991968/asynchronous-multiprocessing-with-a-worker-pool-in-python-how-to-keep-going-aft/31185697#31185697
 
-from os import getpid
+import os  # for getpid, devnull
 from time import time, sleep
 from math import ceil
 from enum import Enum
 from collections import namedtuple
 from itertools import count
+from subprocess import Popen
 import signal
 import psutil
 
@@ -66,9 +67,8 @@ def _ap_handler():
 
     # Feed qOut-queue with the info that this process got started.
     #mp_logger.debug("Put rid={} in qOut".format(rid))
-    _ap_handler.qOut.put_nowait([rid, getpid(), time()])
+    _ap_handler.qOut.put_nowait([rid, os.getpid(), time()])
     try:
-        # ret = f(*args, _ap_handler.settings)
         ret = f(*args)
     except Exception as e:
         return -1,rid,e,None
@@ -79,7 +79,7 @@ def _ap_handler():
 # Workaround that Pool-Process-Arguments can not be a Queue-Object
 # See
 # https://stackoverflow.com/questions/3827065/can-i-use-a-multiprocessing-queue-in-a-function-called-by-pool-imap/3843313#3843313
-def _ap_handler_init(qIn, qOut, settings):
+def _ap_handler_init(qIn, qOut):
     # Called once in every worker process
 
     # Init logger in this process
@@ -89,7 +89,7 @@ def _ap_handler_init(qIn, qOut, settings):
     # as arguments in apply_async (queue's not serializable)
     _ap_handler.qIn = qIn
     _ap_handler.qOut = qOut
-    _ap_handler.settings = settings
+    # _ap_handler.settings = settings
 
 
 def kill_children(proc_id, kill_root=False):
@@ -121,9 +121,9 @@ class ActionPool:
                  max_active_or_pending=None,
                  allow_abort_after=None,
                 ):
-        
-        #self.settings = settings  # Ahgl, settings not serializiable
-        self.settings = _pickable_settings(settings)
+
+        # Removed _settings because it is not required now
+        # self.settings = _pickable_settings(settings)
         self.processes=processes or N_PROCESSES
         self.max_active_or_pending=max_active_or_pending or MAX_ACTIVE_OR_PENDING
         self.allow_abort_after=allow_abort_after or ALLOW_ABORT_AFTER
@@ -153,7 +153,7 @@ class ActionPool:
         return self
 
     def __exit__(self, type, value, traceback):
-        # self.wait()
+        # self.wait(timeout=2.0, terminate_workers=True)  # moved into stop()
         self.stop()
 
     def _close_queues(self):
@@ -168,7 +168,7 @@ class ActionPool:
                 mp_logger.debug("Non consumed data in queue 'qIn': {}".format(d))
         except Empty:
             pass
-        finally: 
+        finally:
             self.qIn.close()
 
         try:
@@ -177,7 +177,7 @@ class ActionPool:
                 mp_logger.debug("Non consumed data in queue 'qOut': {}".format(d))
         except Empty:
             pass
-        finally: 
+        finally:
             self.qOut.close()
 
     def start(self):
@@ -193,33 +193,34 @@ class ActionPool:
         # https://stackoverflow.com/a/35134329
         #... but
         # 'This solution is not portable as it works only on Unix.
-        #  Moreover, it would not work if the user sets the maxtasksperchild 
-        #  Pool parameter. The newly created processes would inherit 
-        #  the standard SIGINT handler again. The pebble library disables 
+        #  Moreover, it would not work if the user sets the maxtasksperchild
+        #  Pool parameter. The newly created processes would inherit
+        #  the standard SIGINT handler again. The pebble library disables
         #  SIGINT by default for the user as soon as the new process is created.'
         if True:
             original_sigint_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
             self.pool = Pool(processes=self.processes,
                              initializer=_ap_handler_init,
-                             initargs=[self.qIn, self.qOut, self.settings],
+                             initargs=[self.qIn, self.qOut],
+                             #initargs=[self.qIn, self.qOut, self.settings],
                              # Important to re-fill pool after
                              # terminating some child processes!
-                             # Mabye not needed in 'spawn'-context   
+                             # Mabye not needed in 'spawn'-context
                              maxtasksperchild=1
-                            ) 
+                            )
             signal.signal(signal.SIGINT, original_sigint_handler)
         else:
             # Hm, this hangs sometimes :-(
             self.pool = get_context("spawn").\
                     Pool(processes=self.processes,
                          initializer=_ap_handler_init,
-                         initargs=[self.qIn, self.qOut, self.settings],
+                         initargs=[self.qIn, self.qOut],
+                         # initargs=[self.qIn, self.qOut, self.settings],
                          # Important to re-fill pool after
                          # terminating some child processes!
-                         # Mabye not needed in 'spawn'-context   
+                         # Mabye not needed in 'spawn'-context
                          maxtasksperchild=1
-                        ) 
-        # TODO:  reload of settings not respected
+                        )
         self._state = ActionPoolState.STARTED
 
         logger.info("ActionPool started")
@@ -230,12 +231,17 @@ class ActionPool:
             return
 
         self.pool.close()
+        self.fetch_started_ids()  # clears qOut
         self._state = ActionPoolState.STOPED
 
-        # Docs: 'joining process that uses queues needs to 
+        # Without this, child processes of workers
+        # will survive deconstruction of this object.
+        self.wait(timeout=1.0, terminate_workers=True)
+
+        # Docs: 'joining process that uses queues needs to
         #        read all data before .join() is called.
         #        Otherwise .join() will block'
-        #       
+        #
         # NOTE: Well, reading all data is not a sufficient
         #       condition but required.
         #       Thus we need still pool.terminate() before pool.join()!
@@ -300,8 +306,8 @@ class ActionPool:
 
         def action_failed(t):
             # Due try-catch construction in _ap_handler it will not
-            # reached if the action (=f) failed. 
-            # Nevertheless this will be called if the process is 
+            # reached if the action (=f) failed.
+            # Nevertheless this will be called if the process is
             # killed by c.terminate()
             mp_logger.debug("_ap_handler failed. Reason: {}".format(t))
             return
@@ -319,7 +325,7 @@ class ActionPool:
         self._pending[rid] = Pending(None, result, None)
         self._num_active_or_pending += 1
         self._pending_lock.release()
-        # Values for None-fields will be put in queue 
+        # Values for None-fields will be put in queue
         # if action-processes starts. Currently, they are unknown.
 
         return True
@@ -351,7 +357,7 @@ class ActionPool:
                 self._pending[rid] = pend._replace(pid=pid, time=time)
                 self._pending_lock.release()
             else:
-                # Do not update entry because this action was 
+                # Do not update entry because this action was
                 # already finished and action_succeded() had removed
                 # the entry from _pending
                 pass
@@ -359,7 +365,7 @@ class ActionPool:
     def kill_stale_actions(self, number_to_kill=1):
         self.fetch_started_ids()  # Check for new timestamps
 
-        if number_to_kill <= 0: 
+        if number_to_kill <= 0:
             return
 
         to_remove = []
@@ -373,7 +379,7 @@ class ActionPool:
                 # available
                 continue
 
-            if self.running_time_exceeded(pend.time): 
+            if self.running_time_exceeded(pend.time):
                 # Find process for this pid
                 for c in self.pool._pool:
                     # print(pend.pid, c.pid)
@@ -395,7 +401,7 @@ class ActionPool:
             pass
 
         for (rid,c) in to_remove:
-            # Terminates children created by subprocess.POpen
+            # Terminates children created by subprocess.Popen
             kill_children(c.pid, False)
 
             # Now terminate process
@@ -447,7 +453,7 @@ class ActionPool:
             n += 1
             if( n%5 == 0): print("")
 
-    def wait(self, timeout=None):
+    def wait(self, timeout=None, terminate_workers=False):
         """ Give each pending action the guaranteed running time
             but kill them if they are not fast enough.
             (Thus duration(self.wait()) <= duration(self.pool.join())
@@ -458,10 +464,8 @@ class ActionPool:
 
         if timeout is not None:
             end_time = time() + timeout
-        #else:
-        #    end_time = time() + self.allow_abort_after * ceil(self._num_active_or_pending / self.processes)
 
-        abort_loop = 1000
+        abort_loop = 1000  # Just as fallback
 
         while self._num_active_or_pending > 0 or abort_loop == 0:
             abort_loop -= 1
@@ -470,6 +474,9 @@ class ActionPool:
             wait_time = self.allow_abort_after
             if timeout is not None:
                 wait_time = min(wait_time, end_time-time())
+            if wait_time <= 0:
+                logger.debug("ActionPool.wait() reached timeout")
+                break
             try:
                 result.get(wait_time)
             except TimeoutError:
@@ -477,13 +484,17 @@ class ActionPool:
 
             self.kill_stale_actions(self._num_active_or_pending)
 
+        if timeout is not None and terminate_workers:
+            self.kill_workers()
         if abort_loop == 0:
             raise RuntimeError("Some processes still running?!")
 
 
     def kill_workers(self):
-        # Not used
         for c in self.pool._pool:
+            # Terminates children created by subprocess.Popen
+            kill_children(c.pid, False)
+
             if c.exitcode is None:
                 c.terminate()
             try:
@@ -501,7 +512,7 @@ class ActionPool:
         num_active = min(len(self.pool._cache),self.processes)
 
         return (" Tasks        ok: {}\n"
-                " Tasks   skipped: {}\n"               
+                " Tasks   skipped: {}\n"
                 " Tasks   aborted: {}\n"
                 " Tasks    failed: {}\n"
                 "#Tasks    active: {}\n"
@@ -514,6 +525,7 @@ class ActionPool:
                     self._num_active_or_pending - num_active,
                 ))
 
+'''
 class _pickable_settings:
     # Note: This modulel does NOT contain:
     #    FAVORITES, HISTORY, USER_FAVORITES, USER_HISTORY
@@ -526,8 +538,8 @@ class _pickable_settings:
         return self.__dict__
 
     def __setstate__(self, state):
-        #Types = (str, int, float, bytes, type(None), Feed) 
-        Types = (str, int, float, bytes, type(None)) 
+        #Types = (str, int, float, bytes, type(None), Feed)
+        Types = (str, int, float, bytes, type(None))
         for (k,v) in state.items():
             if k.startswith("_"):
                 continue
@@ -555,8 +567,45 @@ class _pickable_settings:
                     continue
                 except StopIteration:
                     setattr(self, k, v)
+'''
 
+# For actions.py
 
+PopenArgs = namedtuple('PopenArgs', ['cmd'])
+FwithArgs = namedtuple('FwithArgs', ['f', 'args'])
+class PickableAction:
+    def __init__(self, *operations):
+        for op in operations:
+            if isinstance(op, PopenArgs):
+                continue
+            if isinstance(op, FwithArgs):
+                if callable(op.f) and globals()[op.f.__name__] == op.f:
+                    continue  # ok, it is a global function
+            raise Exception("Non-pickable operation detected. Input: {}".\
+                           format(operations))
+        self.operations = operations
+
+def worker_handler(pickable_action):
+    def callF(op):
+        print("Call {}({})".format(
+            op.f.__name__,
+            ",".join([str(a) for a in op.args])))
+        op.f(*op.args)
+
+    def callPopen(op):
+        print("Call {}".format(op.cmd))
+        nullsink = open(os.devnull, 'w')
+        nullsource = open(os.devnull, 'r')
+        proc = Popen(op.cmd, stdin=nullsource,
+                     stdout=nullsink, stderr=nullsink)
+        # TODO: Could block eternal. Timeout + error handling would be nice
+        proc.wait()
+
+    for op in pickable_action.operations:
+        if isinstance(op, PopenArgs):
+            callPopen(op)
+        if isinstance(op, FwithArgs):
+            callF(op)
 
 
 # Define some example functions
@@ -585,8 +634,8 @@ def _i_block():
 
 
 def example_usage():
-    PROCESSES = 1
-    MAX_ACTIVE_OR_PENDING = 3 
+    N_PROCESSES = 1
+    MAX_ACTIVE_OR_PENDING = 3
     ALLOW_ABORT_AFTER = 2.0
 
     # This example sends five actions into a pool with
@@ -600,10 +649,10 @@ def example_usage():
     #
     # Note that duration of first action is > ALLOW_ABORT_AFTER, but
     # if we add the forth action the duration limit was not already reached.
-    # 
+    #
 
     with ActionPool(settings=None,
-                    processes=PROCESSES,
+                    processes=N_PROCESSES,
                     max_active_or_pending=MAX_ACTIVE_OR_PENDING,
                     allow_abort_after=ALLOW_ABORT_AFTER
                    ) as ap:
@@ -630,7 +679,7 @@ def example_usage():
             sleep(_i_am_fine.duration + 1.0)
             ap.push_action(_i_block)
 
-            ap.wait(5.0)  # To clear pending task befor next loop begins
+            ap.wait(5.0)  # To clear pending task before next loop begins
 
         print("======================")
 
@@ -649,7 +698,25 @@ def example_usage():
 
 
 def example_spawn_app():
-    url = "https%3A//podcast-mp3.dradio.de/podcast/2022/02/04/nach_der_flut_ist_vor_der_flut_hochwasserschutz_an_der_erft_dlf_20220204_1641_c286d570.mp3"
+    cmd = ("mimeopen", "test.txt")
+    open_text_editor = PickableAction(PopenArgs(cmd))
+
+    with ActionPool(settings=None,
+                    processes=1,
+                    max_active_or_pending=1,
+                    allow_abort_after=10.0,
+                   ) as ap:
+        ap.push_action(worker_handler, args=(open_text_editor,))
+
+        # Give worker process some time to react.
+        sleep(2.0)
+
+        print("Wait until task ends or timeout is reached.")
+        ap.wait(10.0)
+
+        # Leaving with will invoke ap.stop()
+
+
 
 # Setup worker process logging
 # due spawn-context defined on module level.
@@ -670,5 +737,6 @@ if __name__ == '__main__':
     # logger.setLevel(logging.DEBUG)
 
     example_usage()
+    # example_spawn_app()
 
 

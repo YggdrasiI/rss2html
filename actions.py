@@ -48,42 +48,7 @@ def double_fork(handler):
         os.waitpid(pid, 0)
 
 ## For actions_pool usage
-#
-PopenArgs = namedtuple('PopenArgs', ['cmd'])
-FwithArgs = namedtuple('FwithArgs', ['f', 'args'])
-class PickableAction:
-    def __init__(self, *operations):
-        for op in operations:
-            if isinstance(op, PopenArgs):
-                continue
-            if isinstance(op, FwithArgs):
-                if callable(op.f) and globals()[op.f.__name__] == op.f:
-                    continue  # ok, it is a global function
-            raise Exception("Non-pickable operation detected. Input: {}".\
-                           format(operations))
-        self.operations = operations
-
-def worker_handler(pickable_action):
-    def callF(op):
-        print("Call {}({})".format(
-            op.f.__name__,
-            ",".join([str(a) for a in op.args])))
-        op.f(*op.args)
-
-    def callPopen(op):
-        print("Call {}".format(op.cmd))
-        nullsink = open(os.devnull, 'w')
-        nullsource = open(os.devnull, 'r')
-        proc = Popen(op.cmd, stdin=nullsource,
-                     stdout=nullsink, stderr=nullsink)
-        # TODO: Could block eternal. Timeout + error handling would be nice
-        proc.wait()
-
-    for op in pickable_action.operations:
-        if isinstance(op, PopenArgs):
-            callPopen(op)
-        if isinstance(op, FwithArgs):
-            callF(op)
+from actions_pool import worker_handler, PickableAction, PopenArgs, FwithArgs
 
 # Example usage:
 # If an action-handler should trigger a worker procsses

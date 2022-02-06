@@ -138,6 +138,7 @@ ACTIONS = {
     },
 }
 
+
 # Default favorites.
 # Will copied if users logs in first time and will
 # be displayd if user is not logged in.
@@ -157,6 +158,12 @@ USER_FAVORITES = {
 
 HISTORY = []
 USER_HISTORY = {}
+
+# List of filenames (favorites.py, etc.) where validation is skipped.
+#
+# Just for debugging. I would suggest adding your own python code
+# into other files, but not the favorites.
+DISABLE_VALIDATOR_FOR = []
 
 # ==========================================================
 # Helper function for proper loading of settings. Sketch for proper reading

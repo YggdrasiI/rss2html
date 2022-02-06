@@ -23,9 +23,15 @@ WHITELIST = {
     _ast.Call: [
         "Feed", "print",
     ],
+    _ast.Attribute: [
+        "insert", "append", "update", "extend"
+    ],
     _ast.Assign: [
         "FAVORITES", "HISTORY"
-    ]
+    ],
+    _ast.Name: [
+        "FAVORITES", "HISTORY"
+    ],
 }
 
 class ValidatorException(Exception):
@@ -93,10 +99,23 @@ def validate_favorites(module_name=None, filepath=None, code=None):
                             "Import of {} not allowed".format(aliasNode.name))
 
         if isinstance(child, _ast.Call):
-            WLcalls = WHITELIST[type(child)]
-            if not child.func.id in WLcalls:
-                raise ValidatorException(
-                        "Call of {} not allowed".format(child.func.id))
+            if isinstance( child.func, _ast.Name ):
+                # FOO = BAR
+                WLcalls = WHITELIST[type(child)]
+                if not child.func.id in WLcalls:
+                    raise ValidatorException(
+                            "Call of {} not allowed".format(child.func.id))
+
+            elif isinstance( child.func, _ast.Attribute ):
+                # FOO.append(BAR)
+                WLattributes = WHITELIST[type(child.func)]
+                WLname = WHITELIST[type(child.func.value)]
+                if (not child.func.value.id in WLname or
+                    not child.func.attr in WLattributes):
+                    raise ValidatorException(
+                            "Call of {} not allowed for {}".\
+                        format(child.func.attr, child.func.value.id))
+
 
         if isinstance(child, _ast.Assign):
             WLvarnames = WHITELIST[type(child)]

@@ -145,6 +145,9 @@ def load_default_favs(main_globals):
 
     # 0. Validate files
     for module_name in ["favorites", "history"]:
+        if module_name+".py" in settings.DISABLE_VALIDATOR_FOR:
+            logger.info("Skip validation of '{}.py'".format(module_name))
+            continue
         try:
             validate_favorites(module_name)
         except ValidatorException as e:
@@ -177,18 +180,23 @@ def load_users(main_globals):
     if config_dir not in sys.path:
         sys.path.insert(0, config_dir)
 
+    settings = main_globals.get("settings")
+
     def _update(filename, prefix, suffix, attrname, feed_dict):
 
         user_module_name = os.path.basename(filename)[:-len(suffix)]
         username = user_module_name[len(prefix):]
 
         # Validate that module has expected content
-        try:
-            validate_favorites(user_module_name)
-        except ValidatorException as e:
-            logger.info("Validation of '{}' failed!\n" \
-                    "\tError: {}".format(f,e))
-            return
+        if user_module_name+".py" in settings.DISABLE_VALIDATOR_FOR:
+            logger.info("Skip validation of '{}.py'".format(user_module_name))
+        else:
+            try:
+                validate_favorites(user_module_name)
+            except ValidatorException as e:
+                logger.info("Validation of '{}' failed!\n" \
+                        "\tError: {}".format(f,e))
+                return
 
         # Unload module if file was already read
         try:

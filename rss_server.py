@@ -1130,7 +1130,7 @@ def set_logger_levels():
     keys.insert(0, "root")
     # print("Logger keys: {}".format(keys))
 
-    print("Set logging level on {}".format(numeric_level))
+    # print("Set logging level on {}".format(numeric_level))
     logging.basicConfig(level=numeric_level)
     for key in keys:
         logging.getLogger(key).setLevel(numeric_level)

@@ -6,6 +6,7 @@ import os
 import re
 from os.path import expandvars
 from subprocess import Popen, PIPE
+from collections import namedtuple
 
 from urllib.request import Request, urlopen
 from urllib.parse import urlparse
@@ -16,6 +17,7 @@ import feed_parser
 import logging
 logger = logging.getLogger(__name__)
 
+# TODO: Maybe remove fork/double_fork. Just used for old approach.
 def fork(handler):
     # Do not block, but kill process if rss_server processes will be closed.
 
@@ -24,6 +26,7 @@ def fork(handler):
         try:
             ret = handler()  # None or Popen
             if isinstance(ret, subprocess.Popen):
+
                 ret.wait()  # Popen.wait…
         finally:
             os._exit(0)
@@ -44,7 +47,58 @@ def double_fork(handler):
         # Wait on first child process
         os.waitpid(pid, 0)
 
+## For actions_pool usage
+#
+PopenArgs = namedtuple('PopenArgs', ['cmd'])
+FwithArgs = namedtuple('FwithArgs', ['f', 'args'])
+class PickableAction:
+    def __init__(self, *operations):
+        for op in operations:
+            if isinstance(op, PopenArgs):
+                continue
+            if isinstance(op, FwithArgs):
+                if callable(op.f) and globals()[op.f.__name__] == op.f:
+                    continue  # ok, it is a global function
+            raise Exception("Non-pickable operation detected. Input: {}".\
+                           format(operations))
+        self.operations = operations
 
+def worker_handler(pickable_action):
+    def callF(op):
+        print("Call {}({})".format(
+            op.f.__name__,
+            ",".join([str(a) for a in op.args])))
+        op.f(*op.args)
+
+    def callPopen(op):
+        print("Call {}".format(op.cmd))
+        nullsink = open(os.devnull, 'w')
+        nullsource = open(os.devnull, 'r')
+        proc = Popen(op.cmd, stdin=nullsource,
+                     stdout=nullsink, stderr=nullsink)
+        # TODO: Could block eternal. Timeout + error handling would be nice
+        proc.wait()
+
+    for op in pickable_action.operations:
+        if isinstance(op, PopenArgs):
+            callPopen(op)
+        if isinstance(op, FwithArgs):
+            callF(op)
+
+# Example usage:
+# If an action-handler should trigger a worker procsses
+# to call the function 'example_pick' return
+# PickableAction(ExamplePick)
+#
+# See download_with_wget() for a practial example.
+def example_pick(s):
+    print(s)
+ExamplePick = FwithArgs(f=example_pick, args=("test",))
+
+
+#############################################################
+
+##
 def can_download(feed, url, settings):
     target_dir = expandvars(settings.DOWNLOAD_DIR)
     if os.path.isdir(target_dir) or os.path.islink(target_dir):
@@ -56,7 +110,7 @@ def can_download(feed, url, settings):
 def can_play(feed, url, settings):
     return True
 
-
+##
 def download_with_wget(feed, url, settings):
     target_root = settings.DOWNLOAD_DIR
     # => I.e. $HOME/Downloads
@@ -134,7 +188,6 @@ def download_with_wget(feed, url, settings):
                # "--directory-prefix", target_dir,  # useless with -O
                "-O", target_path_,
                url)
-        # cmd = ("touch", target_path_)
 
         try:
             os.makedirs(target_dir, exist_ok=True)
@@ -143,39 +196,44 @@ def download_with_wget(feed, url, settings):
             logger.error("Can not create '{}'".format(target_dir))
             return None
 
-        nullsink = open(os.devnull, 'w')
-        nullsource = open(os.devnull, 'r')
-        return Popen(cmd, stdin=nullsource,
-                     stdout=nullsink, stderr=nullsink)
+        #nullsink = open(os.devnull, 'w')
+        #nullsource = open(os.devnull, 'r')
+        #return Popen(cmd, stdin=nullsource,
+        #             stdout=nullsink, stderr=nullsink)
 
-    # wget()
-    return fork(wget)
+        # Variant for worker pool
+        return PickableAction(PopenArgs(cmd))
 
+    return wget()
+
+# Called in this thread
 def play_with_mimeopen(feed, url, settings):
-    # Dangerous because mimeopen could return program to execute code?!
 
     def mimeopen():
         cmd = ("mimeopen", "-n", url)
-        nullsink = open(os.devnull, 'w')
-        nullsource = open(os.devnull, 'r')
 
-        return Popen(cmd, stdin=nullsource,
-                    stdout=nullsink, stderr=nullsink)
+        # Bad example because this opens an own disowned new process...
+        cmd2 = ("gvim", "-u", "~/.vimrc_short",
+               "-c", "exe \"put ='{}'\"".format(url))
 
-    double_fork(mimeopen)
+        cmd3 = ("mate-calculator")
+
+        #print(cmd)
+        #nullsink = open(os.devnull, 'w')
+        #nullsource = open(os.devnull, 'r')
+        #popen =  Popen(cmd, stdin=nullsource,
+        #            stdout=nullsink, stderr=nullsink)
+        #
+        #return popen.wait()
+
+        return PickableAction(PopenArgs(cmd))
+
+    return mimeopen()
 
 
 def play_with_mpv(feed, url, settings):
-
-    def mpv():
-        cmd = ("mpv", url)
-        nullsink = open(os.devnull, 'w')
-        nullsource = open(os.devnull, 'r')
-
-        return Popen(cmd, stdin=nullsource,
-                    stdout=nullsink, stderr=nullsink)
-
-    double_fork(mpv)
+    cmd = ("mpv", url)
+    return PickableAction(PopenArgs(cmd))
 
 
 def factory__local_cmd(lcmd):
@@ -190,13 +248,20 @@ def factory__local_cmd(lcmd):
 
             cmd = tuple(resolved_lcmd)
             logger.debug("Local cmd: {}".format(cmd))
-
             nullsink = open(os.devnull, 'w')
             nullsource = open(os.devnull, 'r')
             return Popen(cmd, stdin=nullsource,
-                         stdout=nullsink, stderr=nullsink)
+                         stdout=nullsink, stderr=nullsink).wait
 
-        double_fork(local_cmd)
+
+        def worker_cmd():
+            resolved_lcmd = [token.format(url=url) for token in lcmd]
+            cmd = tuple(resolved_lcmd)
+            return PickableAction(PopenArgs(cmd))
+
+        # return local_cmd()
+        # or
+        return worker_cmd()
 
     return action
 
@@ -207,27 +272,40 @@ def factory__ssh_cmd(ssh_hostname, ssh_cmd, identity_file=None, port=None):
     # Example: factory__ssh_cmd("you@localhost", "echo '{url}'")
 
     def action(feed, url, settings):
+        #Note: Do not define vars on this level
+
         def ssh():
             cmd = ["ssh", ssh_hostname, ssh_cmd.format(url=url)]
             if identity_file:
                 cmd[1:1] = ["-i", "{}".format(identity_file)]
             if port:
                 cmd[1:1] = ["-p", "{}".format(port)]
-
             cmd = tuple(cmd)
 
             logger.debug("SSH-Cmd: {}".format(cmd))
-
             nullsink = open(os.devnull, 'w')
             nullsource = open(os.devnull, 'r')
             return Popen(cmd, stdin=nullsource,
-                         stdout=nullsink, stderr=nullsink)
+                         stdout=nullsink, stderr=nullsink).wait
 
-        fork(ssh)
+        def worker_ssh():
+            cmd = ["ssh", ssh_hostname, ssh_cmd.format(url=url)]
+            if identity_file:
+                cmd[1:1] = ["-i", "{}".format(identity_file)]
+            if port:
+                cmd[1:1] = ["-p", "{}".format(port)]
+            cmd = tuple(cmd)
+
+            logger.debug("SSH-Cmd: {}".format(cmd))
+            return PickableAction(PopenArgs(cmd))
+
+        # return ssh()
+        # or
+        return worker_ssh()
 
     return action
 
-
+# Not serializable
 def get_item_for_url(feed, url, settings):
     if True:  # if not feed.items:
         (cEl, code) = cached_requests.fetch_file(feed.url)

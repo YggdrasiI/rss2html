@@ -26,6 +26,20 @@ from enum import Enum, auto
 from locale_gettext import gettext as _, set_gettext
 # from jina2.utils import unicode_urlencode as urlencode
 
+import logging
+import logging.config
+
+# Attention, all loggers created before fileConfig()-Call
+# will be disabled! Importing modules with loggers after this line
+# or enable them manually in set_logger_levels().
+logging.config.fileConfig('logging.conf')
+
+'''logging.root.setLevel(logging.NOTSET)
+logging.root.setLevel(0)
+logging.basicConfig(level=0)'''
+logger = logging.getLogger('rss_server')
+
+
 from feed import Feed, get_feed, save_history, clear_history, update_favorites
 import feed_parser
 
@@ -38,16 +52,8 @@ from session import LoginType, init_session
 
 from static_content import action_icon_dummy_classes
 
-
-import logging
-import logging.config
-logging.config.fileConfig('logging.conf')
-
-'''logging.root.setLevel(logging.NOTSET)
-logging.root.setLevel(0)
-logging.basicConfig(level=0)'''
-logger = None
-
+from actions_pool import ActionPool
+from actions import worker_handler, PickableAction
 
 CSS_STYLES = {
     "default.css": _("Default theme"),
@@ -76,6 +82,9 @@ class ViewType(Enum):
     ACTION_ICONS_CSS = auto()
     SYSTEM_ICON = auto()
     PROVIDE_FILE = auto()
+
+# To spawn actions of users a pool of processes is used
+actions_pool = None
 
 # TIMEZONE = str(datetime.now(timezone(timedelta(0))).astimezone().tzinfo)
 # DATE_HEADER_FORMAT = "%a, %d %h %Y %T {}".format(TIMEZONE)
@@ -210,16 +219,16 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             # Check for feed with this name
             (feed, _) = get_feed(feed_key, hist)
             if feed:
-                logging.info("Remove feed '{}' from history.".format(feed))
+                logger.info("Remove feed '{}' from history.".format(feed))
                 try:
                     hist.remove(feed)
                 except ValueError:
-                    logging.debug("Removing of feed '{}' from history" \
+                    logger.debug("Removing of feed '{}' from history" \
                                   "failed.".format(feed))
 
             (fav_feed, _) = get_feed(feed_key, favs)
             if not fav_feed:  # Add if not already in FAVORITES
-                logging.info("Add feed '{}' to favorites.".format(feed))
+                logger.info("Add feed '{}' to favorites.".format(feed))
                 favs.append(feed)
 
         update_favorites(favs, settings.get_config_folder(),
@@ -373,7 +382,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         elif view == ViewType.ACTION_ICONS_CSS:
             return action_icon_dummy_classes(self)
         elif view == ViewType.SYSTEM_ICON:
-            return self.system_icon(self)
+            return self.system_icon()
         elif view == ViewType.INDEX_PAGE:
             return self.write_index()
         elif view == ViewType.PROVIDE_FILE:
@@ -941,6 +950,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             error_msg = _("Handler of action not defined.")
             return self.show_msg(error_msg, True, minimal)
 
+        ''' # Approach without pool
         try:
             handler(feed, url, settings)
         except Exception as e:
@@ -954,6 +964,30 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             if not already_send:
                 already_send = True
             return self.show_msg(error_msg, True, minimal)
+        '''
+
+        # Approach with pool
+        try:
+            # Begin action by handling non-serializable stuff.
+            # This could prepare a (serializable) handler for the
+            # worker.
+            h = handler(feed, url, settings)
+            if isinstance(h, PickableAction):
+                # Finish action in worker process
+                print(actions_pool.statistic())
+                actions_pool.push_action(worker_handler, args=(h,))
+            elif callable(h):
+                h()  # Finish action in this process.
+            else:
+                logger.debug("Handler return unexpected type '{}'".\
+                             format(h))
+        except Exception as e:
+            error_msg = _('Running of handler for "{action_name}" failed. ' \
+                          'Exception was: "{e}".')\
+                    .format(action_name=action, e=e)
+            print(error_msg)
+            return self.show_msg(error_msg, True, minimal)
+
 
         # Handling sucessful
         sleep(2.0)
@@ -1103,8 +1137,9 @@ def set_logger_levels():
 
 
 if __name__ == "__main__":
-    # create logger
-    logger = logging.getLogger('rss_server')
+    # Workaround...
+    from multiprocessing import set_start_method
+    set_start_method("spawn")
 
     settings.load_config(globals())
     settings.load_users(globals())
@@ -1136,10 +1171,6 @@ if __name__ == "__main__":
     # Omit display of double entries
     clear_history(settings.FAVORITES, settings.HISTORY)
 
-    # Syntax not supported in Python < 3.6
-    # with socketserver.TCPServer(("", settings.PORT), MyHandler) as httpd:
-    #    httpd.serve_forever()
-
     # Preload feed xml files from earlier session
     if settings.CACHE_DIR:
         settings.CACHE_DIR = os.path.expandvars(settings.CACHE_DIR)
@@ -1154,6 +1185,14 @@ if __name__ == "__main__":
         cached_requests.trim_cache(force_memory=True, force_disk=False)
         __l3 = len(cached_requests._CACHE)
         logger.info("Trim on {} elements in cache.".format(__l3))
+
+
+    actions_pool = ActionPool(settings,
+                             processes=2,
+                             max_active_or_pending=6,
+                             allow_abort_after=3600.0)
+    logger.info("Start action pool")
+    actions_pool.start()
 
     try:
         httpd = genMyHTTPServer()((settings.HOST, settings.PORT), MyHandler, settings)
@@ -1224,4 +1263,6 @@ if __name__ == "__main__":
         cached_requests.store_cache(*(settings.USER_FAVORITES.values()))
         cached_requests.store_cache(*(settings.USER_HISTORY.values()))
 
+    logger.info("Stop action pool")
+    actions_pool.stop()
     logger.info("END program")

@@ -7,7 +7,13 @@
 # Combine it with entry in .ssh/authorized_keys file:
 # command="[path to script]/rss2html_ssh.sh" [SSH KEY]
 
+log_args() {
+   echo "`/bin/date`: $SSH_ORIGINAL_COMMAND" >> /dev/shm/rss2html_ssh-command-log
+}
+
 check_args() {
+	# log_args
+
   IFS=' ' read -r -a ARG_ARRAY <<< "${SSH_ORIGINAL_COMMAND}"
 
   # Allowed commands: PING, INFO, PLAY, DOWNLOAD
@@ -82,7 +88,6 @@ download_own_script() {
 
 if [ -n "$SSH_ORIGINAL_COMMAND" ]
 then
-    # echo "`/bin/date`: $SSH_ORIGINAL_COMMAND" >> /dev/shm/rss2html_ssh-command-log
     # exec $SSH_ORIGINAL_COMMAND
     check_args
 else

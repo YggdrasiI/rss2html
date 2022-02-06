@@ -347,9 +347,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         query_components = parse_qs(urlparse(self.path).query)
         view = self.eval_view(self.path, query_components)
 
-        ret = self.error_page_if_login_required(view)
-        if ret:
-            return ret
+        if self.login_required_for_page(view):
+            error_msg = _('Login required.')
+            return self.show_msg(error_msg, True)
 
         if view == ViewType.QUIT:
             return self.handle_quit()
@@ -418,7 +418,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path == "/login":
             return ViewType.SHOW_LOGIN
         elif self.path ==  "/logout":
-            return ViewType.SHOW_LOGOUT
+            return ViewType.LOGOUT  # redirects on index page
         elif self.path.startswith("/change_style"):
             return ViewType.CHANGE_STYLE
         elif self.path.startswith("/action"):
@@ -857,15 +857,28 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(output.getvalue())
 
 
-    def error_page_if_login_required(self, view):
-        session_user = self.session.get_logged_in("user", "")
-        _no_login_required = []
-        return None
-        if session_user == "" and view not in _no_login_required:
-            error_msg = _('Login required.')
-            return self.show_msg(error_msg, True)
+    def login_required_for_page(self, view):
+        if settings._LOGIN_TYPE is LoginType.NONE:
+            return False  # No restrictions
 
-        return None
+        session_user = self.session.get_logged_in("user", "")
+        _no_login_required = [
+            ViewType.INDEX_PAGE,
+            ViewType.PROVIDE_FILE,
+            ViewType.SHOW_FEED,
+            ViewType.ADD_FAVS,
+            # ViewType.REMOVE_FEED,
+            ViewType.SHOW_LOGIN,
+            ViewType.LOGIN,
+            ViewType.LOGOUT,
+            ViewType.CHANGE_STYLE,
+            ViewType.ACTION_ICONS_CSS,
+            ViewType.SYSTEM_ICON,
+        ]
+        if session_user == "" and view not in _no_login_required:
+            return True
+
+        return False
 
 
     def handle_quit(self):
@@ -990,7 +1003,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 
         # Handling sucessful
-        sleep(2.0)
+        sleep(2.0)  # TODO
         if not already_send:
             msg = _('Running of "{action_name}" for "{url}" started.') \
                     .format(action_name=action["title"], url=url)

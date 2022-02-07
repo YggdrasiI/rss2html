@@ -1,22 +1,23 @@
-Minimal RSS Feed to Html converter 
+   RSS Feed to Html converter
 ==================================
 
 
 ## Info
 
-Background daemon to convert RSS Feeds into html pages.
-Representation of data is similar to Firefox's variant.
+Background daemon to convert RSS Feeds into HTML pages.
+Presentation of data is similar to Firefox's variant.
 
-If you define a list of accounts, the server can used by multiple
-users. Moreover, authenticated users can trigger some actions, like
-download files, starting playback, etc.
+A list of users and a list of actions can be defined.
+Then, authenticated users can trigger commands for media files in
+RSS feed.
 
 
 ## Requires
 
 Python >= 3.8
-pip >= 18.0  
-Python packages Jinja>=2.10 babel>=2.6  
+pip >= 18.0
+Python packages Jinja>=2.10 babel>=2.6
+make
 
 
 ## Start
@@ -24,7 +25,7 @@ Python packages Jinja>=2.10 babel>=2.6
 Call `make run` and visit <http://localhost:8888>
 
 Take a look into the *Setup section* to see how you could
-configure the program.  
+configure the program.
 If you want install the programm as background daemon,
 call `make install_service`. It requires the systemd init system.
 

@@ -38,7 +38,7 @@ help:
 		"make ssl                 -- Generate self signed certificates to test HTTPS.\n" \
 		"                            This certicate is self-signed, thus the browers\n" \
 		"                            will warns the users. If needed, replace\n" \
-		"                            ssl_rss_server.[key|crt] by better ones. " \
+		"                            ssl_rss_server.[key|crt] by better ones.\n" \
 		"USER=${USER} make runas  -- Start server as selected user\n" \
 		"" \
 

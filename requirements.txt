@@ -3,3 +3,4 @@ httplib2
 babel>=2.6
 urllib3
 certifi
+psutil

@@ -201,72 +201,77 @@ def play_with_mpv(feed, url, settings):
     return PickableAction(PopenArgs(cmd))
 
 
-def factory__local_cmd(lcmd):
+def factory__local_cmd(lcmd, by_worker_pool=True):
     # Returns action function handler.
     # Split cmd into list of arguments.
     #
     # Example: factory__local_cmd(["notify-send", "RSS VIEWER", "{url}"])
 
-    def action(feed, url, settings):
-        def local_cmd():
-            resolved_lcmd = [token.format(url=url) for token in lcmd]
+    if by_worker_pool:
+        def action(feed, url, settings):
+            def worker_cmd():
+                resolved_lcmd = [token.format(url=url) for token in lcmd]
+                cmd = tuple(resolved_lcmd)
+                return PickableAction(PopenArgs(cmd))
 
-            cmd = tuple(resolved_lcmd)
-            logger.debug("Local cmd: {}".format(cmd))
-            nullsink = open(os.devnull, 'w')
-            nullsource = open(os.devnull, 'r')
-            return Popen(cmd, stdin=nullsource,
-                         stdout=nullsink, stderr=nullsink).wait
+            return worker_cmd()
 
+    else:
+        def action(feed, url, settings):
+            def local_cmd():
+                resolved_lcmd = [token.format(url=url) for token in lcmd]
 
-        def worker_cmd():
-            resolved_lcmd = [token.format(url=url) for token in lcmd]
-            cmd = tuple(resolved_lcmd)
-            return PickableAction(PopenArgs(cmd))
+                cmd = tuple(resolved_lcmd)
+                logger.debug("Local cmd: {}".format(cmd))
+                nullsink = open(os.devnull, 'w')
+                nullsource = open(os.devnull, 'r')
+                return Popen(cmd, stdin=nullsource,
+                             stdout=nullsink, stderr=nullsink).wait
 
-        # return local_cmd()
-        # or
-        return worker_cmd()
+            return local_cmd()
 
     return action
 
 
-def factory__ssh_cmd(ssh_hostname, ssh_cmd, identity_file=None, port=None):
+def factory__ssh_cmd(ssh_hostname, ssh_cmd,
+        identity_file=None, port=None, by_worker_pool=True):
     # Returns action function handler
     #
     # Example: factory__ssh_cmd("you@localhost", "echo '{url}'")
 
-    def action(feed, url, settings):
-        #Note: Do not define vars on this level
+    if by_worker_pool:
+        def action(feed, url, settings):
+            #Note: Do not define vars on this level
 
-        def ssh():
-            cmd = ["ssh", ssh_hostname, ssh_cmd.format(url=url)]
-            if identity_file:
-                cmd[1:1] = ["-i", "{}".format(identity_file)]
-            if port:
-                cmd[1:1] = ["-p", "{}".format(port)]
-            cmd = tuple(cmd)
+            def worker_ssh():
+                cmd = ["ssh", ssh_hostname, ssh_cmd.format(url=url)]
+                if identity_file:
+                    cmd[1:1] = ["-i", "{}".format(identity_file)]
+                if port:
+                    cmd[1:1] = ["-p", "{}".format(port)]
+                cmd = tuple(cmd)
 
-            logger.debug("SSH-Cmd: {}".format(cmd))
-            nullsink = open(os.devnull, 'w')
-            nullsource = open(os.devnull, 'r')
-            return Popen(cmd, stdin=nullsource,
-                         stdout=nullsink, stderr=nullsink).wait
+                logger.debug("SSH-Cmd: {}".format(cmd))
+                return PickableAction(PopenArgs(cmd))
 
-        def worker_ssh():
-            cmd = ["ssh", ssh_hostname, ssh_cmd.format(url=url)]
-            if identity_file:
-                cmd[1:1] = ["-i", "{}".format(identity_file)]
-            if port:
-                cmd[1:1] = ["-p", "{}".format(port)]
-            cmd = tuple(cmd)
+            return worker_ssh()
+    else:
+        def action(feed, url, settings):
+            def ssh():
+                cmd = ["ssh", ssh_hostname, ssh_cmd.format(url=url)]
+                if identity_file:
+                    cmd[1:1] = ["-i", "{}".format(identity_file)]
+                if port:
+                    cmd[1:1] = ["-p", "{}".format(port)]
+                cmd = tuple(cmd)
 
-            logger.debug("SSH-Cmd: {}".format(cmd))
-            return PickableAction(PopenArgs(cmd))
+                logger.debug("SSH-Cmd: {}".format(cmd))
+                nullsink = open(os.devnull, 'w')
+                nullsource = open(os.devnull, 'r')
+                return Popen(cmd, stdin=nullsource,
+                             stdout=nullsink, stderr=nullsink).wait
 
-        # return ssh()
-        # or
-        return worker_ssh()
+            return ssh()
 
     return action
 

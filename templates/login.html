@@ -27,7 +27,15 @@
 
   <h1>{{ _('Login') }}</h1> 
   <div class="clearfix">
-    {{ macros.login_form(user) }}{{ macros.login_form_desc(login_type) }}
+      <p>
+      {{ macros.login_form(user) }}
+      </p>
+  </div>
+  <div class="clearfix">
+  <h2>{{ _('Settings') }}</h2>
+  <p>
+  {{ macros.login_form_desc(login_type) }}
+  </p>
   </div>
 </div>
 {% endblock %}

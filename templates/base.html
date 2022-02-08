@@ -9,17 +9,17 @@
   <meta http-equiv="Content-Security-Policy" content="default-src chrome: 'self'; img-src * chrome: moz-icon:; media-src *; script-src 'self'; style-src 'self';" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <link rel="shortcut icon" href="icons/Feed-icon.svg">
-  <link rel="icon" sizes="32x32" href="icons/Feed-icon.svg">
-  <link rel="icon" sizes="64x64" href="icons/Feed-icon.svg">
-  <link rel="icon" type="image/png" sizes="512x512" href="icons/Feed-icon.svg">
-  <link rel="icon" type="image/png" sizes="160x160" href="icons/Feed-icon.svg">
-  <link rel="icon" type="image/png" sizes="32x32" href="icons/Feed-icon.svg">
-  <link rel="icon" type="image/png" sizes="64x64" href="icons/Feed-icon.svg">
-  <link rel="apple-touch-icon" href="icons/Feed-icon.svg">
-  <link rel="apple-touch-icon" sizes="512x512" href="icons/Feed-icon.svg">
-  <link rel="apple-touch-icon" sizes="160x160" href="icons/Feed-icon.svg">
-  <link rel="fluid-icon" title="RSS Viewer" href="icons/Feed-icon.svg">
+  <link rel="shortcut icon" href="/icons/Feed-icon.svg">
+  <link rel="icon" sizes="32x32" href="/icons/Feed-icon.svg">
+  <link rel="icon" sizes="64x64" href="/icons/Feed-icon.svg">
+  <link rel="icon" type="image/png" sizes="512x512" href="/icons/Feed-icon.svg">
+  <link rel="icon" type="image/png" sizes="160x160" href="/icons/Feed-icon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/Feed-icon.svg">
+  <link rel="icon" type="image/png" sizes="64x64" href="/icons/Feed-icon.svg">
+  <link rel="apple-touch-icon" href="/icons/Feed-icon.svg">
+  <link rel="apple-touch-icon" sizes="512x512" href="/icons/Feed-icon.svg">
+  <link rel="apple-touch-icon" sizes="160x160" href="/icons/Feed-icon.svg">
+  <link rel="fluid-icon" title="RSS Viewer" href="/icons/Feed-icon.svg">
 
   <!-- Win >= 8 -->
   <meta name="msapplication-TileColor" content="#490D03">
@@ -27,16 +27,16 @@
   <meta name="msapplication-config" content="icons/browserconfig.xml">
 
   {% if user_css_style %}
-  <link rel="stylesheet" href="css/{{ user_css_style }}" type="text/css" media="all" />
+  <link rel="stylesheet" href="/css/{{ user_css_style }}" type="text/css" media="all" />
   {% elif system_css_style %}
-  <link rel="stylesheet" href="css/{{ system_css_style }}" type="text/css" media="all" />
+  <link rel="stylesheet" href="/css/{{ system_css_style }}" type="text/css" media="all" />
   {% else %}
-  <link rel="stylesheet" href="css/default.css" type="text/css" media="all" />
+  <link rel="stylesheet" href="/css/default.css" type="text/css" media="all" />
   {% endif %}
-  <link rel="stylesheet" href="css/onclick3.css" type="text/css" media="all" />
+  <link rel="stylesheet" href="/css/onclick3.css" type="text/css" media="all" />
 
-  <link rel="stylesheet" href="css/onclick3_actions.css" type="text/css" media="all" />
-  <link rel="stylesheet" href="css/action_icons.css" type="text/css" media="all" />
+  <link rel="stylesheet" href="/css/onclick3_actions.css" type="text/css" media="all" />
+  <link rel="stylesheet" href="/css/action_icons.css" type="text/css" media="all" />
 
   <title>{{ _('RSS Viewer') }} — {{title}}</title>
 

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div id="feedBody">
+  <div id="feedTitle">
+    <a id="feedTitleLink">
+      <img id="feedTitleImage" src="/icons/Feed-icon.svg" alt="Rss feed icon" width="128" height="128" />
+    </a>
+    <div id="feedTitleContainer">
+      <h1 id="feedTitleText"><a href="/">{{ _('RSS Viewer') }}</a></h1>
+      <h2 id="feedSubtitleText"> </h2>
+    </div>
+  </div>
+  <div id="feedContent">
+    {% if not session_user  %}
+    <h2>{{ _('Login required') }}</h2>
+    <p>{{ _('RSS Viewer') }}</p>
+    <h2>{{ _('Login') }}</h2>
+    <div class="clearfix">
+    {{ macros.login_form(user) }}
+    </div>
+    {% else %}
+    {% if msg %}
+    <h2>{{ msg_type }}</h2>
+    <p>{{ msg }}</p>
+    {% endif %}
+    <h2 class="add_feed" id="feedSubtitleText">{{ _('Youtube') }}</h2>
+    <form action="/extras" method="POST" class="add_feed">
+        <span>{{ "%(protocol)s%(host)s/extras/yt?url="|format(
+            host=host, protocol=protocol) }}</span>
+        <input name="url" type="text" value="" tabindex="4">
+        <input type="submit"/>
+        <input name="form_name" type="hidden" value="yt">
+        <input name="form_id" type="hidden" value="{{ range(1)|random_id }}">
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

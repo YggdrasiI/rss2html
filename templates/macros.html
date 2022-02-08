@@ -5,20 +5,19 @@
   <input name="user" type="text" value="{{ user }}" tabindex="1">
   <input name="password" type="password" value="" tabindex="2">
   <input type="submit" value="{{ _('Login') }}" tabindex="3">
-  <input name="form_id" type="hidden" value="login">
+  <input name="form_name" type="hidden" value="login">
+  <input name="form_id" type="hidden" value="{{ range(1)|random_id }}">
 </form>
 {% endmacro %}
 
 {% macro login_form_desc(login_type) %}
 <div class="login_desc">
-  Login type: {{ login_type }}<br />
+    {{ _('Login type:') }} {{ login_type }}<br />
   {% if login_type == "single_user" %}
     {# (This text should not be shown…) #}
     {{ _("No login required.") }}
   {% elif login_type == "users" %}
     {{ _("Every user in 'settings.USERS' can log in.") }}
-  {% elif login_type == "pam" %}
-    {{ _("Every user on this system can log in.") }}
   {% else %}
     {# (This text should not be shown…) #}
     {{ _("No login required.") }}

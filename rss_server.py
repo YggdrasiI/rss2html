@@ -53,7 +53,7 @@ from session import LoginType, init_session
 from static_content import action_icon_dummy_classes
 
 from actions_pool import ActionPool
-from actions import worker_handler, PickableAction
+from actions import worker_handler, PickableAction, PopenArgs, factory__local_cmd
 
 CSS_STYLES = {
     "default.css": _("Default theme"),
@@ -82,6 +82,8 @@ class ViewType(Enum):
     ACTION_ICONS_CSS = auto()
     SYSTEM_ICON = auto()
     PROVIDE_FILE = auto()
+    SHOW_EXTRAS = auto()
+    YT_SCRIPT = auto()
 
 # To spawn actions of users a pool of processes is used
 actions_pool = None
@@ -160,6 +162,9 @@ def genMyHTTPServer():
             super().__init__(*largs, **kwargs)
             self.html_renderer.extra_context["login_type"] = \
                     settings.LOGIN_TYPE
+            # Saves processed form id to avoid multiple handling
+            self.form_ids = []
+
 
         def server_bind(self):
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -294,37 +299,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         return settings.GUI_LANG
 
 
-
-    def do_POST(self):
-        content_length = int(self.headers['Content-Length'])
-        content = self.rfile.read(content_length).decode('utf-8')
-        query_components = parse_qs(content)
-
-        if self.path == "/login" or \
-           "login" in query_components.get("form_id", []):
-            return self.handle_login(query_components)
-
-        if self.path == "/logout" or \
-           "logout" in query_components.get("form_id", []):
-            return self.handle_logout(query_components)
-
-        msg = 'Post values: {}'.format(str(query_components))
-        return self.show_msg(msg)
-
-    def do_GET(self):
-
-        self.session.load()
-        self.save_session = False  # To send session headers without login form.
-
-        if settings._LOGIN_TYPE == LoginType.SINGLE_USER and \
-           not self.session.get("user"):
-            logger.debug("Generate new ID for default user!")
-            # Login as "default" user and trigger send of headers
-            if self.session.init(user="default"):
-                # return self.session_redirect(self.path)
-                self.save_session = True
-
-        session_user = self.session.get_logged_in("user")
+    def setup_context(self):
+        # Called by do_GET, do_POST
         self.context["gui_lang"] = self.eval_gui_lang()
 
         # for CSS menus (onclick3.css, onclick3_actions.css)
@@ -332,7 +308,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 "animated"
                 if settings.DETAIL_PAGE_ANIMATED else
                 "not_animated")
-
 
         # User CSS-Style can overwrite server value
         user_css_style = self.session.get("css_style")
@@ -343,6 +318,82 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         # (Note: In templates Jinja2 translates, but not
         # in _("") calls in the py's files itself.)
         set_gettext(self.server.html_renderer, self.context)
+
+    def do_POST(self):
+        self.session.load()
+        self.save_session = False
+
+        self.setup_context()
+
+        content_length = int(self.headers['Content-Length'])
+        content = self.rfile.read(content_length).decode('utf-8')
+        query_components = parse_qs(content)
+
+        form_id = qget(query_components, "form_id")
+        if not form_id is None:
+            if form_id in self.server.form_ids:
+                logger.debug("Skip do_POST for id {}".format(form_id))
+
+                # NOTE: 304 for POST request not work as expected
+                #       Browser will show empty page.
+                if False:
+                    self.send_response(304)
+                    self.send_header('ETag', "extras_const_etag")
+                    self.send_header('Cache-Control', 'max-age=0, public ')
+                    self.send_header('Content-Location', '/extras')
+                    self.send_header('Vary', 'User-Agent')
+                    self.end_headers()
+                    return None
+                else:
+                    return self.show_msg("This data was already processed.", False)
+
+                # NOTE: Sending 204 would be possible if using PUT
+                #       instead of POST?!
+                #self.send_response(204)  # No Content, mainly for PUT
+
+            # NOTE: Adding id here does not respect
+            #       the result of the formular handling.
+            self.server.form_ids.append(form_id)
+            if len(self.server.form_ids) > 20:
+                self.server.form_ids[:10] = []
+
+        if self.path == "/login" or \
+           "login" in query_components.get("form_name", []):
+            return self.handle_login(query_components)
+
+        if self.path == "/logout" or \
+           "logout" in query_components.get("form_name", []):
+            return self.handle_logout(query_components)
+
+        if self.path == "/" or \
+                "feed" == qget(query_components, "form_name"):
+            # Hm, using POST-method for feed will invoke
+            # requests if using back/forward in browser ?!
+            # With GET browser will use it's cache.
+            return self.handle_show_feed(query_components)
+
+        if self.path == "/extras/yt" or \
+                "yt" == qget(query_components, "form_name"):
+            return self.handle_youtube(query_components)
+
+        msg = 'Post values: {}'.format(str(query_components))
+        return self.show_msg(msg)
+
+    def do_GET(self):
+
+        self.session.load()
+        self.save_session = False
+
+        if settings._LOGIN_TYPE == LoginType.SINGLE_USER and \
+           not self.session.get("user"):
+            logger.debug("Generate new ID for default user!")
+            # Login as "default" user and trigger send of headers
+            if self.session.init(user="default"):
+                # return self.session_redirect(self.path)
+                self.save_session = True
+
+        session_user = self.session.get_logged_in("user")
+        self.setup_context()
 
         query_components = parse_qs(urlparse(self.path).query)
         view = self.eval_view(self.path, query_components)
@@ -385,6 +436,10 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             return self.system_icon()
         elif view == ViewType.INDEX_PAGE:
             return self.write_index()
+        elif view == ViewType.SHOW_EXTRAS:
+            return self.show_extras()
+        elif view == ViewType.YT_SCRIPT:
+            return self.handle_youtube(query_components)
         elif view == ViewType.PROVIDE_FILE:
             # self.path = MyHandler.directory + self.path  # for Python 3.4
             return super().do_GET()
@@ -433,6 +488,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             return ViewType.SYSTEM_ICON
         elif self.path in ["/", "/index.html"]:
             return ViewType.INDEX_PAGE
+        elif self.path.startswith("/extras"):
+            if self.path.startswith("/extras/yt?url="):
+                return ViewType.YT_SCRIPT
+            else:
+                return ViewType.SHOW_EXTRAS
         elif os.path.splitext(urlparse(self.path).path)[1] in \
                 settings.ALLOWED_FILE_EXTENSIONS:
             return ViewType.PROVIDE_FILE
@@ -574,6 +634,33 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             self.context["msg_type"] = _("Info")
 
         html = self.server.html_renderer.run("login.html", self.context)
+
+        output.write(html.encode('utf-8'))
+        output.seek(0, os.SEEK_END)
+        self.send_header('Content-Length', output.tell())
+        self.end_headers()
+
+        self.wfile.write(output.getvalue())
+
+    def show_extras(self, msg=None, error=False):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+
+        self.send_header('ETag', "extras_const_etag")
+        # self.send_header('Cache-Control', 'public')
+        self.send_header('Cache-Control', 'max-age=60, public')
+        self.send_header('Content-Location', '/extras')
+
+        output = BytesIO()
+
+        self.context["session_user"] = self.session.get_logged_in("user")
+        self.context["msg"] = msg
+        if error:
+            self.context["msg_type"] = _("Error")
+        else:
+            self.context["msg_type"] = _("Info")
+
+        html = self.server.html_renderer.run("extras/extras.html", self.context)
 
         output.write(html.encode('utf-8'))
         output.seek(0, os.SEEK_END)
@@ -874,6 +961,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             ViewType.CHANGE_STYLE,
             ViewType.ACTION_ICONS_CSS,
             ViewType.SYSTEM_ICON,
+            ViewType.YT_SCRIPT,
         ]
         if session_user == "" and view not in _no_login_required:
             return True
@@ -898,9 +986,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         settings.load_users(globals())
 
     def handle_action(self, query_components):
-        minimal = (False
-                if qget(query_components, "js", "0") != "0"
-                else True)
+        minimal = (qget(query_components, "js", "0") != "0")
         already_send = False  # mutex for multithreaded handling
         try:
             aname = query_components["a"][-1]
@@ -963,23 +1049,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             error_msg = _("Handler of action not defined.")
             return self.show_msg(error_msg, True, minimal)
 
-        ''' # Approach without pool
-        try:
-            handler(feed, url, settings)
-        except Exception as e:
-            error_msg = _('Running of handler for "{action_name}" failed. ' \
-                          'Exception was: "{e}".')\
-                    .format(action_name=action, e=e)
-            print(error_msg)
-            # Hm, durchs forken kann hier eine (zweite Antwort
-            # geschrieben werden obwohl die Antwort weiter unten
-            # schon gesendet wurde...?!
-            if not already_send:
-                already_send = True
-            return self.show_msg(error_msg, True, minimal)
-        '''
-
-        # Approach with pool
         try:
             # Begin action by handling non-serializable stuff.
             # This could prepare a (serializable) handler for the
@@ -1009,6 +1078,41 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     .format(action_name=action["title"], url=url)
             already_send = True
             return self.show_msg(msg, False, minimal)
+
+    def handle_youtube(self, query_components):
+        minimal = (qget(query_components, "js", "0") != "0")
+        try:
+            url = unquote(query_components["url"][-1])
+        except (KeyError, IndexError):
+            error_msg = _('URI arguments wrong.')
+            return self.show_msg(error_msg, True, minimal)
+
+        yt_action = factory__local_cmd(["ytTV.sh", "{url}"], by_worker_pool=True)
+        try:
+            # Begin action by handling non-serializable stuff.
+            # This could prepare a (serializable) handler for the
+            # worker.
+            h = yt_action(None, url, None)
+            if isinstance(h, PickableAction):
+                # Finish action in worker process
+                actions_pool.push_action(worker_handler, args=(h,))
+            elif callable(h):
+                h()  # Finish action in this process.
+            else:
+                logger.debug("Handler return unexpected type '{}'".\
+                             format(h))
+        except Exception as e:
+            error_msg = _('Running of handler for "{action_name}" failed. ' \
+                          'Exception was: "{e}".')\
+                    .format(action_name="yt", e=e)
+            print(error_msg)
+            return self.show_msg(error_msg, True, minimal)
+
+        msg = "Youtube command send."
+        logger.info(msg)
+        if minimal:
+            return self.show_msg(msg, False, minimal)
+        return self.show_extras(msg, False)
 
     def handle_login(self, query_components):
         user = qget(query_components, "user", "")

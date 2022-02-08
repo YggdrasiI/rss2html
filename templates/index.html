@@ -41,11 +41,12 @@
       {% endfor %}
     </ul>
     <h2 class="add_feed" id="feedSubtitleText">{{ _('Add feed') }}</h2>
-    <form action="/" method="GET" class="add_feed">
+    <form action="/" method="POST" class="add_feed">
         <span>{{ "%(protocol)s%(host)s/?feed="|format(
             host=host, protocol=protocol) }}</span>
         <input name="feed" type="text" value="" tabindex="4">
         <input type="submit"/>
+        <input name="form_name" type="hidden" value="feed">
     </form>
     <h2 id="feedSubtitleText">{{ _('URI Arguments') }}</h2>
     <p>{{ _("Prepend feed url by '%(url)s' to display feed content by this

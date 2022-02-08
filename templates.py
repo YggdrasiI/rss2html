@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
+from random import randint
+
 from jinja2 import Environment, FileSystemLoader
 # from jinja2 import FileSystemBytecodeCache
 from babel.support import Translations
@@ -42,6 +44,9 @@ def convert_pub_date(pubDate, date_format=None):
 
     return "Undefined date"
 
+def random_id(_ignored):
+    return randint(1, 0xFFFFFFFF)
+
 
 # @babel.localeselector
 def get_locale():
@@ -81,6 +86,7 @@ class HtmlRenderer:
             env.filters['get_icon'] = get_icon_for_mimetype
             env.filters['clipped_media_name'] = get_clipped_media_name
             env.filters['convert_pub_date'] = convert_pub_date
+            env.filters['random_id'] = random_id
 
             self.envs[locale_key] = env
 
@@ -97,6 +103,9 @@ class HtmlRenderer:
 
 
     def run(self, filename="base.html", context=None):
+        if context is None:
+            context = {}
+
         try:
             lang = context["gui_lang"]
         except:

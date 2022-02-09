@@ -19,8 +19,8 @@ from urllib.parse import quote, unquote
 import logging
 logger = logging.getLogger(__name__)
 
-from feed import Feed, bytes_str
-import default_settings as settings  # Overriden in load_config()
+from .feed import Feed, bytes_str
+from . import default_settings as settings  # Overriden in load_config()
 
 XML_NAMESPACES = {'content': 'http://purl.org/rss/1.0/modules/content/',
                   'atom': 'http://www.w3.org/2005/AtomX',

@@ -10,8 +10,8 @@ from types import ModuleType
 from glob import glob
 from random import randint
 
-from session import LoginType
-from validators import validate_favorites, ValidatorException
+from .session import LoginType
+from .validators import validate_favorites, ValidatorException
 
 import logging
 logger = logging.getLogger(__name__)
@@ -86,7 +86,6 @@ def get_history_filename(user=None):
         return "history.py"
 
 
-
 def load_config(main_globals):
     config_dir = get_config_folder()
     logger.info("Load config from {}".format(config_dir))
@@ -100,7 +99,7 @@ def load_config(main_globals):
         # If settings.py not contains a variable name
         # add the default value from default_settings
         vars_set = vars(settings)
-        vars_default_set = vars(sys.modules["default_settings"])
+        vars_default_set = vars(sys.modules["rss2html.default_settings"])
         for s in vars_default_set.keys():
             if not s.startswith("__"):
                 vars_set[s] = vars_set.get(s, vars_default_set[s])
@@ -111,7 +110,7 @@ def load_config(main_globals):
         main_globals["settings"] = settings
     except ImportError:
         logger.warn("No 'settings.py' found. Loading default values.")
-        import default_settings as settings
+        from . import default_settings as settings
         pass
 
     # Generate secret token if none is given
@@ -190,6 +189,7 @@ def load_users(main_globals):
         # Validate that module has expected content
         if user_module_name+".py" in settings.DISABLE_VALIDATOR_FOR:
             logger.info("Skip validation of '{}.py'".format(user_module_name))
+            return
         else:
             try:
                 validate_favorites(user_module_name)
@@ -242,7 +242,7 @@ def update_submodules(main_globals):
     # submodules, too.
     #
     # Useful in modules with following statement:
-    # import default_settings as settings
+    #     from . import default_settings as settings
 
     settings = main_globals["settings"]
     modules_done = []  # To omit infinite loops due recursion

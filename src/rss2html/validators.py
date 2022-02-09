@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # Declaration of allowed names for several statement types
 WHITELIST = {
     _ast.ImportFrom: {
-        "feed": ["Feed"],
+        "rss2html.feed": ["Feed"],
     },
     _ast.Import: [
         "sys",
@@ -132,7 +132,7 @@ if __name__ == "__main__":
 
     # Example code
     valid = '''\
-from feed import Feed
+from rss2html.feed import Feed
 
 FAVORITES = [Feed("A", "url1"),
      Feed("B", "url4" + "ext" if True else "url5"),

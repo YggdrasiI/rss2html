@@ -9,6 +9,9 @@ SHELL=/bin/bash
 
 DEBUG?=1
 
+# Position of package in this repo
+SRC_PACKAGES=src
+
 # Fallback position for packages which are not installed.
 SITE_PACKAGES=site-packages
 PIP_PACKAGES=$(shell cat "requirements.txt" | sed "s/.*/\"\0\"/")
@@ -43,10 +46,10 @@ help:
 		"" \
 
 run: check_env ssl
-	PYTHONPATH='$(SITE_PACKAGES)' $(PYTHON_BIN) rss_server.py
+	PYTHONPATH='$(SRC_PACKAGES):$(SITE_PACKAGES)' $(PYTHON_BIN) -m rss2html
 
 runas: check_env
-	sudo -u $(USER) PYTHONPATH='$(SITE_PACKAGES)' $(PYTHON_BIN) rss_server.py
+	sudo -u $(USER) PYTHONPATH='$(SRC_PACKAGES):$(SITE_PACKAGES)' $(PYTHON_BIN) -m rss2html
 
 %.service: %.service.template
 	echo "Create service file for user '$(USER)'."
@@ -56,13 +59,13 @@ runas: check_env
 	sed -e "s#{USER}#$(USER)#g" \
 		-e "s#{FOLDER}#$(FOLDER)#g" \
 		-e "s#{PYTHON_BIN}#$(PYTHON_BIN)#g" \
-		-e "s#{SITE_PACKAGES}#$(SITE_PACKAGES)#g" \
+		-e "s#{SITE_PACKAGES}#$(SRC_PACKAGES):$(SITE_PACKAGES)#g" \
 		$< > $(basename $<)
 
 create_service_file: rss_server.service
 
 check_env:
-	@PYTHONPATH='$(SITE_PACKAGES)' $(PYTHON_BIN) \
+	@PYTHONPATH='$(SRC_PACKAGES):$(SITE_PACKAGES)' $(PYTHON_BIN) \
 		-c "import jinja2; import babel" \
 						2>/dev/null \
 						|| make install_deps_local \
@@ -103,12 +106,6 @@ clean:
 	@echo "Continue?" && read RSS_READER_CLEAN \
 		&& test -n "$${RSS_READER_CLEAN}" -a "$${RSS_READER_CLEAN}" != "no" \
 		&& git clean -f -d .
-
-# Note about --system flag: --target can not be combined with --user
-# The --system flag disables the implicit --user.
-# Problem occoured with Python 3.5 and pip 9.0.1
-install_deps_local_old:
-	$(PYTHON_BIN) -m pip install --target $(SITE_PACKAGES) --system $(PIP_PACKAGES)
 
 install_deps_local:
 	$(PYTHON_BIN) -m pip install -U --target $(SITE_PACKAGES) $(PIP_PACKAGES)

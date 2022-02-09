@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
+#
+# Script to redirect url of RSS feed to rss2html
 
 import sys
 import os
@@ -15,7 +17,7 @@ if __name__ == "__main__":
     # Load settings from config, if possible
     # Otherwise fall back on some default values.
     try:
-        import default_settings as settings  # Overriden in load_config()
+        from rss2html import default_settings as settings  # Overriden in load_config()
     except:
         port = "8888"
         host = "localhost"

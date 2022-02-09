@@ -8,7 +8,7 @@ User={USER}
 Group={USER}
 WorkingDirectory={FOLDER}
 Environment="PYTHONPATH={SITE_PACKAGES}" "DISPLAY=:0.0"
-ExecStart={PYTHON_BIN} rss_server.py
+ExecStart={PYTHON_BIN} -m rss2html
 Restart=always
 RestartSec=60
 #TimeoutSec=60

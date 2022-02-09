@@ -3,7 +3,7 @@
 
 import sys
 import os.path
-import default_settings as settings  # Overriden in load_config()
+from . import default_settings as settings  # Overriden in load_config()
 
 import logging
 logger = logging.getLogger(__name__)

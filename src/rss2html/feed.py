@@ -136,7 +136,7 @@ def save_history(feeds, folder="", filename="history.py"):
     with open(path, "w") as f:
         f.write("#!/usr/bin/python3\n")
         f.write("# -*- coding: utf-8 -*-\n\n")
-        f.write("from feed import Feed\n")
+        f.write("from rss2html.feed import Feed\n")
         f.write("HISTORY = [\n")
         for feed in feeds:
             f.write("    {},\n".format(feed))
@@ -168,7 +168,7 @@ def update_favorites(feeds, folder="", filename="favorites.py"):
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-from feed import Feed
+from rss2html.feed import Feed
 
 FAVORITES = [
     {__FAVORITES}

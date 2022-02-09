@@ -7,8 +7,8 @@ from jinja2 import Environment, FileSystemLoader
 # from jinja2 import FileSystemBytecodeCache
 from babel.support import Translations
 
-import icon_searcher
-from feed_parser import parse_pubDate
+from . import icon_searcher
+from .feed_parser import parse_pubDate
 
 import gettext
 

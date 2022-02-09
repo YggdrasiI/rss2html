@@ -26,9 +26,9 @@ from io import BytesIO
 from hashlib import sha1
 from pickle import loads, dumps
 from pathlib import Path
-from feed import Feed, bytes_str, gen_hash
+from .feed import Feed, bytes_str, gen_hash
 
-import default_settings as settings
+from . import default_settings as settings
 
 CACHE_DIR_NAME = "rss_server_cache"
 

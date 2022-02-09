@@ -10,7 +10,7 @@ import hashlib
 import logging
 logger = logging.getLogger(__name__)
 
-import default_settings as settings  # Overriden in load_config()
+from . import default_settings as settings  # Overriden in load_config()
 
 __css_output = None
 def action_icon_dummy_classes(handler):

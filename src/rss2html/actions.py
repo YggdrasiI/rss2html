@@ -11,8 +11,8 @@ from collections import namedtuple
 from urllib.request import Request, urlopen
 from urllib.parse import urlparse
 
-import cached_requests
-import feed_parser
+from . import cached_requests
+from . import feed_parser
 
 import logging
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ def double_fork(handler):
         os.waitpid(pid, 0)
 
 ## For actions_pool usage
-from actions_pool import worker_handler, PickableAction, PopenArgs, FwithArgs
+from .actions_pool import worker_handler, PickableAction, PopenArgs, FwithArgs
 
 # Example usage:
 # If an action-handler should trigger a worker procsses

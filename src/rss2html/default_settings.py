@@ -3,8 +3,8 @@
 
 from gettext import gettext as _
 
-from feed import Feed
-import actions
+from .feed import Feed
+from . import actions
 
 # Default settings
 # Put overrides of these variables into settings.py!
@@ -172,7 +172,7 @@ DISABLE_VALIDATOR_FOR = []
 #    settings.load_config(globals())
 #    settings.update_submodules(globals())
 #
-from settings_helper import get_config_folder, \
+from .settings_helper import get_config_folder, \
         load_config, load_default_favs, load_users, update_submodules, \
         get_favorites_filename, get_history_filename, \
         get_settings_path, get_favorites_path, \

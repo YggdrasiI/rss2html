@@ -23,37 +23,32 @@ import ssl
 from enum import Enum, auto
 
 #from gettext import gettext as _
-from locale_gettext import gettext as _, set_gettext
+from .locale_gettext import gettext as _, set_gettext
 # from jina2.utils import unicode_urlencode as urlencode
 
-import logging
-import logging.config
+from multiprocessing import set_start_method
 
-# Attention, all loggers created before fileConfig()-Call
-# will be disabled! Importing modules with loggers after this line
-# or enable them manually in set_logger_levels().
-logging.config.fileConfig('logging.conf')
+import logging
 
 '''logging.root.setLevel(logging.NOTSET)
 logging.root.setLevel(0)
 logging.basicConfig(level=0)'''
 logger = logging.getLogger('rss_server')
 
+from . import default_settings as settings  # Overriden in load_config()
 
-from feed import Feed, get_feed, save_history, clear_history, update_favorites
-import feed_parser
+from .feed import Feed, get_feed, save_history, clear_history, update_favorites
+from . import feed_parser
+from . import templates
+from . import icon_searcher
+from . import cached_requests
 
-import templates
-import default_settings as settings  # Overriden in load_config()
-import icon_searcher
-import cached_requests
+from .session import LoginType, init_session
 
-from session import LoginType, init_session
+from .static_content import action_icon_dummy_classes
 
-from static_content import action_icon_dummy_classes
-
-from actions_pool import ActionPool
-from actions import worker_handler, PickableAction, PopenArgs, factory__local_cmd
+from .actions import worker_handler, PickableAction, PopenArgs, factory__local_cmd
+from .actions_pool import ActionPool
 
 CSS_STYLES = {
     "default.css": _("Default theme"),
@@ -1253,9 +1248,8 @@ def set_logger_levels():
         logging.getLogger(key).setLevel(numeric_level)
 
 
-if __name__ == "__main__":
+def main():
     # Workaround...
-    from multiprocessing import set_start_method
     set_start_method("spawn")
 
     settings.load_config(globals())
@@ -1273,12 +1267,12 @@ if __name__ == "__main__":
     if not ("-m" in sys.argv or "--multiple" in sys.argv):
         if check_process_already_running():
             logger.info("Server process is already running.")
-            os._exit(0)
+            return 0
 
     if "-d" in sys.argv or "--daemon" in sys.argv:
         if not daemon_double_fork():
             # Only continue in forked process..
-            os._exit(0)
+            return 0
 
     # Create empty favorites files if none exists
     if not os.path.lexists(settings.get_favorites_path()):
@@ -1383,3 +1377,9 @@ if __name__ == "__main__":
     logger.info("Stop action pool")
     actions_pool.stop()
     logger.info("END program")
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

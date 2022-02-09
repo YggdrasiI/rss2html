@@ -50,7 +50,7 @@ class JustThisFileFilter(logging.Filter):
             return False
 mp_logger.addFilter(JustThisFileFilter())
 
-from feed import Feed
+from .feed import Feed
 
 Pending = namedtuple('Pending', ['time', 'result', 'pid'])
 ActionPoolState = Enum('ActionPoolState', ['INIT', 'STARTED', 'STOPED'])

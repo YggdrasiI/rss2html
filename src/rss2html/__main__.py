@@ -10,7 +10,7 @@ import logging.config
 # Import all modules with loggers after this line.
 # (An other method would be enabling of them manually in set_logger_levels()).
 logging_conf = os.path.join(os.path.dirname(__file__), "logging.conf")
-logging.config.fileConfig("logging_conf")
+logging.config.fileConfig(logging_conf)
 
 '''logging.root.setLevel(logging.NOTSET)
 logging.root.setLevel(0)

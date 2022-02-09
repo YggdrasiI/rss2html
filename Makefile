@@ -9,8 +9,15 @@ SHELL=/bin/bash
 
 DEBUG?=1
 
+# Name of package
+PACKAGE=rss2html
+
 # Position of package in this repo
 SRC_PACKAGES=src
+
+# Root dir for static data
+DATA_DIR=$(SRC_PACKAGES)/$(PACKAGE)/
+
 
 # Fallback position for packages which are not installed.
 SITE_PACKAGES=site-packages
@@ -25,6 +32,9 @@ SUPPORTED_LANGS=en_US de_DE  # Space between entries
 PYBABEL=$(shell echo -n "PYTHONPATH='$(SITE_PACKAGES)' ./site-packages/bin/pybabel")
 # Use installed pybabel if available
 # PYBABEL=$(shell which pybabel || echo -n "PYTHONPATH='$(SITE_PACKAGES)' ./site-packages/bin/pybabel")
+
+LESSC=$(shell which lessc)
+#LESSC=$(echo -n "PYTHONPATH='$(SITE_PACKAGES)' ./site-packages/bin/lesscpy")
 
 help:
 	@echo -e "Common targets:\n" \
@@ -45,7 +55,7 @@ help:
 		"USER=${USER} make runas  -- Start server as selected user\n" \
 		"" \
 
-run: check_env ssl
+run: check_env
 	PYTHONPATH='$(SRC_PACKAGES):$(SITE_PACKAGES)' $(PYTHON_BIN) -m rss2html
 
 runas: check_env
@@ -91,10 +101,10 @@ build: check_env babel_compile
 
 ssl: ssl_rss_server.key ssl_rss_server.crt
 
-css: rss_server-page/less/default.css \
-	rss_server-page/less/light.css \
-	rss_server-page/less/dark.css
-	mv rss_server-page/less/*.css rss_server-page/css/.
+css: $(DATA_DIR)rss_server-page/less/default.css \
+	$(DATA_DIR)rss_server-page/less/light.css \
+	$(DATA_DIR)rss_server-page/less/dark.css
+	mv $(DATA_DIR)rss_server-page/less/*.css $(DATA_DIR)rss_server-page/css/.
 
 log:
 	journalctl -u rss_server --since "$(SINCE) ago"
@@ -117,35 +127,35 @@ install_deps_global:
 # Required for developers, only
 
 babel_prepare:
-	$(PYBABEL) -v extract -F locale/babel.config -o ./locale/messages.pot --input-dirs=.
+	$(PYBABEL) -v extract -F $(DATA_DIR)locale/babel.config -o ./$(DATA_DIR)locale/messages.pot --input-dirs=$(DATA_DIR)
 
 # Overwrites existing messages.po!
 babel_init:
 	@for SLANG in $(SUPPORTED_LANGS) ; do \
-		make locale/$${SLANG}/LC_MESSAGES/messages.po ;\
+		make $(DATA_DIR)locale/$${SLANG}/LC_MESSAGES/messages.po ;\
 		done
 
 babel_update: babel_prepare
 	@for SLANG in $(SUPPORTED_LANGS) ; do \
-		$(PYBABEL) update -l $${SLANG} -d ./locale -i ./locale/messages.pot ;\
+		$(PYBABEL) update -l $${SLANG} -d ./$(DATA_DIR)locale -i ./$(DATA_DIR)locale/messages.pot ;\
 		done
-	@echo "Now, 'git diff locale' show the differences."
-	@echo "Update locale/*/LC_MESSAGES/*.po and finally run 'make babel_complie'"
+	@echo "Now, 'git diff $(DATA_DIR)locale' show the differences."
+	@echo "Update $(DATA_DIR)locale/*/LC_MESSAGES/*.po and finally run 'make babel_compile'"
 
 babel_compile:
 	@for SLANG in $(SUPPORTED_LANGS) ; do \
-		make locale/$${SLANG}/LC_MESSAGES/messages.mo ;\
+		make $(DATA_DIR)locale/$${SLANG}/LC_MESSAGES/messages.mo ;\
 		done
 
 locale/messages.pot:
 	make babel_prepare
 	@echo "BABEL: create *.pot file"
 
-%.po: locale/messages.pot
-	$(PYBABEL) init -l $(word 2, $(subst /, ,$@)) -d ./locale -i ./locale/messages.pot ;\
+%.po: $(DATA_DIR)locale/messages.pot
+	$(PYBABEL) init -l $(word 2, $(subst /, ,$@)) -d ./$(DATA_DIR)locale -i ./$(DATA_DIR)locale/messages.pot ;\
 
 %.mo: %.po
-	$(PYBABEL) compile -l $(word 2, $(subst /, ,$@)) -d ./locale -i "$(@:.mo=.po)" 
+	$(PYBABEL) compile -l $(word 4, $(subst /, ,$@)) -d ./$(DATA_DIR)locale -i "$(@:.mo=.po)" 
 	
 print_pip_upgrade:
 	@echo "Installing of packages failed. Maybe your pip version is outdated?!"
@@ -161,15 +171,11 @@ ssl_rss_server.key:
 		printf "[dn]\nCN=localhost\n[req]\ndistinguished_name = dn\n[EXT]\nsubjectAltName=DNS:localhost\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth") \
 		|| true
 
-rss_server-page/less/%.css: rss_server-page/less/%.less \
-	rss_server-page/less/base.less \
-	rss_server-page/less/plugin_css_invert.js
-	lessc "$<" "$@"
-
-run_feed_provider:
-	cd non-public && python3 -m http.server 8889
+$(DATA_DIR)rss_server-page/less/%.css: \
+	$(DATA_DIR)rss_server-page/less/%.less \
+	$(DATA_DIR)rss_server-page/less/base.less \
+	$(DATA_DIR)rss_server-page/less/plugin_css_invert.js
+	$(LESSC) "$<" "$@"
 
 md:
-	python3 -m markdown -f /dev/shm/README.html README.md
-	test -d /dev/shm/screenshots || cp -r screenshots /dev/shm/.
-	python3 -m markdown -f /dev/shm/screenshots/README.html screenshots/README.md
+	PYTHONPATH=site-packages python3 -m grip README.md

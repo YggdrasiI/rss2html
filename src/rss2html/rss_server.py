@@ -191,7 +191,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         self.context = {}
 
         # super().__init__(*largs, **kwargs)  # for Python 3.4
-        super().__init__(*largs, directory="rss_server-page", **kwargs)
+        root_dir = os.path.join(os.path.dirname(__file__), "rss_server-page")
+        super().__init__(*largs, directory=root_dir, **kwargs)
 
     def end_headers(self):
         # Add HTTP/1.1 header data required for each request.

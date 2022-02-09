@@ -192,6 +192,10 @@ ACTIONS.update({
 ```
 
 ## Developing
+### Requirements
+lessc, babel
+`apt install python3-babel node-less`
+
 ### Bulding package
 
 Creates new package in *dist*:

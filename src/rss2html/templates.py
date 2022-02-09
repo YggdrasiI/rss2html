@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
+import os.path
 from random import randint
 
 from jinja2 import Environment, FileSystemLoader
@@ -54,10 +55,11 @@ def get_locale():
 
 
 class HtmlRenderer:
-    locale_dir = "locale"  # "i18n"
+    root_dir = os.path.dirname(__file__)
+    locale_dir = os.path.join(root_dir, "locale")  # "i18n"
     msgdomain = "html"
     list_of_available_locales = ["en_US", "de_DE"]
-    loader = FileSystemLoader("templates")
+    loader = FileSystemLoader(os.path.join(root_dir, "templates"))
     extensions = ['jinja2.ext.i18n', 'jinja2.ext.with_', 'jinja2.ext.autoescape']
     # bcc = FileSystemBytecodeCache('/tmp', '%s.cache')
     babel_lang_translations = {}

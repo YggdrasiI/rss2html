@@ -1413,7 +1413,7 @@ def create_argument_parser():
                         help="Override default port.")
     parser.add_argument('--host', type=str,
                         help="Override default hostname.")
-    parser.add_argument('-s', '--ssl', type=bool, default=False,
+    parser.add_argument('-s', '--ssl', type=bool, # Default is None
                         help="Override SSL option.")
     return parser
 

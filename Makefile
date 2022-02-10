@@ -40,7 +40,7 @@ LESSC=$(shell which lessc)
 help:
 	@echo -e "Common targets:\n" \
 		"make create_environment  -- Install dependencies in ./venv\n" \
-		"make run                 -- Start daemon from ./venv.\n" \
+		"[USER=…] make run        -- Start daemon from ./venv.\n" \
 		"                            Quit with Ctl+C.\n" \
 		"\n" \
 		"[USER=…] make install_service     -- Install systemd service for automatic start\n" \
@@ -63,7 +63,7 @@ help:
 
 # Activates venv, but run rss2html from its source folder
 run: check_environment
-	source ./venv/bin/activate && PYTHONPATH='$(SRC_PACKAGES)' python3 -m rss2html
+	sudo -u $(USER) PYTHONPATH='$(SRC_PACKAGES)' ./venv/bin/python3 -m rss2html
 
 # Without venv
 run_local: check_packages

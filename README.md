@@ -14,7 +14,9 @@ RSS feed.
 
 ## Requires
 
-See requirements.txt, Python >= 3.8 
+Python >= 3.8
+For a list of required packages: see setup.cfg
+For virtual environments: python3-venv
 
 
 ## Installation and start
@@ -200,7 +202,7 @@ lessc, babel
 
 Creates new package in *dist*:
 ```
-apt install python3.8-venv
+apt install python3-venv
 python3 -m pip install --upgrade build
 python3 -m build
 ```

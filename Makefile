@@ -63,11 +63,18 @@ help:
 
 # Activates venv, but run rss2html from its source folder
 run: check_environment
-	sudo -u $(USER) PYTHONPATH='$(SRC_PACKAGES)' ./venv/bin/python3 -m rss2html
+	sudo -u $(USER) PYTHONPATH='$(SRC_PACKAGES)' \
+		./venv/bin/python3 -m rss2html
+
+# Using python binary with capability to bind on port 443.
+run_443: ./venv/bin/python3_443 ssl
+	sudo -u $(USER) PYTHONPATH='$(SRC_PACKAGES)' \
+		./venv/bin/python3_443 -m rss2html -p 443 --ssl=1
 
 # Without venv
 run_local: check_packages
-	sudo -u $(USER) PYTHONPATH='$(SRC_PACKAGES):$(SITE_PACKAGES)' $(PYTHON_BIN) -m rss2html
+	sudo -u $(USER) PYTHONPATH='$(SRC_PACKAGES):$(SITE_PACKAGES)' \
+		$(PYTHON_BIN) -m rss2html
 
 create_service_file: rss2html.service
 
@@ -203,6 +210,14 @@ ssl_rss_server.key:
 		-config <( \
 		printf "[dn]\nCN=localhost\n[req]\ndistinguished_name = dn\n[EXT]\nsubjectAltName=DNS:localhost\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth") \
 		|| true
+
+./venv/bin/python3_443: python3_443
+	ln -s $(realpath python3_443) venv/bin/.
+
+python3_443:
+	/bin/cp "/usr/bin/python3" "./python3_443"
+	/usr/bin/sudo /sbin/setcap CAP_NET_BIND_SERVICE=+eip "./python3_443"
+
 
 $(DATA_DIR)rss_server-page/less/%.css: \
 	$(DATA_DIR)rss_server-page/less/%.less \

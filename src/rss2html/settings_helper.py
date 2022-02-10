@@ -33,7 +33,7 @@ def get_config_folder():
     if _CONFIG_PATH:
         return _CONFIG_PATH
 
-    if os.uname()[0].lower().startswith("win"):
+    if os.name in ["nt"]:  # note: os.uname() not defined on win anymore
         root_dir = os.getenv('APPDATA')
     else:
         root_dir = os.getenv('XDK_CONFIG_HOME')

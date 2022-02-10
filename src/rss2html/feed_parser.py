@@ -279,7 +279,7 @@ def find_installed_en_locale():
         # Check for normal value
         en_locale = [l for l in avail_locales \
                      if l.split(".")[0] in ["en_US", "en_GB"]]
-        if len(en_locale) > 0:
+        if len(en_locale) == 0:
             # Select more exotic one
             en_locale.extend([l for l in avail_locales \
                               if l.startswith("en_")])
@@ -321,6 +321,15 @@ def parse_pubDate(s, date_format=None):
     if date_format is None:
         date_format="%d. %B %Y, %H:%M%p"
 
+    def resetlocale(category=0):
+        # Workaround for windows (or bad locale config?!)
+        # locale.resetlocale(locale.LC_ALL) returns
+        # locale.Error: unsupported locale setting
+        # if locale.getdefaultlocale() == ('de_DE', 'cp1252')
+        # Swap encoding to utf-8 as workaround...
+        dl = locale.getdefaultlocale()
+        locale.setlocale(category, (dl[0], "utf-8"))
+
     ret = None
     for (f, s2) in formats:
         try:
@@ -331,7 +340,7 @@ def parse_pubDate(s, date_format=None):
             locale.setlocale(locale.LC_ALL, '')
             ret = dt.strftime(date_format)
 
-            locale.resetlocale(locale.LC_ALL)
+            resetlocale(locale.LC_ALL)
             break
         except locale.Error as e:
             logger.warn("Can not set locale '{}'. Error: '{}'.".\

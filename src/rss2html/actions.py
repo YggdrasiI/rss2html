@@ -13,6 +13,7 @@ from urllib.parse import urlparse
 
 from . import cached_requests
 from . import feed_parser
+from .downloader import download
 
 import logging
 logger = logging.getLogger(__name__)
@@ -170,6 +171,80 @@ def download_with_wget(feed, url, settings):
         return PickableAction(PopenArgs(cmd))
 
     return wget()
+
+
+def download_with_urllib3(feed, url, settings):
+    target_root = settings.DOWNLOAD_DIR
+    # => I.e. $HOME/Downloads
+
+    target_root = expandvars(target_root)
+    # => I.e. /home/rss_server/Downloads
+
+    # Derive item_title, etc
+    entry = get_item_for_url(feed, url, settings)
+    try:
+        item_title = entry["title"]
+        pubDate = entry["pubDate"]
+        item_guid = entry["guid"]
+    except (TypeError, KeyError):
+        logger.warn("Can not evaluate item_title.")
+        logger.warn("Entry: {}".format(entry))
+        item_title = None
+        pubDate = ""
+        item_guid = ""
+
+    if pubDate:
+        pubDate = feed_parser.parse_pubDate(pubDate, settings.PUB_DATE_FORMAT)
+
+    if item_guid:
+        # Some feeds use the url as guid.
+        # Avoid some chars in file/folder names.
+        item_guid = item_guid.replace(".", "_")
+        item_guid = re.sub(r"([\/:\\])", r"", item_guid)
+
+    # Derive subdirectories and pathname from DOWNLOAD_NAMING_SCHEME
+    target_path = os.path.join(target_root, settings.DOWNLOAD_NAMING_SCHEME)
+    keys_later_resolved = ["basename", "file_ext", "item_title"]
+    target_path = target_path.format(
+        feed_name=feed.name,
+        feed_title=feed.title,
+        item_guid=item_guid,
+        pub_date=pubDate,
+        **dict([(k, "{{{}}}".format(k)) \
+                for k in keys_later_resolved])
+    )
+    # => I.e. /home/rss_server/Downloads/My Podcast 1/{basename}
+    pool = cached_requests._HTTP
+
+    def _path_handler(target_dir, target_name, filename):
+        if filename:
+            basename = filename
+        elif target_name:
+            basename = target_name
+        else:
+            basename = "unamed_file"
+
+        file_ext = os.path.splitext(basename)[1]
+        # Replace open keys. Avoid same variable name as outer scope
+        target_path_ = target_dir.format(
+            basename=basename,
+            file_ext=file_ext,
+            item_title=item_title if item_title else basename,
+        )
+
+        target_dir = os.path.dirname(target_path_)
+        target_file = os.path.basename(target_path_)
+
+        return (target_dir, target_file)
+
+    def _download():
+        download(pool, url,
+                 target_dir=target_path,
+                 target_name="",
+                 path_handler=_path_handler)
+
+    return _download
+
 
 # Called in this thread
 def play_with_mimeopen(feed, url, settings):

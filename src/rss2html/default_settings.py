@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
+import os
 from gettext import gettext as _
 
 from .feed import Feed
@@ -125,7 +126,10 @@ local setttings.py:
 
 ACTIONS = {
     "download" : {
-        "handler": actions.download_with_wget,
+        "handler": (actions.download_with_urllib3
+                    if os.name == "nt" else
+                   actions.download_with_wget
+                   ),
         "check": actions.can_download,
         "title": _('Download file'),
         "icon": "icons/gnome_download.png",

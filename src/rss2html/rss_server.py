@@ -3,6 +3,7 @@
 
 import sys
 import os.path
+import argparse
 from datetime import datetime  # , timedelta, timezone
 from xml.etree import ElementTree
 
@@ -179,9 +180,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
     ## protocol_version = "HTTP/1.1"
     protocol_version = 'HTTP/1.1'
 
-
-    # directory="rss_server-page"  # for Python 3.4
-
     def __init__(self, *largs, **kwargs):
         self.session = init_session(self, settings)
 
@@ -190,9 +188,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         self.save_session = False
         self.context = {}
 
-        # super().__init__(*largs, **kwargs)  # for Python 3.4
-        root_dir = os.path.join(os.path.dirname(__file__), "rss_server-page")
-        super().__init__(*largs, directory=root_dir, **kwargs)
+        # Root dir of server is inside of package
+        www_dir = os.path.join(os.path.dirname(__file__),
+                               "rss_server-page")
+
+        super().__init__(*largs, directory=www_dir, **kwargs)
 
     def end_headers(self):
         # Add HTTP/1.1 header data required for each request.
@@ -1221,11 +1221,20 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 # Call 'make ssl' to generate local test certificates.
 def wrap_SSL(httpd, key_file, crt_file):
-    ssl_path = "."
+    if not os.path.isfile(key_file) and not os.path.isfile(crt_file):
+        # Try relative path for both files
+        cf = settings.get_config_folder()
+        key_file = os.path.join(cf, key_file)
+        crt_file = os.path.join(cf, crt_file)
+    if not os.path.isfile(key_file):
+        logger.error("Key file not found check settings.SSL_KEY_PATH")
+    if not os.path.isfile(crt_file):
+        logger.error("Certificate file not found check settings.SSL_CRT_PATH")
+
     httpd.socket = ssl.wrap_socket (
         httpd.socket, server_side=True,
-        keyfile=os.path.join(ssl_path, key_file),
-        certfile=os.path.join(ssl_path, crt_file),
+        keyfile=key_file,
+        certfile=crt_file,
     )
 
 
@@ -1265,15 +1274,26 @@ def main():
 
     feed_parser.find_installed_en_locale()
 
-    if not ("-m" in sys.argv or "--multiple" in sys.argv):
-        if check_process_already_running():
-            logger.info("Server process is already running.")
-            return 0
+    parser = create_argument_parser()
+    args = parser.parse_args()
 
-    if "-d" in sys.argv or "--daemon" in sys.argv:
+    if not args.multiple and check_process_already_running():
+        logger.info("Server process is already running.")
+        return 0
+
+    if args.daemon:
         if not daemon_double_fork():
             # Only continue in forked process..
             return 0
+
+    if args.port:
+        settings.PORT = args.port
+
+    if args.host:
+        settings.HOST = args.host
+
+    if not args.ssl is None:
+        settings.SSL = args.ssl
 
     # Create empty favorites files if none exists
     if not os.path.lexists(settings.get_favorites_path()):
@@ -1381,6 +1401,21 @@ def main():
 
     return 0
 
+
+def create_argument_parser():
+    parser = argparse.ArgumentParser(
+        description='RSS Viewer', usage="python3 -m rss2html [options]")
+    parser.add_argument('-m', '--multiple', action='store_true',
+                        help="")
+    parser.add_argument('-d', '--daemon', action='store_true',
+                        help="Run as daemon process.")
+    parser.add_argument('-p', '--port', type=int,
+                        help="Override default port.")
+    parser.add_argument('--host', type=str,
+                        help="Override default hostname.")
+    parser.add_argument('-s', '--ssl', type=bool, default=False,
+                        help="Override SSL option.")
+    return parser
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -1319,6 +1319,7 @@ def main():
         logger.info("Trim on {} elements in cache.".format(__l3))
 
 
+    global actions_pool
     actions_pool = ActionPool(settings,
                              processes=2,
                              max_active_or_pending=6,
@@ -1357,7 +1358,8 @@ def main():
         host=settings.HOST if settings.HOST else "localhost",
         port=settings.PORT))
 
-    restart_service = True
+    global __restart_service
+    __restart_service = True
 
     # Sometimes, external request spamming leads to a failure
     # of the http service after a few days.
@@ -1368,8 +1370,8 @@ def main():
             sleep(3600.0)
             logger.info("Periodical restart of http service at port {}"
                     .format(settings.PORT))
-            global restart_service
-            restart_service = True
+            global __restart_service
+            __restart_service = True
             httpd.shutdown()
 
             # Cache cleanup
@@ -1379,8 +1381,8 @@ def main():
     t.daemon = True
     t.start()
 
-    while restart_service:
-        restart_service = False
+    while __restart_service:
+        __restart_service = False
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:

@@ -21,7 +21,7 @@ DATA_DIR=$(SRC_PACKAGES)/$(PACKAGE)/
 
 # Fallback position for packages which are not installed.
 SITE_PACKAGES=site-packages
-PIP_PACKAGES=$(shell cat "requirements.txt" | sed "s/.*/\"\0\"/")
+# PIP_PACKAGES=$(shell cat "requirements.txt" | sed "s/.*/\"\0\"/")
 
 # Template releated
 # JINIJA_2_10=https://files.pythonhosted.org/packages/56/e6/332789f295cf22308386cf5bbd1f4e00ed11484299c5d7383378cf48ba47/Jinja2-2.10.tar.gz
@@ -29,19 +29,21 @@ PIP_PACKAGES=$(shell cat "requirements.txt" | sed "s/.*/\"\0\"/")
 # Translation releated
 SUPPORTED_LANGS=en_US de_DE  # Space between entries
 
-PYBABEL=$(shell echo -n "PYTHONPATH='$(SITE_PACKAGES)' ./site-packages/bin/pybabel")
-# Use installed pybabel if available
-# PYBABEL=$(shell which pybabel || echo -n "PYTHONPATH='$(SITE_PACKAGES)' ./site-packages/bin/pybabel")
+# Normal variant
+#PYBABEL=$(shell echo -n "PYTHONPATH='$(SITE_PACKAGES)' ./site-packages/bin/pybabel")
+# Venv-variant
+PYBABEL=$(shell echo -n "./venv/bin/pybabel")
 
 LESSC=$(shell which lessc)
 #LESSC=$(echo -n "PYTHONPATH='$(SITE_PACKAGES)' ./site-packages/bin/lesscpy")
 
 help:
 	@echo -e "Common targets:\n" \
-		"make run                 -- Start daemon. Quit with Ctl+C.\n" \
-		"make install_deps_local  -- Install dependencies locally for this user\n" \
-		"make install_deps_global -- Install dependencies global on system\n" \
-		"USER=${USER} make install_service     -- Install systemd service for automatic start\n" \
+		"make create_environment  -- Install dependencies in ./venv\n" \
+		"make run                 -- Start daemon from ./venv.\n" \
+		"                            Quit with Ctl+C.\n" \
+		"\n" \
+		"[USER=…] make install_service     -- Install systemd service for automatic start\n" \
 		"                            Service will started as user '${USER}'\n" \
 		"make uninstall_service   -- Uninstall systemd service\n" \
 		"\n" \
@@ -52,52 +54,71 @@ help:
 		"                            This certicate is self-signed, thus the browers\n" \
 		"                            will warns the users. If needed, replace\n" \
 		"                            ssl_rss_server.[key|crt] by better ones.\n" \
-		"USER=${USER} make runas  -- Start server as selected user\n" \
+		"[USER=…] make run_local  -- Start daemon without virutal environment.\n" \
+		"                            Quit with Ctl+C.\n" \
+		"                            Optional USER selects other user.\n" \
+		"make install_deps_local  -- Install dependencies locally for this user\n" \
+		"make install_deps_global -- Install dependencies global on system\n" \
 		"" \
 
-run: check_env
-	PYTHONPATH='$(SRC_PACKAGES):$(SITE_PACKAGES)' $(PYTHON_BIN) -m rss2html
+# Activates venv, but run rss2html from its source folder
+run: check_environment
+	source ./venv/bin/activate && PYTHONPATH='$(SRC_PACKAGES)' python3 -m rss2html
 
-runas: check_env
+# Without venv
+run_local: check_packages
 	sudo -u $(USER) PYTHONPATH='$(SRC_PACKAGES):$(SITE_PACKAGES)' $(PYTHON_BIN) -m rss2html
 
-%.service: %.service.template
-	echo "Create service file for user '$(USER)'."
-	test "$(USER)" != "root" \
-		|| (echo "Selected user for template is root. Aborting creation." && false)
-	@echo "Create systemd service file for startup."
-	sed -e "s#{USER}#$(USER)#g" \
-		-e "s#{FOLDER}#$(FOLDER)#g" \
-		-e "s#{PYTHON_BIN}#$(PYTHON_BIN)#g" \
-		-e "s#{SITE_PACKAGES}#$(SRC_PACKAGES):$(SITE_PACKAGES)#g" \
-		$< > $(basename $<)
+create_service_file: rss2html.service
 
-create_service_file: rss_server.service
+check_environment:
+	@test -d venv || make create_environment
+	@source venv/bin/activate && \
+		python3 -c "import jinja2; $(shell grep -v '\(Jinja2\|#.*\|^$$\)' requirements.txt | sed -e 's/[>=].*//' -e 's/.*/import \0;/')" \
+		2>/dev/null \
+		&& echo "All Python package found in virtual environment"
 
-check_env:
-	@PYTHONPATH='$(SRC_PACKAGES):$(SITE_PACKAGES)' $(PYTHON_BIN) \
-		-c "import jinja2; import babel" \
-						2>/dev/null \
-						|| make install_deps_local \
-						|| make print_pip_upgrade 
-	@echo "Python dependencies found."
+check_packages:
+	@PYTHONPATH='$(SITE_PACKAGES)' $(PYTHON_BIN) \
+		-c "import jinja2; $(shell grep -v '\(Jinja2\|#.*\|^$$\)' requirements.txt | sed -e 's/[>=].*//' -e 's/.*/import \0;/')" \
+		2>/dev/null \
+		|| make install_deps_local \
+		|| make print_pip_upgrade
+	@echo "All Python package dependencies fulfilled."
 
-install_service: rss_server.service
+install_service: rss2html.service check_environment
+	@test -d "./venv/lib/python3.8/site-packages/rss2html" \
+		|| ( echo "Copy rss2html into venv" && \
+		cp -r src/rss2html ./venv/lib/python3.8/site-packages/rss2html )
 	sudo cp "$(FOLDER)/$<" "$(SYSTEMD_INSTALL_DIR)/$<"
 	sudo systemctl daemon-reload
 	sudo systemctl enable "$<"
 	@echo "Service enabled, but not started. " \
 		"Call 'systemctl start $<' to start service."
 
-uninstall_service: rss_server.service
+uninstall_service: rss2html.service
 	sudo systemctl stop "$<"
 	sudo systemctl disable "$<"
 	sudo rm "$(SYSTEMD_INSTALL_DIR)/$<"
 
-start_service: rss_server.service
+start_service: rss2html.service
 	sudo systemctl start "$<"
 
-build: check_env babel_compile
+# No %.service-syntax here because of .PHONY
+rss2html.service: rss2html.service.template
+	@echo "Create service file for user '$(USER)'."
+	@test "$(USER)" != "root" \
+		|| (echo "Selected user for template is root. Aborting creation." && false)
+	@sed -e "s#{USER}#$(USER)#g" \
+		-e "s#{FOLDER}#$(FOLDER)/venv#g" \
+		-e "s#{PYTHON_BIN}#$(PYTHON_BIN)#g" \
+		-e "s#{SITE_PACKAGES}#$(SITE_PACKAGES)#g" \
+		$< > $(basename $<)
+
+
+# creates whl-file in ./dist
+build: check_environment babel_compile
+	$(PYTHON_BIN) -m build
 
 ssl: ssl_rss_server.key ssl_rss_server.crt
 
@@ -107,7 +128,7 @@ css: $(DATA_DIR)rss_server-page/less/default.css \
 	mv $(DATA_DIR)rss_server-page/less/*.css $(DATA_DIR)rss_server-page/css/.
 
 log:
-	journalctl -u rss_server --since "$(SINCE) ago"
+	journalctl -u rss2html --since "$(SINCE) ago"
 
 # ====================================================
 clean:
@@ -117,14 +138,26 @@ clean:
 		&& test -n "$${RSS_READER_CLEAN}" -a "$${RSS_READER_CLEAN}" != "no" \
 		&& git clean -f -d .
 
-install_deps_local:
-	$(PYTHON_BIN) -m pip install -U --target $(SITE_PACKAGES) $(PIP_PACKAGES)
+# Install everything in virtual environment
+create_environment: requirements.txt
+	test -d venv || $(PYTHON_BIN) -m venv venv
+	source venv/bin/activate && \
+		python3 -m pip install -U -r requirements.txt
 
-install_deps_global:
-	sudo $(PYTHON_BIN) -m pip install -U $(PIP_PACKAGES)
+# No separate environment, but bundle all packages in local folder
+install_deps_local: requirements.txt
+	$(PYTHON_BIN) -m pip install -U --target $(SITE_PACKAGES) -r requirements.txt
+
+install_deps_global: requirements.txt
+	sudo $(PYTHON_BIN) -m pip install -U -r requirements.txt
 
 # ====================================================
 # Required for developers, only
+
+# Create redundant requiremnts.txt from setup.cfg
+requirements.txt:
+	sed -n "/^install_requires =$$/{g; :x; $$!N; s/  //; tx; p}" \
+		setup.cfg > "$@"
 
 babel_prepare:
 	$(PYBABEL) -v extract -F $(DATA_DIR)locale/babel.config -o ./$(DATA_DIR)locale/messages.pot --input-dirs=$(DATA_DIR)
@@ -155,7 +188,7 @@ locale/messages.pot:
 	$(PYBABEL) init -l $(word 2, $(subst /, ,$@)) -d ./$(DATA_DIR)locale -i ./$(DATA_DIR)locale/messages.pot ;\
 
 %.mo: %.po
-	$(PYBABEL) compile -l $(word 4, $(subst /, ,$@)) -d ./$(DATA_DIR)locale -i "$(@:.mo=.po)" 
+	$(PYBABEL) compile -l $(word 4, $(subst /, ,$@)) -d ./$(DATA_DIR)locale -i "$(@:.mo=.po)"
 	
 print_pip_upgrade:
 	@echo "Installing of packages failed. Maybe your pip version is outdated?!"
@@ -179,3 +212,5 @@ $(DATA_DIR)rss_server-page/less/%.css: \
 
 md:
 	PYTHONPATH=site-packages python3 -m grip README.md
+
+.PHONY: clean rss2html.service

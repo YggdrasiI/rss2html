@@ -1,5 +1,5 @@
 [Unit]
-Description=Starts RSS2HTML daemon as user
+Description=Starts RSS2HTML daemon in virtual environment
 After=network.service
 
 [Service]
@@ -7,15 +7,15 @@ Type=simple
 User={USER}
 Group={USER}
 WorkingDirectory={FOLDER}
-Environment="PYTHONPATH={SITE_PACKAGES}" "DISPLAY=:0.0"
-ExecStart={PYTHON_BIN} -m rss2html
+#Environment="PYTHONPATH={SITE_PACKAGES}" "DISPLAY=:0.0"
+ExecStart={FOLDER}/bin/python3 -m rss2html
 Restart=always
 RestartSec=60
 #TimeoutSec=60
 
 # Uncomment to allow binding on port 443 (SSL)
 # (Not working on old Raspbian?!)
-# AmbientCapabilities=CAP_NET_BIND_SERVICE
+#AmbientCapabilities=CAP_NET_BIND_SERVICE
 
 [Install]
 WantedBy=multi-user.target

@@ -5,7 +5,7 @@ import sys
 import os
 import re
 from os.path import expandvars
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, run
 from collections import namedtuple
 
 from urllib.request import Request, urlopen
@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 from . import cached_requests
 from . import feed_parser
 from .downloader import download
+from .win_find_prog_for_mimetype import prog_for_mimetype
 
 import logging
 logger = logging.getLogger(__name__)
@@ -85,7 +86,7 @@ def download_with_wget(feed, url, settings):
     # => I.e. /home/rss_server/Downloads
 
     # Derive item_title, etc
-    entry = get_item_for_url(feed, url, settings)
+    (entry, _) = get_item_for_url(feed, url, settings)
     try:
         item_title = entry["title"]
         pubDate = entry["pubDate"]
@@ -181,7 +182,7 @@ def download_with_urllib3(feed, url, settings):
     # => I.e. /home/rss_server/Downloads
 
     # Derive item_title, etc
-    entry = get_item_for_url(feed, url, settings)
+    (entry, _) = get_item_for_url(feed, url, settings)
     try:
         item_title = entry["title"]
         pubDate = entry["pubDate"]
@@ -275,14 +276,47 @@ def play_with_mimeopen(feed, url, settings):
 
         return PickableAction(PopenArgs(cmd))
 
-    def win_open():
-        os.startfile(url)
-
     if os.name in ["nt"]:
-        return win_open
+        # Simple variant, but open most urls with browser.
+        def win_open():
+            logger.info("Startfile '{}'".format(url))
+            os.startfile(url)
 
+        # Get enclosure for mimetype
+        (_, enclosure) = get_item_for_url(feed, url, settings)
+        if enclosure:
+           mimetype = enclosure["enclosure_type"]
+           _url = url  # Local var required
+           def win_mimeopen():
+               import shlex
+               url = _url
+               prog = prog_for_mimetype(mimetype)
+               if not prog:
+                   return win_open()
 
-    return mimeopen()
+               # Split line into token
+               cmd = shlex.split(prog)
+
+               # unlike os.system(), run() did
+               # not expand vars. Do it manually...
+               for i in range(len(cmd)):
+                   cmd[i] = os.path.expandvars(cmd[i])
+
+               # Replace %L and %* in args of program
+               for i in range(1,len(cmd)):
+                   cmd[i] = cmd[i].replace("%*", "")
+                   cmd[i] = cmd[i].replace("%L", url)
+
+               #logger.info("Call '{}'".format(cmd))
+               #run(cmd)
+               logger.info("Prepare '{}'".format(cmd))
+               return PickableAction(PopenArgs(cmd))
+
+           return win_mimeopen()
+
+        return win_open  # Fallback, Windows
+
+    return mimeopen()  # Posix
 
 
 def play_with_mpv(feed, url, settings):
@@ -394,7 +428,7 @@ def get_item_for_url(feed, url, settings):
         (cEl, code) = cached_requests.fetch_file(feed.url)
         if not cEl or not cEl.byte_str:
             logger.error("Fetching uncached feed '{}' failed.".format(feed.url))
-            return None
+            return (None, None)
 
         if len(feed.context)>0:
             logger.debug("Skip parsing of feed and re-use previous")
@@ -402,10 +436,10 @@ def get_item_for_url(feed, url, settings):
             feed_parser.parse_feed(feed, cEl.byte_str)
         for entry in feed.context["entries"]:
             for enclosure in entry["enclosures"]:
-                logger.info("Compare {} with {}".format(
-                    url, enclosure.get("enclosure_url")))
+                #logger.info("Compare {} with {}".format(
+                #    url, enclosure.get("enclosure_url")))
                 if enclosure.get("enclosure_url") == url:
-                    return entry
+                    return (entry, enclosure)
 
-    return None
+    return (None, None)
 

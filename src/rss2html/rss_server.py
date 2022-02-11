@@ -1281,7 +1281,7 @@ def main():
         logger.info("Server process is already running.")
         return 0
 
-    if args.daemon:
+    if args.daemon and os.name in ["posix"]:
         if not daemon_double_fork():
             # Only continue in forked process..
             return 0

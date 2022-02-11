@@ -6,9 +6,14 @@
 #
 
 import sys
+import os
 import argparse
 import subprocess
-from winreg import OpenKey, EnumKey, EnumValue, HKEY_CLASSES_ROOT
+
+try:
+    from winreg import OpenKey, EnumKey, EnumValue, HKEY_CLASSES_ROOT
+except ModuleNotFoundError:
+    pass
 
 import logging
 logger = logging.getLogger(__name__)
@@ -38,6 +43,10 @@ def prog_for_ext(ext):
         return -1
 
     return prog
+
+
+def _error(*largs):
+    print(*largs, file=sys.stderr)
 
 
 def _extension_for_mime(mime):
@@ -75,7 +84,7 @@ def _assoc_for_extension(extension):
     out, err = process.communicate()
 
     if process.returncode != 0:
-        print("assoc call failed. Error: {}".format(err), file=sys.stderr)
+        _error("assoc call failed. Error: {}".format(err))
         return None
 
     out = out.decode('utf-8')
@@ -110,24 +119,29 @@ def main():
         parser.print_help()
         return 0
 
+    if os.name not in ["nt"]:
+        _error("This script uses the windows registry and "
+                "cannot be run on other systems.")
+        return -4
+
     if args.mime:
         ext = _extension_for_mime(args.mime)
     else:
         ext = args.ext
 
     if ext is None:
-        print("No extension found for this mime type.", file=sys.stderr)
+        _error("No extension found for this mime type.")
         return -3
 
     assoc = _assoc_for_extension(ext)
 
     if assoc is None:
-        print("No association found for this extension.", file=sys.stderr)
+        _error("No association found for this extension.")
         return -2
 
     prog = _prog_for_assoc(assoc)
     if prog is None:
-        print("No program found for this association", file=sys.stderr)
+        _error("No program found for this association")
         return -1
 
     print(prog)

@@ -235,6 +235,13 @@ def download_with_urllib3(feed, url, settings):
         target_dir = os.path.dirname(target_path_)
         target_file = os.path.basename(target_path_)
 
+        try:
+            os.makedirs(target_dir, exist_ok=True)
+            # => I.e. creates 'My Podcast 1'
+        except OSError:
+            logger.error("Can not create '{}'".format(target_dir))
+            return None
+
         return (target_dir, target_file)
 
     def _download():
@@ -268,6 +275,13 @@ def play_with_mimeopen(feed, url, settings):
 
         return PickableAction(PopenArgs(cmd))
 
+    def win_open():
+        os.startfile(url)
+
+    if os.name in ["nt"]:
+        return win_open
+
+
     return mimeopen()
 
 
@@ -275,6 +289,30 @@ def play_with_mpv(feed, url, settings):
     cmd = ("mpv", url)
     return PickableAction(PopenArgs(cmd))
 
+
+# Called in this thread
+def play_by_xdg_open(feed, url, settings):
+
+    def xdg_open():
+        cmd = ("xdg-open", url)
+
+        #print(cmd)
+        #nullsink = open(os.devnull, 'w')
+        #nullsource = open(os.devnull, 'r')
+        #popen =  Popen(cmd, stdin=nullsource,
+        #            stdout=nullsink, stderr=nullsink)
+        #
+        #return popen.wait()
+
+        return PickableAction(PopenArgs(cmd))
+
+    def win_open():
+        os.startfile(url)
+
+    if os.name in ["nt"]:
+        return win_open
+
+    return xdg_open()
 
 def factory__local_cmd(lcmd, by_worker_pool=True):
     # Returns action function handler.

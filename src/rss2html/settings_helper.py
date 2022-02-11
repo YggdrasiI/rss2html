@@ -131,6 +131,11 @@ def load_config(main_globals):
         settings.LOGIN_TYPE = None
         settings._LOGIN_TYPE = LoginType(None)
 
+    # Fix paths, e.g correct slashes on Windows
+    settings.CACHE_DIR = os.path.normpath(settings.CACHE_DIR)
+    settings.DOWNLOAD_DIR= os.path.normpath(settings.DOWNLOAD_DIR)
+    settings.DOWNLOAD_NAMING_SCHEME= os.path.normpath(settings.DOWNLOAD_NAMING_SCHEME)
+
     load_default_favs(main_globals)
 
 def load_default_favs(main_globals):

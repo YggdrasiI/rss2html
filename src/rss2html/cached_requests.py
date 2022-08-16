@@ -224,7 +224,7 @@ def fetch_from_cache(feed):
 
 
 def fetch_file(url, no_lookup_for_fresh=True, local_dir="rss_server-page/"):
-    logger.debug("Url: " + url)
+    logger.debug("Url: {}".format(url))
 
     # Lockup im memory
     # cEl = _CACHE.get(url)

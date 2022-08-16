@@ -23,6 +23,7 @@
     <br />
     {{ _("It converts a 2.0 RSS feed into html page (similar looking to FF's version).") }}
     </p>
+    {% if session_user or login_type == "single_user" %}
     <h2 id="feedSubtitleText">{{ _('Favorites') }}</h2>
     <ul class="feed_list">
       {% for fav in favorites %}
@@ -48,6 +49,7 @@
         <input type="submit"/>
         <input name="form_name" type="hidden" value="feed">
     </form>
+    {% endif %}
     <h2 id="feedSubtitleText">{{ _('URI Arguments') }}</h2>
     <p>{{ _("Prepend feed url by '%(url)s' to display feed content by this
     rss viewer.")|format(url="<i>%(protocol)s%(host)s/?feed=</i>")|format(

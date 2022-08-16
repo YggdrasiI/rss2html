@@ -485,7 +485,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path in ["/", "/index.html"]:
             return ViewType.INDEX_PAGE
         elif self.path.startswith("/extras"):
-            if self.path.startswith("/extras/yt?url="):
+            if self.path.startswith("/extras/yt?"):
                 return ViewType.YT_SCRIPT
             else:
                 return ViewType.SHOW_EXTRAS
@@ -957,6 +957,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             ViewType.CHANGE_STYLE,
             ViewType.ACTION_ICONS_CSS,
             ViewType.SYSTEM_ICON,
+            ViewType.SHOW_EXTRAS,
             ViewType.YT_SCRIPT,
         ]
         if session_user == "" and view not in _no_login_required:
@@ -1083,7 +1084,18 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             error_msg = _('URI arguments wrong.')
             return self.show_msg(error_msg, True, minimal)
 
-        yt_action = factory__local_cmd(["ytTV.sh", "{url}"], by_worker_pool=True)
+        yt_format = qget(query_components, "format") or qget(query_components, "f")
+        target = qget(query_components, "target") or qget(query_components, "t")
+
+        cmd = ["ytTV.sh", "{url}"]
+        if target:
+            cmd.insert(1, "{}".format(target))
+            cmd.insert(1, "--target")
+        if yt_format:
+            cmd.insert(1, "{}".format(yt_format))
+            cmd.insert(1, "--format")
+
+        yt_action = factory__local_cmd(cmd, by_worker_pool=True)
         try:
             # Begin action by handling non-serializable stuff.
             # This could prepare a (serializable) handler for the

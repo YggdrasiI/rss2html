@@ -24,14 +24,55 @@
     <h2>{{ msg_type }}</h2>
     <p>{{ msg }}</p>
     {% endif %}
+    <p>{{ _('Helper page to trigger some events for Non-RSS sources.') }}
+    </p>
+    <h1>TV</h1>
     <h2 class="add_feed" id="feedSubtitleText">{{ _('Youtube') }}</h2>
     <form action="/extras" method="POST" class="add_feed">
         <span>{{ "%(protocol)s%(host)s/extras/yt?url="|format(
             host=host, protocol=protocol) }}</span>
-        <input name="url" type="text" value="" tabindex="4">
-        <input type="submit"/>
-        <input name="form_name" type="hidden" value="yt">
-        <input name="form_id" type="hidden" value="{{ range(1)|random_id }}">
+        <input name="url" type="text" value="" tabindex="4"  />
+        <input name="form_name" type="hidden" value="yt" />
+        <input name="form_id" type="hidden" value="{{ range(1)|random_id }}" />
+        <input name="target" type="hidden" value="tv" />
+        <input type="submit" />
+    </form>
+    <br />
+    <h2 class="add_feed" id="feedSubtitleText">{{ _('Direct url') }}</h2>
+    <form action="/extras" method="POST" class="add_feed">
+        <span>{{ "%(protocol)s%(host)s/extras/file?&url="|format(
+            host=host, protocol=protocol) }}</span>
+        <input name="url" type="text" value="" tabindex="4" />
+        <input name="form_id" type="hidden" value="{{ range(1)|random_id }}" />
+        <input name="target" type="hidden" value="tv" />
+        <input name="form_name" type="hidden" value="yt" />
+        <input name="explicit" type="hidden" value="1" />
+        <input type="submit" />
+    </form>
+    <br />
+    <h1>HiFi-Anlage</h1>
+    <h2 class="add_feed" id="feedSubtitleText">{{ _('Youtube') }}</h2>
+    <form action="/extras" method="POST" class="add_feed">
+        <span>{{ "%(protocol)s%(host)s/extras/yt?t=hifi&f=251&url="|format(
+            host=host, protocol=protocol) }}</span>
+        <input name="url" type="text" value="" tabindex="4" />
+        <input name="form_name" type="hidden" value="yt" />
+        <input name="form_id" type="hidden" value="{{ range(1)|random_id }}" />
+        <input name="target" type="hidden" value="hifi" />
+        <input name="format" type="hidden" value="251/250/140" />
+        <input type="submit" />
+    </form>
+    <br />
+    <h2 class="add_feed" id="feedSubtitleText">{{ _('Direct url') }}</h2>
+    <form action="/extras" method="POST" class="add_feed">
+        <span>{{ "%(protocol)s%(host)s/extras/file?url="|format(
+            host=host, protocol=protocol) }}</span>
+        <input name="url" type="text" value="" tabindex="4" />
+        <input name="form_name" type="hidden" value="yt" />
+        <input name="form_id" type="hidden" value="{{ range(1)|random_id }}" />
+        <input name="target" type="hidden" value="hifi" />
+        <input name="explicit" type="hidden" value="1" />
+        <input type="submit" />
     </form>
     {% endif %}
   </div>

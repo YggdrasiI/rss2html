@@ -169,6 +169,10 @@ USER_HISTORY = {}
 # into other files, but not the favorites.
 DISABLE_VALIDATOR_FOR = []
 
+# Page for Non-RSS stuff.
+#
+ENABLE_EXTRAS = False
+
 # ==========================================================
 # Helper function for proper loading of settings. Sketch for proper reading
 # of settings:

@@ -485,10 +485,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path in ["/", "/index.html"]:
             return ViewType.INDEX_PAGE
         elif self.path.startswith("/extras"):
+            if not settings.ENABLE_EXTRAS:
+                return None
             if self.path.startswith("/extras/yt?"):
                 return ViewType.YT_SCRIPT
-            else:
-                return ViewType.SHOW_EXTRAS
+            return ViewType.SHOW_EXTRAS
         elif os.path.splitext(urlparse(self.path).path)[1] in \
                 settings.ALLOWED_FILE_EXTENSIONS:
             return ViewType.PROVIDE_FILE
@@ -1084,6 +1085,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             error_msg = _('URI arguments wrong.')
             return self.show_msg(error_msg, True, minimal)
 
+        # Skip yt-dlp but use given url as final target
+        explicit = (qget(query_components, "explicit", "0") != "0" \
+                or qget(query_components, "e", "0") != "0")
+
+        # Url to evaluate final target by yt-dlp
         yt_format = qget(query_components, "format") or qget(query_components, "f")
         target = qget(query_components, "target") or qget(query_components, "t")
 
@@ -1091,6 +1097,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         if target:
             cmd.insert(1, "{}".format(target))
             cmd.insert(1, "--target")
+        if explicit:
+            cmd.insert(1, "--explicit")
         if yt_format:
             cmd.insert(1, "{}".format(yt_format))
             cmd.insert(1, "--format")

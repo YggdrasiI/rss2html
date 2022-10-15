@@ -60,7 +60,10 @@ class HtmlRenderer:
     msgdomain = "html"
     list_of_available_locales = ["en_US", "de_DE"]
     loader = FileSystemLoader(os.path.join(root_dir, "templates"))
-    extensions = ['jinja2.ext.i18n', 'jinja2.ext.with_', 'jinja2.ext.autoescape']
+    # Jinja < 3.1
+    # extensions = ['jinja2.ext.i18n', 'jinja2.ext.with_', 'jinja2.ext.autoescape']
+    # Jinja2 >= 3.1, some extensions are build-in, now
+    extensions = ['jinja2.ext.i18n']
     # bcc = FileSystemBytecodeCache('/tmp', '%s.cache')
     babel_lang_translations = {}
 

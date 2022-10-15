@@ -1,6 +1,21 @@
+[tool.poetry]
+name = "rss2html"
+version = "1.2"
+description = "Html renderer for RSS 2.0 feeds"
+authors = ["Olaf Schulz <olaf_schulz+rss2html@posteo.de>"]
+license = "GPLv3"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+
+[tool.poetry.dev-dependencies]
+Jinja2 = "^3.0"
+httplib2 = "^0.20.4"
+babel = "^2.6"
+urllib3 = "^1.26.12"
+certifi = "^2022.9.24"
+psutil = "^5.9.2"
+
 [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel",
-]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

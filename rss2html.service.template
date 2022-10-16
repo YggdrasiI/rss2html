@@ -7,8 +7,7 @@ Type=simple
 User={USER}
 Group={USER}
 WorkingDirectory={FOLDER}
-#Environment="PYTHONPATH={SITE_PACKAGES}" "DISPLAY=:0.0"
-ExecStart={FOLDER}/bin/python3 -m rss2html
+ExecStart={FOLDER}/bin/{PYTHON_BIN} -m rss2html {RSS2HTML_ARGS}
 Restart=always
 RestartSec=60
 #TimeoutSec=60

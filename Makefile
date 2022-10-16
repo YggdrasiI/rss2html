@@ -18,20 +18,21 @@ SRC_PACKAGES=src
 # Root dir for static data
 DATA_DIR=$(SRC_PACKAGES)/$(PACKAGE)/
 
+POETRY=$(PYTHON_BIN) -m poetry
+POETRY_VENV=.venv
 
 # Translation releated
 SUPPORTED_LANGS=en_US de_DE  # Space between entries
 
 # Venv-variant
-PYBABEL=$(shell echo -n "./.venv/bin/pybabel")
+PYBABEL=$(shell echo -n "./$(POETRY_VENV)/bin/pybabel")
 
 LESSC=$(shell which lessc)
-POETRY=$(PYTHON_BIN) -m poetry
 
 help:
 	@echo -e "Common targets:\n" \
-		"make install             -- Install dependencies in .venv\n" \
-		"[USER=…] make run        -- Start daemon (with virtual environment .venv)\n" \
+		"make install             -- Install dependencies in $(POETRY_VENV)\n" \
+		"[USER=…] make run        -- Start daemon (with virtual environment $(POETRY_VENV))\n" \
 		"                            Quit with Ctl+C.\n" \
 		"[USER=…] make run_443    -- Like 'run', but HTTPS on port 443\n" \
 		"                            (Port in settings.py will be ignored.)\n" \
@@ -54,14 +55,14 @@ help:
 		"" \
 
 # Activates venv, but run rss2html from its source folder
-run:
+run: $(POETRY_VENV)
 	sudo -u $(USER) $(POETRY) run \
 		python3 -m rss2html
 
 # Using python binary with capability to bind on port 443.
-run_443: .venv/bin/python3_443 ssl
+run_443: $(POETRY_VENV) $(POETRY_VENV)/bin/python3_443 ssl
 	sudo -u $(USER) $(POETRY) run \
-		.venv/bin/python3_443 -m rss2html -p 443 --ssl=1
+		$(POETRY_VENV)/bin/python3_443 -m rss2html -p 443 --ssl=1
 
 create_service_file: rss2html.service
 
@@ -73,7 +74,7 @@ install_service: rss2html.service
 		"Call 'systemctl start $<' to start service."
 
 # Note: Target is renaming service file to 'rss2html.service'.
-install_service_443: rss2html_443.service .venv/bin/python3_443 ssl
+install_service_443: rss2html_443.service $(POETRY_VENV)/bin/python3_443 ssl
 	sudo cp "$(FOLDER)/$<" "$(SYSTEMD_INSTALL_DIR)/$(subst _443,,$<)"
 	sudo systemctl daemon-reload
 	sudo systemctl enable "$(subst _443,,$<)"
@@ -88,7 +89,7 @@ uninstall_service: rss2html.service
 start_service: rss2html.service
 	sudo systemctl start "$<"
 
-# Service starts python from .venv folder. Thus, site-package folder
+# Service starts python from $(POETRY_VENV) folder. Thus, site-package folder
 # from virtual environment will be used.
 # No %.service-syntax here because of .PHONY
 rss2html.service: rss2html.service.template
@@ -143,6 +144,9 @@ clean:
 install: pyproject.toml poetry.toml
 	$(POETRY) install
 
+$(POETRY_VENV):
+	make install
+
 # ====================================================
 # Required for developers, only
 
@@ -195,8 +199,8 @@ ssl_rss_server.key:
 		printf "[dn]\nCN=localhost\n[req]\ndistinguished_name = dn\n[EXT]\nsubjectAltName=DNS:localhost\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth") \
 		|| true
 
-.venv/bin/python3_443: python3_443
-	ln -s $(realpath python3_443) .venv/bin/.
+$(POETRY_VENV)/bin/python3_443: python3_443
+	ln -s $(realpath python3_443) $(POETRY_VENV)/bin/.
 
 python3_443:
 	/bin/cp "/usr/bin/python3" "./python3_443"

@@ -27,12 +27,18 @@ python3 -m pip install {PATH to *.whl-file}
 or with virtual environment
 ```
 apt install python3-venv
-python3 -m venv rss2html_env
-source rss2html_env/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 python3 -m pip install {PATH to *.whl-file}
 ```
 
-If you want build the package from its sources, see below.
+### Installing developing version from sources
+```
+git clone "{This repo}"
+cd rss2html
+poetry install
+poetry run python3 -m rss2html
+```
 
 
 ### Start
@@ -46,7 +52,7 @@ you probably need to adapt *rss_server.service*.
 
 
 
-## Setup
+## Configuration
 
 1. Install program and its dependencies.
 2. The settings are defined in *rss2html/default_settings.py*.  
@@ -124,7 +130,6 @@ apt install python3-babel node-less
 git clone "{This repo}"
 cd rss2html
 poetry install
-poetry run python3 -m rss2html
 ```
 [comment]: # The classical way without venv/poetry:
 [comment]: # python3 -m pip install --target "site-packages" -U -r requirements.txt
@@ -132,6 +137,14 @@ poetry run python3 -m rss2html
 
 ### Starting program from its sources
 `make run` or `make run_443`
+
+Note that first call of `run_443` creates a copy of the python binary and
+allowing this copy the usage of lower port numbers by
+```
+	/usr/bin/sudo /sbin/setcap CAP_NET_BIND_SERVICE=+eip "./python3_443"
+```
+Use this **during development only**. You could also use
+`AmbientCapabilities=CAP_NET_BIND_SERVICE` in a Systemd service file.
 
 ### Building package
 Creates new package in *dist*:

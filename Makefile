@@ -56,11 +56,18 @@ help:
 
 # Activates venv, but run rss2html from its source folder
 run: $(POETRY_VENV)
-	sudo -u $(USER) $(POETRY) run \
-		python3 -m rss2html
+	sudo -u $(USER) $(POETRY_VENV)/bin/python3 -m rss2html
 
 # Using python binary with capability to bind on port 443.
 run_443: $(POETRY_VENV) $(POETRY_VENV)/bin/python3_443 ssl
+	sudo -u $(USER) $(POETRY_VENV)/bin/python3_443 -m rss2html \
+		-p 443 --ssl=1
+
+poetry_run: $(POETRY_VENV)
+	sudo -u $(USER) $(POETRY) run \
+		python3 -m rss2html
+
+poetry_run_443: $(POETRY_VENV) $(POETRY_VENV)/bin/python3_443 ssl
 	sudo -u $(USER) $(POETRY) run \
 		$(POETRY_VENV)/bin/python3_443 -m rss2html -p 443 --ssl=1
 

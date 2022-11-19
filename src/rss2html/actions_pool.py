@@ -470,7 +470,12 @@ class ActionPool:
         while self._num_active_or_pending > 0 or abort_loop == 0:
             abort_loop -= 1
             # Waiting on first process. (Return of others ignored here)
-            result = next(iter(self.pool._cache.values()))
+            try:
+                result = next(iter(self.pool._cache.values()))
+            except StopIteration:
+                self.kill_stale_actions(self._num_active_or_pending)
+                break
+
             wait_time = self.allow_abort_after
             if timeout is not None:
                 wait_time = min(wait_time, end_time-time())

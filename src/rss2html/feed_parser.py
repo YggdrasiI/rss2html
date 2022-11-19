@@ -13,6 +13,7 @@ from datetime import datetime
 import locale
 from xml.etree import ElementTree
 from subprocess import Popen, PIPE
+from io import StringIO
 
 from urllib.parse import quote, unquote
 
@@ -133,6 +134,10 @@ def find_feed_keyword_values(feed, tree):
 
         node = item_node.find('./content:encoded', XML_NAMESPACES)
         content_full  = "" if node is None else node.text
+
+        if settings.ADAPT_FEED_CONTENT:
+            content_short = search_long_lines(content_short)
+            content_full = search_long_lines(content_full)
 
         if content_short == content_full:  # Remove duplicate info
             content_full = ""
@@ -406,6 +411,66 @@ class __Enclosure(dict):
             self["enclosure_length"] = bytes_str(lBytes)
         except (AttributeError, KeyError, ValueError):
             self["enclosure_length"] = "0"
+
+
+# Search in long substrings without space characters for &nbsp;
+# and no-break characters and replace them.
+#
+def search_long_lines(innerHTML):
+    MAXCHARS_WITHOUT_SPACE = 50
+    translate_unicode_spaces = str.maketrans({
+        " ": " ",  # U+00A0 (NO-BREAK SPACE) => U+0020 (SPACE)
+        " ": " ",  # U+202F (NARROW NO-BREAK SPACE) => U+2005 (FOUR-PER-EM SPACE)
+        "﻿": "​",  # U+FEFF (ZERO WIDTH NO-BREAK SPACE) => U+200B (ZERO WIDTH SPACE)
+    })
+
+    if not innerHTML:
+        return ""
+
+    # This returns an ElementNode, but not Tree.
+    # tree = ElementTree.XML('<body>{}</body>'.format(innerHTML))
+    try:
+        tree = ElementTree.parse(StringIO('<div>{}</div>'.format(innerHTML)))
+    except ElementTree.ParseError:
+        logger.error("Feed contains non-parsable data.")
+        return innerHTML
+
+    tree_changed = False
+
+    def long_str_split(text):
+        nonlocal tree_changed
+        start = 0
+        end = text.find(' ', start)
+        critical_ranges = []
+        while end>0:
+            if end-start > MAXCHARS_WITHOUT_SPACE:
+                critical_ranges.append([start, end+1])
+            start = end
+            end = text.find(' ', start+1)
+
+        while critical_ranges:
+            r = critical_ranges.pop()
+            s = text[r[0]:r[1]].replace("&nbsp;", " ")
+            text = "{}{}{}".format(
+                text[:r[0]],
+                s.translate(translate_unicode_spaces),
+                text[r[1]:])
+            tree_changed = True  # Well, if text is still the same
+
+        return text
+
+    for node in tree.iter():
+        if node.text:
+            node.text = long_str_split(node.text)
+        if node.tail:
+            node.tail = long_str_split(node.tail)
+
+    if tree_changed:
+        out_stream = StringIO()
+        tree.write(out_stream, encoding='unicode')
+        innerHTML = out_stream.getvalue()  # Nested by <div>.
+
+    return innerHTML
 
 
 if __name__ == "__main__":

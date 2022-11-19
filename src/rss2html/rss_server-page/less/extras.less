@@ -4,10 +4,19 @@
 }
 
 /* Avoid over sized images on details layer */
-
 .in1 img{
     max-width: 100%;
     height: auto;
+}
+
+/* Avoid long lines in normal and details layer.
+ *
+ * Note that this is just a fallback. On server side
+ * long lines without spaces trys to replace &nbsp;,etc
+ * by space char.
+ */
+.in1, .feedEntryContent {
+	overflow-wrap:break-word;
 }
 
 @media all and (max-width: 35em) {

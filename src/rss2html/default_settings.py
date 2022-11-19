@@ -169,6 +169,12 @@ USER_HISTORY = {}
 # into other files, but not the favorites.
 DISABLE_VALIDATOR_FOR = []
 
+# Enables parsing+analysing of feed content nodes.
+# Currently, this enables lookup after long text lines
+# which could destroy the layout.
+#
+ADAPT_FEED_CONTENT = True
+
 # Page for Non-RSS stuff.
 #
 ENABLE_EXTRAS = False

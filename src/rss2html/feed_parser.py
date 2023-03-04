@@ -433,8 +433,10 @@ def search_long_lines(innerHTML):
     # tree = ElementTree.XML('<body>{}</body>'.format(innerHTML))
     try:
         tree = ElementTree.parse(StringIO('<div>{}</div>'.format(innerHTML)))
-    except ElementTree.ParseError:
-        logger.error("Feed contains non-parsable data.")
+    except ElementTree.ParseError as e:
+        logger.error("search_long_lines() failed because data was "
+                     "not parsable. Error: '{}' {}".format(e, innerHTML))
+        import pdb; pdb.set_trace()
         return innerHTML
 
     tree_changed = False

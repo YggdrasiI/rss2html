@@ -52,7 +52,6 @@ class CacheElement:
     # strings because reference of object is returned
     def __init__(self, text, headers):
         self.byte_str = text.encode('utf-8')
-        # self.text = text  # TODO: Remove redundant 'text' member variable
         self.headers = dict() if headers is None else headers
         self.timestamp = int(time.time())
         self.bSaved = False
@@ -97,6 +96,13 @@ class CacheElement:
             self.bSaved = True
             logger.debug("Writing of '{}' succeeded. ".\
                     format(filename))
+
+    # Returns (uncompressed) data
+    def data(self, decompress=True):
+        if decompress and self.bCompressed:
+            self.decompress()
+
+        return self.byte_str
 
     # For etag generation
     def hash(self):
@@ -171,7 +177,6 @@ class CacheElement:
     def from_bytes(cls, byte_str, headers=None):
         cEl = cls("", headers)
         cEl.byte_str = byte_str
-        # cEl.text = byte_str.decode('utf-8')
         return cEl
 
     @classmethod
@@ -179,7 +184,6 @@ class CacheElement:
         cEl = cls("", headers)
         with open(filename, 'rb',) as f:
             cEl.byte_str = f.read(-1)
-            # cEl.text = cEl.byte_str.decode('utf-8')
             return cEl
 
         return None
@@ -188,7 +192,6 @@ class CacheElement:
     def from_response(cls, res):
         cEl = cls("", dict(res.getheaders()))
         cEl.byte_str = res.data  # urllib3 style of response
-        # cEl.text = cEl.byte_str.decode('utf-8')
         return cEl
 
     @classmethod
@@ -223,7 +226,6 @@ class CacheElement:
 
         f.seek(0, 0)  # go back to start of file
         cEl.byte_str = f.read(-1)
-        # cEl.text = cEl.byte_str.decode('utf-8')
         return cEl
 
 
@@ -424,9 +426,10 @@ def fetch_file(url, no_lookup_for_fresh=True, local_dir="rss_server-page/"):
 
         # everything is fine
 
-        if cEl and no_lookup_for_fresh and len(cEl.byte_str) > 10000:
-
-            # To compare same type of data we need to decompressed variant
+        if (cEl and no_lookup_for_fresh and
+            len(cEl.byte_str) > (3000 if cEl.bCompressed else 10000)):
+            # We can only compare new and old data in from_response_streamed()
+            # if both is decompressed.
             if cEl.bCompressed:
                 cEl.decompress()
 

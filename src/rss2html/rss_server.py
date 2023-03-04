@@ -764,8 +764,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             if code == 304 and len(feed.context)>0:
                 logger.debug("Skip parsing of feed and re-use previous")
             else:
-                cEl.decompress()
-                if not feed_parser.parse_feed(feed, cEl.byte_str):
+                if not feed_parser.parse_feed(feed, cEl.data()):
                     error_msg = _('Parsing of Feed XML failed.')
                     return self.show_msg(error_msg, True)
 

@@ -11,12 +11,15 @@ from hashlib import sha1
 import logging
 logger = logging.getLogger(__name__)
 
+from .validators import substitute_variable_value
+
 class Feed:
     def __init__(self, name, url, title=None, uid=None):
         self.name = name         # For url pattern /?feed=name
         self.url = unquote(url)  # Normalize into unquoted form
         self.title = title       # Title given by RSS or None
-        self._uid = uid           # Unique id generated from above data
+        self._uid = uid          # Unique id generated from above data
+        self._public_id = None   # Public unique id generated from uid
         self.items = []
         self.context = {}
 
@@ -35,6 +38,12 @@ class Feed:
     def cache_name(self):
         # Return assoziated cache filename
         return self.get_uid()
+
+    def public_id(self):
+        # To avoid leakage of cache_name, public_id != uid
+        if not self._public_id:
+            self._public_id = gen_hash(self.get_uid())
+        return self._public_id
 
     def get_uid(self):
         if not self._uid:
@@ -108,22 +117,43 @@ class Enclosure:
         self.guid = guid if guid else self.url
 '''
 
+class Group:
+    def __init__(self, group_name, feeds):
+        self.name = group_name or "Unnamed"
+        self.feeds = feeds or []
+
+    def __repr__(self):
+        def escape_str(s):
+            return s.replace('\\','\\\\').replace('"', '\\"')
+
+        feed_strs = [str(feed) for feed in self.feeds]
+        return 'Group("{name}", [{feeds}])'.format(
+            name=escape_str(self.name),
+            feeds=("\n        " + ",\n        ".join(feed_strs) \
+                   + ",\n    " if len(feed_strs) else "")
+        )
+
 def get_feed(key, *feed_lists):  # hist_feeds=None):
     """ Search feed in list(s) of Feed-objects.
 
-    Return tuple (feed, list_found_index)
+    Return tuple (feed, parent_list_of_feed)
     """
     if key == "":
-        return (None, -1)
+        return (None, None)
 
     for idx in range(len(feed_lists)):
         feeds = feed_lists[idx]
         for f in feeds:
-            if key in [f.name, f.title, f.url]:
-                return (f, idx)
+            if isinstance(f, Group):
+                for f2 in f.feeds:
+                    if key in [f2.name, f2.title, f2.url, f2.public_id()]:
+                        return (f2, f.feeds)
+            else:
+                if key in [f.name, f.title, f.url, f.public_id()]:
+                    return (f, feeds)
 
     #raise ValueError("No feed found for {}".format(key))
-    return (None, -1)
+    return (None, None)
 
 
 def save_history(feeds, folder="", filename="history.py"):
@@ -136,7 +166,7 @@ def save_history(feeds, folder="", filename="history.py"):
     with open(path, "w") as f:
         f.write("#!/usr/bin/python3\n")
         f.write("# -*- coding: utf-8 -*-\n\n")
-        f.write("from rss2html.feed import Feed\n")
+        f.write("from rss2html.feed import Feed, Group\n")
         f.write("HISTORY = [\n")
         for feed in feeds:
             f.write("    {},\n".format(feed))
@@ -168,7 +198,7 @@ def update_favorites(feeds, folder="", filename="favorites.py"):
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-from rss2html.feed import Feed
+from rss2html.feed import Feed, Group
 
 FAVORITES = [
     {__FAVORITES}
@@ -177,21 +207,18 @@ FAVORITES = [
     else:
         with open(path, "r") as f:
             config_file_content = f.read(-1)
-            # Remove content of FAVORITES list
-            search = re.search("\nFAVORITES\s*=\s\[[^]]*]",
-                                       config_file_content)
-            favs_substring = config_file_content[search.start()+1:search.end()]
-            # Check if regex search return valid substring.
-            try:
-                compile(favs_substring, "favs_list", "exec")
-            except SyntaxError:
-                raise Exception("Abort writing of '{path}'. Search for " \
-                                "FAVORITES list failed.".format(path=path))
 
-            # Replace string of current favorites list with dummy.
-            config_file_content = config_file_content[:search.start()+1] \
-                    + "FAVORITES = [\n    {__FAVORITES}\n]" \
-                    + config_file_content[search.end():]
+            # Replace string of current favorites list with dummy token.
+            config_file_content = substitute_variable_value(
+                config_file_content, "FAVORITES",
+                "[\n    {__FAVORITES}\n]")
+
+            # Update import line to new syntax
+            config_file_content = re.sub(
+                "^from rss2html.feed import Feed$",
+                "from rss2html.feed import Feed, Group",
+                config_file_content,
+                count=1)
 
     # Fill in new feed list
     feed_strs = [str(feed) for feed in feeds]
@@ -199,8 +226,13 @@ FAVORITES = [
         __FAVORITES=",\n    ".join(feed_strs) \
         + ",\n" if len(feed_strs) else "")
 
+    num_feeds = len(feeds)
+    for group in feeds:
+        if isinstance(group, Group):
+            num_feeds += len(group.feeds) - 1
+
     logger.debug("Write favorites file '{1}' with {0} entries.".format(
-        len(feeds), filename))
+        num_feeds, filename))
     with open(path, "w") as f:
         f.write(config_file_content)
 

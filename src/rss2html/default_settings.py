@@ -4,7 +4,7 @@
 import os
 from gettext import gettext as _
 
-from .feed import Feed
+from .feed import Feed, Group
 from . import actions
 
 # Default settings
@@ -152,10 +152,13 @@ ACTIONS = {
 #
 # Update 'favorites.py' to override this value.
 FAVORITES = [
-    Feed("example",
-         "http://www.deutschlandfunk.de/" \
-         "podcast-das-war-der-tag.803.de.podcast.xml",
-         "Example Feed"),
+    Group("My Favorites", [
+        Feed("example",
+             "http://www.deutschlandfunk.de/" \
+             "podcast-das-war-der-tag.803.de.podcast.xml",
+             "Example Feed"),
+    ]
+    ),
 ]
 
 # New approach distinct between users.

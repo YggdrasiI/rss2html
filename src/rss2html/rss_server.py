@@ -12,7 +12,7 @@ except ImportError:
     from xml.etree import ElementTree
 
 from urllib.parse import urlparse, parse_qs, quote, unquote
-from threading import Thread
+from threading import Thread, Lock
 import http.server
 from http import cookies
 import hashlib
@@ -26,6 +26,8 @@ from warnings import warn
 # from importlib import reload
 import ssl
 from enum import Enum, auto
+
+import json  # To parse application/json -requests
 
 #from gettext import gettext as _
 from .locale_gettext import gettext as _, set_gettext
@@ -41,8 +43,9 @@ logging.basicConfig(level=0)'''
 logger = logging.getLogger('rss_server')
 
 from . import default_settings as settings  # Overriden in load_config()
+settings_mutex = Lock()
 
-from .feed import Feed, get_feed, save_history, clear_history, update_favorites
+from .feed import Feed, Group, get_feed, save_history, clear_history, update_favorites
 from . import feed_parser
 from . import templates
 from . import icon_searcher
@@ -90,6 +93,8 @@ actions_pool = None
 
 # TIMEZONE = str(datetime.now(timezone(timedelta(0))).astimezone().tzinfo)
 # DATE_HEADER_FORMAT = "%a, %d %h %Y %T {}".format(TIMEZONE)
+
+HIST_GROUP_NAME = "__others"
 
 def check_process_already_running():
     # from tendo import singleton  # hm, to much dependencies
@@ -216,17 +221,64 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         return settings.USER_HISTORY.get(session_user,
                                          settings.HISTORY)
 
+    def get_group(self, group_name):
+        favs = self.get_favorites()
+        for g in favs:
+            if g.name == group_name:
+                return g
+        return None
+
+    def set_favorites(self, favs):
+        if favs == self.get_favorites():
+            return
+
+        session_user = self.session.get_logged_in("user")
+        settings.USER_FAVORITES[session_user] = favs
+
+    def set_history(self, hist):
+        if hist == self.get_history():
+            return
+
+        session_user = self.session.get_logged_in("user")
+        settings.USER_HISTORY[session_user] = hist
+
+
+    def save_favorites(self):
+        session_user = self.session.get_logged_in("user")
+        update_favorites(self.get_favorites(),
+                         settings.get_config_folder(),
+                         settings.get_favorites_filename(session_user))
+
+    def save_history(self):
+        session_user = self.session.get_logged_in("user")
+        save_history(self.get_history(),
+                     settings.get_config_folder(),
+                     settings.get_history_filename(session_user))
+
+    def set_group(self, group_name, feeds):
+        favs = self.get_favorites()
+        for g in favs:
+            if g.name == group_name:
+                if g.feeds == feeds:
+                    return  # No change of existing list
+
+                g.feeds = feeds
+                break
+
     def do_add_favs(self, add_favs):
         session_user = self.session.get_logged_in("user")
+
+        settings_mutex.acquire()
         favs = self.get_favorites()
         hist = self.get_history()
         for feed_key in add_favs:
             # Check for feed with this name
-            (feed, _) = get_feed(feed_key, hist)
+            (feed, parent_list) = get_feed(feed_key, hist)
             if feed:
                 logger.info("Remove feed '{}' from history.".format(feed))
                 try:
-                    hist.remove(feed)
+                    #hist.remove(feed)
+                    parent_list.remove(feed)
                 except ValueError:
                     logger.debug("Removing of feed '{}' from history" \
                                   "failed.".format(feed))
@@ -234,38 +286,43 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             (fav_feed, _) = get_feed(feed_key, favs)
             if not fav_feed:  # Add if not already in FAVORITES
                 logger.info("Add feed '{}' to favorites.".format(feed))
-                favs.append(feed)
+                #favs.append(feed)
+                favs.append(Group("TODO: Add to existing group", [feed]))
 
         update_favorites(favs, settings.get_config_folder(),
                          settings.get_favorites_filename(session_user))
         save_history(hist, settings.get_config_folder(),
                      settings.get_history_filename(session_user))
+        settings_mutex.release()
 
 
     def do_rm_feed(self, to_rm):
         session_user = self.session.get_logged_in("user")
+        settings_mutex.acquire()
         favs = self.get_favorites()
         hist = self.get_history()
         for feed_key in to_rm:
-            (feed, idx) = get_feed(feed_key, favs, hist)
+            (feed, parent_list) = get_feed(feed_key, favs, hist)
 
-            if idx == 0:
+            if parent_list != hist:
                 try:
-                    favs.remove(feed)
+                    parent_list.remove(feed)
                     update_favorites(
                         favs, settings.get_config_folder(),
                         settings.get_favorites_filename(session_user))
                 except ValueError:
                     pass
 
-            if idx == 1:
+            if parent_list == hist:
                 try:
-                    hist.remove(feed)
+                    parent_list.remove(feed)
                     save_history(
                         hist, settings.get_config_folder(),
                         settings.get_history_filename(session_user))
                 except ValueError:
                     pass
+
+        settings_mutex.release()
 
     def eval_gui_lang(self, avail_langs=None):
         if not avail_langs:
@@ -327,8 +384,28 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         content_length = int(self.headers['Content-Length'])
         content = self.rfile.read(content_length).decode('utf-8')
-        query_components = parse_qs(content)
 
+        content_type = self.headers.get("Content-Type","").split(";")[0]
+        logger.info(f"do_POST: '{content_type}'\n '{content}'")
+        if content_type == "application/json":
+            components = json.loads(content)
+            # Normalize values as list to get same structure 
+            # as parse_qs()-function.
+            query_components = {}
+            for (k,v) in components.items():
+                if isinstance(v, list):
+                    query_components[k] = v
+                else:
+                    query_components.setdefault(k, []).append(v)
+
+        elif content_type == "application/x-www-form-urlencoded":
+            query_components = parse_qs(content)
+        else:
+            logger.info(f"TODO: Fix formular handling. "\
+                        "Request includes unsupported content type"\
+                        "{content_type}")
+            return self.show_msg("Unsupported content_type", True, True)
+            
         form_id = qget(query_components, "form_id")
         if not form_id is None:
             if form_id in self.server.form_ids:
@@ -364,6 +441,10 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         if self.path == "/logout" or \
            "logout" in query_components.get("form_name", []):
             return self.handle_logout(query_components)
+
+        if self.path == "/change_feed_order" or \
+           "change_feed_order" in query_components.get("form_name", []):
+            return self.handle_change_feed_order(query_components)
 
         if self.path == "/" or \
                 "feed" == qget(query_components, "form_name"):
@@ -515,6 +596,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             "FAVORITES_FILE": settings.get_favorites_path(user),
             "favorites": self.get_favorites(),
             "history": self.get_history(),
+            "HIST_GROUP_NAME": HIST_GROUP_NAME,
             "css_styles": CSS_STYLES,
         })
 
@@ -681,7 +763,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         if feed in hist:
             save_history(hist, settings.get_config_folder(),
                          settings.get_history_filename(session_user))
-        elif feed in favs:
+        else:
             update_favorites(favs,
                              settings.get_config_folder(),
                              settings.get_favorites_filename(session_user))
@@ -1175,6 +1257,145 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
     def handle_logout(self, query_components):
         self.session.uninit()
         return self.session_redirect('/')
+
+    def handle_change_feed_order(self, query_components):
+        self.send_response(200)
+
+        logger.info(query_components)
+        group_names = query_components.get("groups", [])
+        feed_ids = query_components.get("feed_ids", [])
+        #save_on_disk = ("0" != qget(query_components, "save", "0"))
+        save_on_disk = True
+
+        # Convert ids from ','-separated string to list
+        feed_ids = [ids.split(",") for ids in feed_ids]
+
+        def feed_list_by_ids(ids, favs, hist):
+            new_feeds = []
+            for group in favs:
+                if isinstance(group, Group):
+                    new_feeds.extend(
+                        [f for f in group.feeds if f.public_id() in ids])
+                elif isinstance(group, Feed):
+                    if group.public_id() in ids:
+                        new_feeds.append(group)
+
+            new_feeds.extend(
+                [f for f in hist if f.public_id() in ids])
+
+            # Sorting given by ids
+            def sortkey_by_list_id(f):
+                try:
+                    return ids.index(f.public_id())
+                except ValueError:
+                    return -1
+
+            new_feeds.sort(key=sortkey_by_list_id)
+
+            return new_feeds
+
+        def feed_in_group(feed, favs, hist):
+            if feed in hist: 
+                return True
+            if feed in favs: 
+                return True
+            for group in favs:
+                if isinstance(group, Group):
+                    if feed in group.feeds:
+                        return True
+
+            return False
+
+        settings_mutex.acquire()
+        favs = self.get_favorites()
+        hist = self.get_history()
+
+        # Sanity check of group names
+        #   (Just allow already existing names.)
+        valid_group_names = []
+        if HIST_GROUP_NAME in group_names:
+            valid_group_names.append(HIST_GROUP_NAME)
+        for group in favs:
+            if isinstance(group, Group):
+                if group.name in group_names:
+                    valid_group_names.append(group.name)
+
+        if len(valid_group_names) != len(group_names):
+            msg = "Invalid group name."
+            logger.error(msg)
+            return self.show_msg(msg, error=True, minimal=True)
+
+        # Create new groups (may be subset of all groups+hist)
+        hist_new = []
+        favs_new = []
+        for i in range(len(group_names)):
+            if group_names[i] == HIST_GROUP_NAME:
+                hist_new.extend(feed_list_by_ids(feed_ids[i], favs, hist))
+            else:
+                g = Group(group_names[i],
+                          feed_list_by_ids(feed_ids[i], favs, hist))
+                favs_new.append(g)
+
+        # Check if new groups containing all feeds of old groups
+        ok = True
+        for group_name in group_names:
+            if group_name != HIST_GROUP_NAME:
+                _l = self.get_group(group_name).feeds
+            else:
+                _l = hist
+
+            for feed in _l:
+                ok = ok and feed_in_group(feed, favs_new, hist_new)
+
+        if not ok:
+            msg = "Missing feed in new order."
+            logger.error(msg)
+            return self.show_msg(msg, error=True, minimal=True)
+
+        # Check for duplicate ids in new given groups
+        N_new, N_old = 0,0
+        i = 0
+        for group_name in group_names:
+            if group_name == HIST_GROUP_NAME:
+                N_old += len(hist)
+                N_new += len(hist_new)
+            else:
+                N_new += len(favs_new[i].feeds)
+                N_old += len(self.get_group(group_name).feeds)
+
+            i += 0
+
+        if N_new != N_old:
+            msg = "Length of new ordered feeds doesn't match."
+            logger.error(msg)
+            return self.show_msg(msg, error=True, minimal=True)
+
+
+        # Update favs and hist
+        # self.set_favorites(favs_new)  # wrong. favs_new could be subset
+        favs_changed = False
+        for g in favs_new:
+            for g2 in favs:
+                if g.name == g2.name:
+                    if g2.feeds != g.feeds:
+                        favs_changed = True
+                    g2.feeds = g.feeds
+        self.set_history(hist_new)
+
+        if save_on_disk:
+            if favs_changed:
+                self.save_favorites()
+            if hist_new != hist:
+                self.save_history()
+        settings_mutex.release()
+
+        output = BytesIO()
+        output.write("Sorted".encode('utf-8'))
+        output.seek(0, os.SEEK_END)
+        self.send_header('Content-Length', output.tell())
+        self.end_headers()
+
+        self.wfile.write(output.getvalue())
 
     def session_redirect(self, location):
         # Saves login session cookies

@@ -180,7 +180,7 @@ h2 {
 	color: inherit;
 }
 
-#feedTitleText a {
+.feedTitleText a {
   text-decoration: none;
 	color: inherit;
 }
@@ -189,7 +189,7 @@ a[href] img {
   border: none;
 }
 
-#feedTitleContainer {
+.feedTitleContainer {
   margin-inline-start: 0;
   margin-inline-end: .6em;
   margin-top: 0;
@@ -308,7 +308,7 @@ a#feedSource {
 
 .feed_list > li > a{
   display:block;
-  margin-right:3em;
+  margin-right:calc(3em + 1.5em);
   text-decoration: none;
 
   border-top:2px solid rgba(40,40,40,0.3);
@@ -322,8 +322,8 @@ a#feedSource {
   position:absolute;
   right:1em;
   top:0px;/* bottom: 0px;*/
-  width:2em;
-  text-align:center;
+  width:calc(2.0em + 1.5em); // 1.5em - move cursor, 0.5em space, 1em menu icon, 0.5em space
+  text-align:left;
 
   border-top:2px solid rgba(128,0,128,0.3);
 }

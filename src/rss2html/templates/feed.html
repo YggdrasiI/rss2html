@@ -44,11 +44,11 @@
         <a id="feedTitleLink" href="{{ source_link }}">[{{ _('WWW') }}]</a>
         {% endif %}
       {% endif %}
-        <div id="feedTitleContainer">
-          <h1 id="feedTitleText" >{{ title }}
+        <div class="feedTitleContainer">
+          <h1 class="feedTitleText" >{{ title }}
             <a id="feedSource" href="{{ source_xml_link }}">[{{ _('XML') }}]</a>
           </h1>
-          <h2 id="feedSubtitleText" >{{ subtitle }}</h2>
+          <h2 class="feedSubtitleText" >{{ subtitle }}</h2>
         </div>
     </div>
     <div id="feedContent">
@@ -129,9 +129,9 @@
 {% macro warning(title, msg) %}
 <div class="feedWarn">
     <div id="feedTitle">
-        <div id="feedTitleContainer">
-            <h1 id="feedTitleText" >{{ title }}</h1>
-            <h2 id="feedSubtitleText" >{{ msg }}</h2>
+        <div class="feedTitleContainer">
+            <h1 class="feedTitleText" >{{ title }}</h1>
+            <h2 class="feedSubtitleText" >{{ msg }}</h2>
         </div>
     </div>
 </div>

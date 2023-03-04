@@ -6,7 +6,7 @@
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src chrome: 'self'; img-src * chrome: moz-icon:; media-src *; script-src 'self'; style-src 'self';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src chrome: 'self'; img-src * chrome: moz-icon: data:; media-src *; script-src 'self'; style-src 'self';" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <link rel="shortcut icon" href="/icons/Feed-icon.svg">
@@ -41,6 +41,7 @@
   <title>{{ _('RSS Viewer') }} — {{title}}</title>
 
   <script src="js/handle_action.js" type="text/javascript"></script>
+	{% block dropscript %}{% endblock %} {# Index page only #}
 </head>
 <body>
   {% block content %}{% endblock %}

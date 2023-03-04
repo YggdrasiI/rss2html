@@ -10,6 +10,7 @@ from types import ModuleType
 from glob import glob
 from random import randint
 
+from .feed import Feed, Group
 from .session import LoginType
 from .validators import validate_favorites, ValidatorException
 
@@ -170,6 +171,10 @@ def load_default_favs(main_globals):
     finally:
         settings.FAVORITES = FAVORITES
 
+    # Normalise old form [Feed1, ...] to new form [Group1(name1, [Feed1, …]), …)
+    if len(settings.FAVORITES) > 0 and isinstance(settings.FAVORITES[0], Feed):
+        settings.FAVORITES = [Group("Favorites", settings.FAVORITES)]
+
     # 2. history
     try:
         from history import HISTORY
@@ -282,8 +287,12 @@ def update_submodules(main_globals):
 def all_feeds(settings, *extra_feed_lists):
     def _foo(*lists):
         for l in lists:
-            for feed in l:
-                yield feed
+            for group in l:
+                if isinstance(group, Group):
+                    for feed in group:
+                        yield feed
+                else:
+                    yield group
 
     return _foo(
             settings.FAVORITES, settings.HISTORY,

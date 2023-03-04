@@ -119,6 +119,9 @@ class HtmlRenderer:
         env = self.envs[lang]
         template = env.get_template(filename)
 
+        # Adding of callable funtions inside of template
+        #template.globals.update({"name": func_def})
+
         for k in self.extra_context:
             if k not in context:
                 context[k] = self.extra_context[k]

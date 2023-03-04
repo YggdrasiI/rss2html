@@ -140,8 +140,9 @@ label.feed_open {
   /*font-size:250%;
   line-height:50%;
   vertical-align:middle;*/
+	vertical-align:top;
 
-font-family:bold;
+	font-family:bold;
 }
 
 /* Merged definition with ul.enclosure_actions, see above */

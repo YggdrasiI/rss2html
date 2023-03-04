@@ -1,0 +1,40 @@
+[draggable=true] {
+	border: 2px transparent solid;
+}
+
+.drag_selected {
+  background-color:rgba(100,100, 80, 0.2);
+}
+.drag_started {
+	opacity: 0.4;
+  background-color:rgba(100,100, 80, 0.4);
+  border: 2px dotted red;
+}
+
+.drag_target {
+  border: 2px dotted #666 !important;
+}
+
+/* Dummy entry for empty lists */
+.drag_empty{
+	display:none;
+  cursor: auto;
+}
+
+.drag_target_expand::after {
+	margin-left:0.5em;
+
+	position:absolute;
+	right:0px;
+	bottom:0px;
+}
+
+.drag_empty::after {
+}
+
+.drag_target_expand::after, .drag_empty::after {
+	font-size:larger;
+	content: "+";
+	color:#666;
+}
+

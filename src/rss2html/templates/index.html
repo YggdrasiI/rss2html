@@ -6,9 +6,9 @@
     <a id="feedTitleLink">
       <img id="feedTitleImage" src="/icons/Feed-icon.svg" alt="Rss feed icon" width="128" height="128" />
     </a>
-    <div id="feedTitleContainer">
-      <h1 id="feedTitleText"><a href="/">{{ _('RSS Viewer') }}</a></h1>
-      <h2 id="feedSubtitleText"> </h2>
+    <div class="feedTitleContainer">
+      <h1 class="feedTitleText"><a href="/">{{ _('RSS Viewer') }}</a></h1>
+      <h2 class="feedSubtitleText"> </h2>
     </div>
   </div>
   <div id="feedContent">
@@ -18,30 +18,41 @@
     {{ macros.login_form(user) }}
     </div>
     {% endif %}
-    <h2 id="feedSubtitleText" >{{ _('Description') }}</h2>
+    <h2 class="feedSubtitleText" >{{ _('Description') }}</h2>
     <p>{{ _("As Firefox 64.0 removes it's internal RSS reader, this script replaces the functionality.") }}
     <br />
     {{ _("It converts a 2.0 RSS feed into html page (similar looking to FF's version).") }}
     </p>
     {% if session_user or login_type == "single_user" %}
-    <h2 id="feedSubtitleText">{{ _('Favorites') }}</h2>
-    <ul class="feed_list">
-      {% for fav in favorites %}
-      <li>{{ list_favorite(fav, host, loop.index) }}</li>
+		{#<h2 class="feedSubtitleText">{{ _('Favorites') }}</h2>#}
+		{% for fav_group in favorites %}
+		<h2 class="feedSubtitleText">{{ _(fav_group.name) }}</h2>
+    <ul class="feed_list fav_group" group_name="{{ fav_group.name }}">
+      {% for fav in fav_group.feeds %}
+      <li draggable="true"
+          feed_id="{{ fav.public_id() }}">
+          {{ list_favorite(fav, host, loop.index) }}
+      </li>
       {% else %}
-      {{ _('List of favorite feeds is empty.') }}
       {% endfor %}
+     <li draggable="true" class="drag_empty">
+			 {{ _('List of favorite feeds is empty.') }}</li>
     </ul>
+		{% endfor %}
     <label for="action_toggle-0" class="menu_close1 {{ menu_animation_cls }}"></label>
-    <h2 id="feedSubtitleText">{{ _('Other Feeds') }}</h2>
-    <ul class="feed_list">
+    <h2 class="feedSubtitleText">{{ _('Other Feeds') }}</h2>
+		<ul class="feed_list fav_group" group_name="{{ HIST_GROUP_NAME }}">
       {% for fav in history %}
-      <li>{{ list_history(fav, host, loop.index) }}</li>
+      <li draggable="true"
+          feed_id="{{ fav.public_id() }}">
+          {{ list_history(fav, host, loop.index) }}
+      </li>
       {% else %}
-      {{ _('History of visited feeds is empty.') }}
       {% endfor %}
+     <li draggable="true" class="drag_empty">
+			 {{ _('History of visited feeds is empty.') }}</li>
     </ul>
-    <h2 class="add_feed" id="feedSubtitleText">{{ _('Add feed') }}</h2>
+    <h2 class="add_feed feedSubtitleText">{{ _('Add feed') }}</h2>
     <form action="/" method="POST" class="add_feed">
         <span>{{ "%(protocol)s%(host)s/?feed="|format(
             host=host, protocol=protocol) }}</span>
@@ -50,7 +61,7 @@
         <input name="form_name" type="hidden" value="feed">
     </form>
     {% endif %}
-    <h2 id="feedSubtitleText">{{ _('URI Arguments') }}</h2>
+    <h2 class="feedSubtitleText">{{ _('URI Arguments') }}</h2>
     <p>{{ _("Prepend feed url by '%(url)s' to display feed content by this
     rss viewer.")|format(url="<i>%(protocol)s%(host)s/?feed=</i>")|format(
     host=host, protocol=protocol) }}</p>
@@ -60,7 +71,7 @@
     example_url="<i>%(protocol)s%(host)s/?feed={name}</i>")|format(
     host=host, protocol=protocol) }}
     </p>
-    <h2 id="feedSubtitleText">{{ _('Miscellaneous') }}</h2>
+    <h2 class="feedSubtitleText">{{ _('Miscellaneous') }}</h2>
     <ul class="misc_list">
       {% if session_user and session_user != "default" %}
       <li><span class="session">{{ _('User:') }} {{ session_user }}
@@ -82,9 +93,15 @@
 </div>
 {% endblock %}
 
+{% block dropscript %}
+  <link rel="stylesheet" href="css/multidrop.css" type="text/css" media="all" />
+  <script type="module" src="js/multidrop.js"></script>
+{% endblock %}
+
 {% macro list_favorite(feed, host, idx) -%}
 {# Right 'floated' section in feed title #}
 <span class="manage_feed">
+		<span class="icon_move"></span>
     {# Clickable element for feed actions #}
     <div class="in2_action">
         <label for="action_toggle-f-{{ idx }}"
@@ -112,6 +129,8 @@
 
 {# main section in feed title #}
   <a class="reader_favorites"
+     xdraggable="true"
+		 xfeed_id="{{ feed.public_id() }}"
      href="//{{ host }}/?feed={{ feed.name|urlencode }}">{{
     feed.title|default(feed.name,True) }}</a>
 {%- endmacro %}
@@ -119,6 +138,7 @@
 {% macro list_history(feed, host, idx) -%}
 {# Right 'floated' section in feed title #}
 <span class="manage_feed">
+		<span class="icon_move"></span>
     {# Clickable element for feed actions #}
     <div class="in2_action">
         <label for="action_toggle-h-{{ idx }}"
@@ -149,6 +169,8 @@
 
 {# main section in feed title #}
   <a class="reader_favorites"
+     xdraggable="true"
+		 xfeed_id="{{ feed.public_id() }}"
      href="//{{ host }}/?feed={{ feed.name|urlencode }}">{{
     feed.title|default(feed.name,True) }}</a>
 {%- endmacro %}
@@ -156,9 +178,9 @@
 {% macro warn(title, msg) -%}
 <div class="feedWarn">
   <div id="feedTitle">
-    <div id="feedTitleContainer">
-      <h1 id="feedTitleText" >{{title}}</h1>
-      <h2 id="feedSubtitleText" >{{msg}}</h2>
+    <div class="feedTitleContainer">
+      <h1 class="feedTitleText" >{{title}}</h1>
+      <h2 class="feedSubtitleText" >{{msg}}</h2>
     </div>
   </div>
 </div>

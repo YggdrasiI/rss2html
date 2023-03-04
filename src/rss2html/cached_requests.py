@@ -31,7 +31,7 @@ from io import BytesIO
 from hashlib import sha1
 from pickle import loads, dumps
 from pathlib import Path
-from .feed import Feed, bytes_str, gen_hash
+from .feed import Feed, Group, bytes_str, gen_hash
 
 from . import default_settings as settings
 
@@ -488,14 +488,20 @@ def gen_cache_dirname(bCreateFolder=False):
 def store_cache(*feed_lists):
     # Save all unsaved cache elements on disk
     for idx in range(len(feed_lists)):
-        for feed in feed_lists[idx]:
-            cEl = fetch_from_cache(feed)
-            if not cEl or cEl.bSaved:
-                continue
+        for group in feed_lists[idx]:
+            if isinstance(group, Group):
+                _tmp = group.feeds
+            else:
+                _tmp = [group]
 
-            filename = feed.cache_name()
-            logger.info("Write {}".format(filename))
-            cEl.store(filename)
+            for feed in _tmp:
+                cEl = fetch_from_cache(feed)
+                if not cEl or cEl.bSaved:
+                    continue
+
+                filename = feed.cache_name()
+                logger.info("Write {}".format(filename))
+                cEl.store(filename)
 
 
 def load_cache(*feed_lists):
@@ -507,20 +513,26 @@ def load_cache(*feed_lists):
     # but simple...
     footprint = cache_memory_footprint()
     for idx in range(len(feed_lists)):
-        for feed in feed_lists[idx]:
-            filename = feed.cache_name()
-            cEl = CacheElement.load(filename)
+        for group in feed_lists[idx]:
+            if isinstance(group, Group):
+                _tmp = group.feeds
+            else:
+                _tmp = [group]
 
-            if cEl:
-                footprint += cEl.memory_footprint()
-                if footprint > settings.CACHE_MEMORY_LIMIT:
-                    logger.debug("Stopping load_cache(). "\
-                            "\n{} requested.\n{} allowed".\
-                            format(bytes_str(footprint),
-                                bytes_str(settings.CACHE_MEMORY_LIMIT)))
-                    return
+            for feed in _tmp:
+                filename = feed.cache_name()
+                cEl = CacheElement.load(filename)
 
-                update_cache(filename, cEl, bFromDisk=True)
+                if cEl:
+                    footprint += cEl.memory_footprint()
+                    if footprint > settings.CACHE_MEMORY_LIMIT:
+                        logger.debug("Stopping load_cache(). "\
+                                "\n{} requested.\n{} allowed".\
+                                format(bytes_str(footprint),
+                                    bytes_str(settings.CACHE_MEMORY_LIMIT)))
+                        return
+
+                    update_cache(filename, cEl, bFromDisk=True)
 
 
 def cache_memory_footprint():

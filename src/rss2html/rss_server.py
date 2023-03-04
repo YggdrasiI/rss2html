@@ -740,11 +740,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             page = int(query_components.setdefault("page", ['1'])[-1])
 
             # Generate etag
-            etag = '"{}p{}"'.format(
-                hashlib.sha1((cEl.byte_str if cEl.byte_str is not None \
-                              else "")).hexdigest(),
-                page
-            )
+            etag = '"{}p{}"'.format(cEl.hash(), page)
             #logger.debug("Eval ETag '{}'".format(etag))
             #logger.debug("Browser ETag '{}'".format(self.headers.get("If-None-Match", "")))
             # logger.debug("Received headers:\n{}".format(self.headers))
@@ -767,9 +763,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
             if code == 304 and len(feed.context)>0:
                 logger.debug("Skip parsing of feed and re-use previous")
-            elif not feed_parser.parse_feed(feed, cEl.byte_str):
-                error_msg = _('Parsing of Feed XML failed.')
-                return self.show_msg(error_msg, True)
+            else:
+                cEl.decompress()
+                if not feed_parser.parse_feed(feed, cEl.byte_str):
+                    error_msg = _('Parsing of Feed XML failed.')
+                    return self.show_msg(error_msg, True)
 
             # Note: without copy, changes like warnings on res
             # would be stored peristend into feed.context.

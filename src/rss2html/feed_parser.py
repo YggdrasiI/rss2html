@@ -35,6 +35,8 @@ ORIG_LOCALE = locale.getlocale()  # running user might be non-english
 EN_LOCALE = ("en_US", "utf-8")
 
 def parse_feed(feed, text):
+    logger.debug("Parsing XML file of {}".format(feed))
+
     try:
         if isinstance(text, bytes):
             tree = ElementTree.XML(text.decode('utf-8'))

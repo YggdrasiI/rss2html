@@ -6,6 +6,11 @@ import ssl
 from sys import getsizeof
 import os.path
 from os import mkdir
+try:
+    import brotlicffi as brotli
+except ImportError:
+    import brotli
+
 
 import logging
 logger = logging.getLogger(__name__)
@@ -40,6 +45,8 @@ _HTTP = PoolManager(
     ca_certs=certifi.where()
 )
 
+_BROTLI_COMPRESSION_RATE=7  # Range 0(fastest) … 11(best/default)
+
 class CacheElement:
     # Putting this into _CACHE avoids copy of big underlying
     # strings because reference of object is returned
@@ -49,8 +56,14 @@ class CacheElement:
         self.headers = dict() if headers is None else headers
         self.timestamp = int(time.time())
         self.bSaved = False
+        self.bCompressed = False
+        self._hash = None
 
     def __getstate__(self):
+        # Compress before serialization.
+        if self.bCompressed != settings.CACHE_COMPRESSION:
+            self.decompress() if self.bCompressed else self.compress()
+
         state = self.__dict__.copy()
         # del state[...]
         return state
@@ -60,6 +73,13 @@ class CacheElement:
         # tagged as already saved
         self.__dict__.update(d)
         self.bSaved = True
+
+        # Note the de-serialized object will not decompressed
+        # here, and has to be triggered later if needed.
+        # This reduces memory footprint of cache and often this
+        # data is alerady out-dated and didn't need to be decompressed at all.
+        # if self.bCompressed:
+        #     self.decompress()
 
     def memory_footprint(self):
         # Estimation of memory footprint of this object.
@@ -77,6 +97,58 @@ class CacheElement:
             self.bSaved = True
             logger.debug("Writing of '{}' succeeded. ".\
                     format(filename))
+
+    # For etag generation
+    def hash(self):
+        if self._hash:
+            return self._hash
+
+        if self.bCompressed:
+            self.decompress()
+
+        l = len(self.byte_str)
+        if self.byte_str is None:
+            self._hash = sha1("").hexdigest()
+        elif l < 10000:
+            self._hash = sha1(self.byte_str).hexdigest()
+        else:
+            s = self.byte_str[:2000] \
+                    + self.byte_str[(l>>1)-1000:(l>>1)+1000] \
+                    + self.byte_str[l-2000:]
+            self._hash = sha1(s).hexdigest()
+
+        logger.debug("Generated hash: {}".format(self._hash))
+        return self._hash
+
+    def compress(self):
+        if self.bCompressed:
+            return
+
+        len_compressed = len(self.byte_str)
+
+        self.byte_str = brotli.compress(
+            self.byte_str,
+            mode=brotli.MODE_TEXT,
+            quality=_BROTLI_COMPRESSION_RATE)
+        self.bCompressed = True
+
+        len_decompressed = len(self.byte_str)
+        logger.debug("Compress data. Ratio {}/{} = {:.3f} ".format(
+            len_compressed, len_decompressed, len_compressed/len_decompressed))
+
+    def decompress(self):
+        if not self.bCompressed:
+            return
+
+        len_decompressed = len(self.byte_str)
+
+        self.byte_str = brotli.decompress(self.byte_str)
+        self.bCompressed = False
+
+        len_compressed = len(self.byte_str)
+        logger.debug("Decompress data. Ratio {}/{} = {:.3f} ".format(
+            len_compressed, len_decompressed, len_compressed/len_decompressed))
+
 
     @classmethod
     def load(cls, filename):
@@ -191,11 +263,11 @@ def trim_cache(force_memory=None, force_disk=None):
     global __trim_cache_counter
     __trim_cache_counter += 1
 
-    if force_memory is False and \
+    if force_memory is None and \
             (__trim_cache_counter % trim_cache_interval_memory) == 0:
         force_memory = True
 
-    if force_memory is False and \
+    if force_memory is None and \
             (__trim_cache_counter % trim_cache_interval_disk) == 0:
         force_disk = True
 
@@ -353,6 +425,11 @@ def fetch_file(url, no_lookup_for_fresh=True, local_dir="rss_server-page/"):
         # everything is fine
 
         if cEl and no_lookup_for_fresh and len(cEl.byte_str) > 10000:
+
+            # To compare same type of data we need to decompressed variant
+            if cEl.bCompressed:
+                cEl.decompress()
+
             cEl =  CacheElement.from_response_streamed(response, cEl.byte_str)
         else:
             cEl = CacheElement.from_response(response)
@@ -482,7 +559,7 @@ def cache_reduce_memory_footprint(upper_bound):
                 feed.context = {}
 
             footprint_feeds += get_size(feed.context)
-            cache_map[feed.cache_name()] = feed
+            cache_map[filename] = feed
 
         logger.debug("Footprint of all context-vars: {}".format(footprint_feeds))
         return cache_map

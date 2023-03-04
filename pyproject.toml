@@ -8,13 +8,21 @@ license = "GPLv3"
 [tool.poetry.dependencies]
 python = "^3.8"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 Jinja2 = "^3.0"
 httplib2 = "^0.20.4"
 babel = "^2.6"
 urllib3 = "^1.26.12"
 certifi = "^2022.12.7"
 psutil = "^5.9.2"
+
+[tool.poetry.group.compression.dependencies]
+brotli = [
+	{ version = '^1.0', markers = "platform_python_implementation == 'CPython'" },
+]
+brotlicffi = [
+	{ version = '^1.0', markers = "platform_python_implementation != 'CPython'" },
+]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

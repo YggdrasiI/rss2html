@@ -68,6 +68,9 @@ CACHE_DISK_LIMIT = 10 * CACHE_MEMORY_LIMIT  # Only required if CACHE_DIR is set
 CACHE_DIR = '$HOME/.cache'
 # CACHE_DIR = None  # Disabled if None
 
+# Compress cache files on disk
+CACHE_COMPRESSION = True
+
 MAX_FEED_BYTE_SIZE = 1E7
 ALLOWED_FILE_EXTENSIONS = [".css", ".png", ".jpg", ".svg", ".js"]
 

@@ -5,7 +5,11 @@ import sys
 import os.path
 import argparse
 from datetime import datetime  # , timedelta, timezone
-from xml.etree import ElementTree
+
+try:
+    from defusedxml import ElementTree
+except ImportError:
+    from xml.etree import ElementTree
 
 from urllib.parse import urlparse, parse_qs, quote, unquote
 from threading import Thread

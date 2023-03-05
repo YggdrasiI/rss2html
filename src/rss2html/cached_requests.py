@@ -70,6 +70,11 @@ class CacheElement:
     def __setstate__(self, d):
         # Objects initialized by pickle.loads are
         # tagged as already saved
+
+        # add new member variables for backward compatibility
+        self.bCompressed = False
+        self._hash = None
+
         self.__dict__.update(d)
         self.bSaved = True
 

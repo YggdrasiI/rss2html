@@ -11,7 +11,12 @@ import re
 import hashlib
 from datetime import datetime
 import locale
-from xml.etree import ElementTree
+try:
+    from defusedxml import ElementTree
+except ImportError:
+    from xml.etree import ElementTree
+
+import lxml.html as HtmlTree
 from subprocess import Popen, PIPE
 from io import StringIO
 
@@ -415,9 +420,8 @@ class __Enclosure(dict):
             self["enclosure_length"] = "0"
 
 
-# Search in long substrings without space characters for &nbsp;
-# and no-break characters and replace them.
-#
+# Search in long substrings without normal space characters
+# for &nbsp; or no-break characters and replace them.
 def search_long_lines(innerHTML):
     MAXCHARS_WITHOUT_SPACE = 50
     translate_unicode_spaces = str.maketrans({
@@ -429,14 +433,20 @@ def search_long_lines(innerHTML):
     if not innerHTML:
         return ""
 
-    # This returns an ElementNode, but not Tree.
-    # tree = ElementTree.XML('<body>{}</body>'.format(innerHTML))
+    if len(innerHTML) <= MAXCHARS_WITHOUT_SPACE:
+        return innerHTML
+
+    # innerHTML could be normal text or html code (CDATA-Blocks...)
+    # In general it can not be parsed by ElementTree (xml-parser)
+    # because some valid html token ('&'-char, tag properties without values,
+    # wrong formatted tags, double closed tags) leading to a parsing error.
+    # Thus, we use lxml.html module to cycle over all text nodes.
+
     try:
-        tree = ElementTree.parse(StringIO('<div>{}</div>'.format(innerHTML)))
-    except ElementTree.ParseError as e:
-        logger.error("search_long_lines() failed because data was "
+        tree = HtmlTree.fragment_fromstring('<div>{}</div>'.format(innerHTML))
+    except HtmlTree.ParserError as e:
+        logger.error("search_long_lines() aborts because data was "
                      "not parsable. Error: '{}' {}".format(e, innerHTML))
-        import pdb; pdb.set_trace()
         return innerHTML
 
     tree_changed = False
@@ -455,14 +465,18 @@ def search_long_lines(innerHTML):
         while critical_ranges:
             r = critical_ranges.pop()
             s = text[r[0]:r[1]].replace("&nbsp;", " ")
-            text = "{}{}{}".format(
+            new_text = "{}{}{}".format(
                 text[:r[0]],
                 s.translate(translate_unicode_spaces),
                 text[r[1]:])
-            tree_changed = True  # Well, if text is still the same
+
+            if new_text != text:
+                text = new_text
+                tree_changed = True
 
         return text
 
+    innerHtml_old = innerHTML
     for node in tree.iter():
         if node.text:
             node.text = long_str_split(node.text)
@@ -470,9 +484,9 @@ def search_long_lines(innerHTML):
             node.tail = long_str_split(node.tail)
 
     if tree_changed:
-        out_stream = StringIO()
-        tree.write(out_stream, encoding='unicode')
-        innerHTML = out_stream.getvalue()  # Nested by <div>.
+        innerHTML = HtmlTree.tostring(tree, encoding='unicode')
+        #logger.debug("search_long_lines() converted text '{}' to"
+        #             "'{}'".format(innerHtml_old, innerHTML))
 
     return innerHTML
 

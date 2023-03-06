@@ -157,14 +157,17 @@ $(POETRY_VENV):
 # ====================================================
 # Required for developers, only
 
-## Create redundant requiremnts.txt from setup.cfg
+## Create redundant requirements.txt from setup.cfg
 #requirements.txt:
 #	sed -n "/^install_requires =$$/{g; :x; $$!N; s/  //; tx; p}" \
 #		setup.cfg > "$@"
 
+#requirements.txt:
+#	sed -n "/^\[tool[.]poetry[.].*[.]dependencies\]$$/{g; :x; $$!N; s/ = \"^/>=\"/; tx; p}" \
+#		pyproject.toml > "$@"
+
 requirements.txt:
-	sed -n "/^\[tool.poetry.dev-dependencies\]$$/{g; :x; $$!N; s/ = \"^/>=\"/; tx; p}" \
-		pyproject.toml > "$@"
+	$(POETRY) export -f requirements.txt --with dev --output "$@"
 
 babel_prepare:
 	$(PYBABEL) -v extract -F $(DATA_DIR)locale/babel.config -o ./$(DATA_DIR)locale/messages.pot --input-dirs=$(DATA_DIR)
@@ -223,4 +226,4 @@ $(DATA_DIR)rss_server-page/less/%.css: \
 md:
 	python3 -m grip -b README.md
 
-.PHONY: clean rss2html.service rss2html_443.service requiremnts.txt
+.PHONY: clean rss2html.service rss2html_443.service requirements.txt

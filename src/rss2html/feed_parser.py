@@ -16,7 +16,6 @@ try:
 except ImportError:
     from xml.etree import ElementTree
 
-import lxml.html as HtmlTree
 from subprocess import Popen, PIPE
 from io import StringIO
 
@@ -27,6 +26,8 @@ logger = logging.getLogger(__name__)
 
 from .feed import Feed, bytes_str
 from . import default_settings as settings  # Overriden in load_config()
+
+from .wordbreaker import WordBreaker
 
 XML_NAMESPACES = {'content': 'http://purl.org/rss/1.0/modules/content/',
                   'atom': 'http://www.w3.org/2005/AtomX',
@@ -151,6 +152,10 @@ def find_feed_keyword_values(feed, tree):
 
         if content_short == "":  # Use full directly if <description> was empty
             content_short, content_full = content_full, ""
+
+        # Resetting entries_len after each page
+        if ((entry_id-1) % settings.ENTRIES_PER_PAGE) == 0:
+            entries_len = 0
 
         if entries_len > settings.CONTENT_FULL_LEN_THRESH:
             content_full = ""
@@ -421,74 +426,34 @@ class __Enclosure(dict):
 
 
 # Search in long substrings without normal space characters
-# for &nbsp; or no-break characters and replace them.
+# for good positions to insert break characters (or html-tags)
 def search_long_lines(innerHTML):
-    MAXCHARS_WITHOUT_SPACE = 50
-    translate_unicode_spaces = str.maketrans({
-        " ": " ",  # U+00A0 (NO-BREAK SPACE) => U+0020 (SPACE)
-        " ": " ",  # U+202F (NARROW NO-BREAK SPACE) => U+2005 (FOUR-PER-EM SPACE)
-        "﻿": "​",  # U+FEFF (ZERO WIDTH NO-BREAK SPACE) => U+200B (ZERO WIDTH SPACE)
-    })
+    max_chars_without_space = 50
 
     if not innerHTML:
         return ""
 
-    if len(innerHTML) <= MAXCHARS_WITHOUT_SPACE:
+    if len(innerHTML) <= max_chars_without_space:
         return innerHTML
 
     # innerHTML could be normal text or html code (CDATA-Blocks...)
     # In general it can not be parsed by ElementTree (xml-parser)
     # because some valid html token ('&'-char, tag properties without values,
     # wrong formatted tags, double closed tags) leading to a parsing error.
-    # Thus, we use lxml.html module to cycle over all text nodes.
+    #
+    # We could use lxml.html module to cycle over all text nodes, but
+    # I decided against the lxml dependecy:
+    #   Installation of 'lxml' with poetry on Raspberry-Pi hangs during
+    #   compiling of internal binary (consumes > 400MB RAM)
+    # Well, as workaround you could use 'apt install python3-lxml'
+    # but this made the installation process unhandy.
+    #
+    # Finally, I decided to simply use the standard module html.parser
 
-    try:
-        tree = HtmlTree.fragment_fromstring('<div>{}</div>'.format(innerHTML))
-    except HtmlTree.ParserError as e:
-        logger.error("search_long_lines() aborts because data was "
-                     "not parsable. Error: '{}' {}".format(e, innerHTML))
-        return innerHTML
-
-    tree_changed = False
-
-    def long_str_split(text):
-        nonlocal tree_changed
-        start = 0
-        end = text.find(' ', start)
-        critical_ranges = []
-        while end>0:
-            if end-start > MAXCHARS_WITHOUT_SPACE:
-                critical_ranges.append([start, end+1])
-            start = end
-            end = text.find(' ', start+1)
-
-        while critical_ranges:
-            r = critical_ranges.pop()
-            s = text[r[0]:r[1]].replace("&nbsp;", " ")
-            new_text = "{}{}{}".format(
-                text[:r[0]],
-                s.translate(translate_unicode_spaces),
-                text[r[1]:])
-
-            if new_text != text:
-                text = new_text
-                tree_changed = True
-
-        return text
-
-    innerHtml_old = innerHTML
-    for node in tree.iter():
-        if node.text:
-            node.text = long_str_split(node.text)
-        if node.tail:
-            node.tail = long_str_split(node.tail)
-
-    if tree_changed:
-        innerHTML = HtmlTree.tostring(tree, encoding='unicode')
-        #logger.debug("search_long_lines() converted text '{}' to"
-        #             "'{}'".format(innerHtml_old, innerHTML))
-
-    return innerHTML
+    parser = WordBreaker(max_chars_without_space)
+    parser.feed(innerHTML)
+    parser.break_words()
+    return parser.getvalue()
 
 
 if __name__ == "__main__":

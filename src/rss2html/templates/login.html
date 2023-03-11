@@ -28,14 +28,16 @@
   <h1>{{ _('Login') }}</h1> 
   <div class="clearfix">
       <p>
-      {{ macros.login_form(user) }}
+      {{ macros.login_form(user, redirect_url) }}
       </p>
   </div>
+  {% if display_login_settings %}
   <div class="clearfix">
   <h2>{{ _('Settings') }}</h2>
   <p>
   {{ macros.login_form_desc(login_type) }}
   </p>
   </div>
+  {% endif %}
 </div>
 {% endblock %}

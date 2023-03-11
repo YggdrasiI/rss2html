@@ -1,12 +1,13 @@
 {#{% load i18n %}#}
 
-{% macro login_form(user) %}
+{% macro login_form(user, redirect_url) %}
 <form class="login_form" action="/login" method="POST">
   <input name="user" type="text" value="{{ user }}" tabindex="1">
   <input name="password" type="password" value="" tabindex="2">
   <input type="submit" value="{{ _('Login') }}" tabindex="3">
   <input name="form_name" type="hidden" value="login">
   <input name="form_id" type="hidden" value="{{ range(1)|random_id }}">
+  <input name="redirect_url" type="hidden" value="{{ redirect_url }}">
 </form>
 {% endmacro %}
 

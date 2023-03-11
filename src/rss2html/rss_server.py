@@ -614,7 +614,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         self.wfile.write(output.getvalue())
 
-    def show_login(self, user=None, msg=None, error=False):
+    def show_login(self, user=None, msg=None, error=False,
+            display_settings=True, redirect_url=None):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
 
@@ -628,6 +629,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         self.context["session_user"] = self.session.get_logged_in("user")
         self.context["user"] = self.session.get("user")
+        self.context["display_login_settings"] = display_settings
+        self.context["redirect_url"] = redirect_url
 
         if error:
             self.context["msg_type"] = _("Error")
@@ -727,7 +730,21 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             feed = get_feed(feed_key,
                             self.get_favorites(),
                             self.get_history())[0]
-            feed_url = feed.url if feed else feed_key
+
+            # feed_url = feed.url if feed else feed_key
+            if feed:
+                feed_url = feed.url
+            elif urlparse(feed_key).scheme:  # Distinct 'feed=Name' variant
+                # Check if argument is url
+                feed_url = feed_key
+            else:
+                error_msg = _('No feed found for this URI arguments.')
+                if self.session.is_logged_in():
+                    return self.show_msg(error_msg, True)
+                else:
+                    return self.show_login(session_user, error_msg,
+                            error=True, display_settings=False,
+                            redirect_url=self.path)
 
             res = None
             (cEl, code) = cached_requests.fetch_file(
@@ -1134,6 +1151,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
     def handle_login(self, query_components):
         user = qget(query_components, "user", "")
         password = qget(query_components, "password", "")
+        redirect_url = qget(query_components, "redirect_url")
         logger.debug("User: '{}'".format(user))
 
         if self.session.init(user, password=password, settings=settings):
@@ -1141,7 +1159,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             if self.get_history() != settings.HISTORY:
                 clear_history(self.get_favorites(), self.get_history())
 
-            return self.session_redirect('/')
+            return self.session_redirect(redirect_url or '/')
         else:
             error_msg = _('Login has failed.')
             return self.show_login(user, error_msg, True)

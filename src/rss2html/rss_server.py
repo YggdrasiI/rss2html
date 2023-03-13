@@ -789,6 +789,14 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     error_msg = _('Parsing of Feed XML failed.')
                     return self.show_msg(error_msg, True)
 
+            # Preparing feed.context on current side by updating
+            # some of its values. This is to be done here because
+            # processing all feed entries in feed_parser.parse_feed
+            # would delay the output of first page and doing it as
+            # template filter will process it at each call of the
+            # page, but not once.
+            feed_parser.prepare_page(feed, page)
+
             # Note: without copy, changes like warnings on res
             # would be stored peristend into feed.context.
             res = feed.context.copy()

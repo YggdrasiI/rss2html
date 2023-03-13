@@ -143,10 +143,6 @@ def find_feed_keyword_values(feed, tree):
         node = item_node.find('./content:encoded', XML_NAMESPACES)
         content_full  = "" if node is None else node.text
 
-        if settings.ADAPT_FEED_CONTENT:
-            content_short = search_long_lines(content_short)
-            content_full = search_long_lines(content_full)
-
         if content_short == content_full:  # Remove duplicate info
             content_full = ""
 
@@ -454,6 +450,24 @@ def search_long_lines(innerHTML):
     parser.feed(innerHTML)
     parser.break_words()
     return parser.getvalue()
+
+
+def prepare_page(feed, page):
+    if not settings.ADAPT_FEED_CONTENT:
+        return
+
+    prepared_pages = feed.context.setdefault("prepared_pages", []) 
+    if page in prepared_pages:
+        return
+
+    logger.debug(f"Prepare content of page {page}")
+    n_per_page = settings.ENTRIES_PER_PAGE
+    i_first = ((page-1) * n_per_page if n_per_page > 0 else 0)
+    for entry in feed.context["entries"][i_first:i_first + n_per_page]:
+        entry["content_short"] = search_long_lines(entry["content_short"])
+        entry["content_full"] = search_long_lines(entry["content_full"])
+    
+    prepared_pages.append(page)
 
 
 if __name__ == "__main__":

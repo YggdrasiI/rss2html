@@ -46,6 +46,7 @@ from . import default_settings as settings  # Overriden in load_config()
 settings_mutex = Lock()
 
 from .feed import Feed, Group, get_feed, save_history, clear_history, update_favorites
+from .httpcompressionserver import *
 from . import feed_parser
 from . import templates
 from . import icon_searcher
@@ -147,10 +148,13 @@ def genMyHTTPServer():
 # at runtime (after load_config() call).
 # At compile time it maps on 'default_settings'.
 
+    ServerClass = ThreadingHTTPServer
+    """
     if hasattr(http.server, "ThreadingHTTPServer"):
         ServerClass = http.server.ThreadingHTTPServer
     else:
         ServerClass = socketserver.TCPServer
+    """
 
     class _MyHTTPServer(ServerClass):
         logger.info("Use language {}".format(settings.GUI_LANG))
@@ -163,6 +167,7 @@ def genMyHTTPServer():
 
         request_queue_size = 100
 
+
         def __init__(self, *largs, **kwargs):
             super().__init__(*largs, **kwargs)
             self.html_renderer.extra_context["login_type"] = \
@@ -170,24 +175,22 @@ def genMyHTTPServer():
             # Saves processed form id to avoid multiple handling
             self.form_ids = []
 
+            # Saves user etags for some pages for 304 messages
+            self.latest_etags = {}
+
 
         def server_bind(self):
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.socket.bind(self.server_address)
 
+
     return _MyHTTPServer
 
 
-class MyHandler(http.server.SimpleHTTPRequestHandler):
-    server_version = "RSS_Server/0.2"
+class MyHandler(HTTPCompressionRequestHandler):
+    server_version = "RSS_Server/0.3"
 
-    # Note: ETag ignored for 1.0, but protcol version 1.1
-    # requires header 'Content-Length' for all requests. Otherwise,
-    # the browsers will wait forever for more data...
-    #
-    # ETag in FF still ignored
-    ## protocol_version = "HTTP/1.1"
-    protocol_version = 'HTTP/1.1'
+    # protocol_version = 'HTTP/1.1'
 
     def __init__(self, *largs, **kwargs):
         self.session = init_session(self, settings)
@@ -195,6 +198,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         # Flag to send session cookies without login form.
         # The header info will send for visit of index- or feed-page.
         self.save_session = False
+        self.session_user = None
         self.context = {}
 
         # Root dir of server is inside of package
@@ -206,19 +210,20 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
         # Add HTTP/1.1 header data required for each request.
         # Pipelining of multiple requests not supported.
-        self.send_header('Keep-Alive', 'timeout=0, max=0')
+        self.send_header('Keep-Alive', 'timeout=0, max=0') # TODO
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Keep-Alive
         # self.send_header('Expires', self.date_time_string(1695975089))
         super().end_headers()
 
 
     def get_favorites(self):
-        session_user = self.session.get_logged_in("user")
-        return settings.USER_FAVORITES.get(session_user,
+        # session_user = self.session.get_logged_in("user")
+        return settings.USER_FAVORITES.get(self.session_user,
                                            settings.FAVORITES)
 
     def get_history(self):
-        session_user = self.session.get_logged_in("user")
-        return settings.USER_HISTORY.get(session_user,
+        # session_user = self.session.get_logged_in("user")
+        return settings.USER_HISTORY.get(self.session_user,
                                          settings.HISTORY)
 
     def get_group(self, group_name):
@@ -232,28 +237,30 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         if favs == self.get_favorites():
             return
 
-        session_user = self.session.get_logged_in("user")
-        settings.USER_FAVORITES[session_user] = favs
+        # session_user = self.session.get_logged_in("user")
+        logger.info("Save favs for session_user '{}'".format(self.session_user))
+        settings.USER_FAVORITES[self.session_user] = favs
 
     def set_history(self, hist):
         if hist == self.get_history():
             return
 
-        session_user = self.session.get_logged_in("user")
-        settings.USER_HISTORY[session_user] = hist
+        # session_user = self.session.get_logged_in("user")
+        logger.info("Save hist for session_user '{}'".format(self.session_user))
+        settings.USER_HISTORY[self.session_user] = hist
 
 
     def save_favorites(self):
-        session_user = self.session.get_logged_in("user")
+        # session_user = self.session.get_logged_in("user")
         update_favorites(self.get_favorites(),
                          settings.get_config_folder(),
-                         settings.get_favorites_filename(session_user))
+                         settings.get_favorites_filename(self.session_user))
 
     def save_history(self):
-        session_user = self.session.get_logged_in("user")
+        # session_user = self.session.get_logged_in("user")
         save_history(self.get_history(),
                      settings.get_config_folder(),
-                     settings.get_history_filename(session_user))
+                     settings.get_history_filename(self.session_user))
 
     def set_group(self, group_name, feeds):
         favs = self.get_favorites()
@@ -266,7 +273,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 break
 
     def do_add_favs(self, add_favs):
-        session_user = self.session.get_logged_in("user")
+        # session_user = self.session.get_logged_in("user")
 
         settings_mutex.acquire()
         favs = self.get_favorites()
@@ -290,14 +297,14 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 favs.append(Group("TODO: Add to existing group", [feed]))
 
         update_favorites(favs, settings.get_config_folder(),
-                         settings.get_favorites_filename(session_user))
+                         settings.get_favorites_filename(self.session_user))
         save_history(hist, settings.get_config_folder(),
-                     settings.get_history_filename(session_user))
+                     settings.get_history_filename(self.session_user))
         settings_mutex.release()
 
 
     def do_rm_feed(self, to_rm):
-        session_user = self.session.get_logged_in("user")
+        # session_user = self.session.get_logged_in("user")
         settings_mutex.acquire()
         favs = self.get_favorites()
         hist = self.get_history()
@@ -309,7 +316,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     parent_list.remove(feed)
                     update_favorites(
                         favs, settings.get_config_folder(),
-                        settings.get_favorites_filename(session_user))
+                        settings.get_favorites_filename(self.session_user))
                 except ValueError:
                     pass
 
@@ -318,7 +325,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     parent_list.remove(feed)
                     save_history(
                         hist, settings.get_config_folder(),
-                        settings.get_history_filename(session_user))
+                        settings.get_history_filename(self.session_user))
                 except ValueError:
                     pass
 
@@ -380,6 +387,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         self.session.load()
         self.save_session = False
 
+        self.session_user = self.session.get_logged_in("user")
         self.setup_context()
 
         content_length = int(self.headers['Content-Length'])
@@ -418,7 +426,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     self.send_header('ETag', "extras_const_etag")
                     self.send_header('Cache-Control', 'max-age=0, public ')
                     self.send_header('Content-Location', '/extras')
-                    self.send_header('Vary', 'User-Agent')
+                    # self.send_header('Vary', 'User-Agent')
                     self.end_headers()
                     return None
                 else:
@@ -473,7 +481,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 # return self.session_redirect(self.path)
                 self.save_session = True
 
-        session_user = self.session.get_logged_in("user")
+        self.session_user = self.session.get_logged_in("user")
         self.setup_context()
 
         query_components = parse_qs(urlparse(self.path).query)
@@ -488,13 +496,16 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         if view == ViewType.ADD_FAVS:
             add_favs = query_components.get("add_fav", [])  # List!
             self.do_add_favs(add_favs)
+            self.set_etag('index.html', None)
             return self.session_redirect('/')
         if view == ViewType.REMOVE_FEED:
             to_rm = query_components.get("rm", [])          # List!
             self.do_rm_feed(to_rm)
+            self.set_etag('index.html', None)
             return self.session_redirect('/')
         elif view == ViewType.RELOAD:
             self.reload_favs()
+            self.set_etag('index.html', None)
             return self.session_redirect('/')
         elif view == ViewType.LOGIN:
             return self.handle_login(query_components)
@@ -523,16 +534,17 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             return self.handle_youtube(query_components)
         elif view == ViewType.PROVIDE_FILE:
             # self.path = MyHandler.directory + self.path  # for Python 3.4
+            self.log_message("SUPER %s", self.path)
             return super().do_GET()
         else:
-            print(self.path)
+            self.log_message("%s", self.path)
             # return super().do_GET()
             return self.send_error(404)
 
     def eval_view(self, path, query_components):
         # eval handler for do_GET operation
 
-        session_user = self.session.get_logged_in("user")
+        # session_user = self.session.get_logged_in("user")
 
         feed_key = qget(query_components, "feed")  # key, url or feed title
         filepath = qget(query_components, "file")  # From 'open with' dialog
@@ -583,14 +595,83 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         else:
             return None
 
-    def write_index(self):
-        session_user = self.session.get_logged_in("user")
-        user = self.session.get("user")
+    def get_etag(self, location):
+        etag = self.server.latest_etags.get(self.session_user,{}).get(location)
+        return etag
 
+    def set_etag(self, location, etag):
+        self.server.latest_etags.setdefault(self.session_user,{})[location] = etag
+
+    def _write_1_1(self, s, etag=None, location=None, max_age=None):
+        """ Encoding given string, sets Content-Length header
+            and writing s into response.
+
+            Setting the Content-Length header is required for HTTP/1.1.
+        """
+        output = BytesIO()
+        output.write(s.encode('utf-8'))
+        output.seek(0, os.SEEK_END)
+        self.send_header('Content-Length', output.tell())
+        if max_age:
+            self.send_header('Cache-Control', f'max-age={max_age}, public ')
+        if location:
+            self.send_header('Content-Location', location)
+
+        # Preparation for 304 replys....
+        if etag:
+            if etag is True:
+                etag = '"{}"'.format( hashlib.sha1(output.getvalue()).hexdigest())
+            self.send_header('ETag', etag)
+
+            # Update etag for this user
+            if location:
+                self.set_etag(location, etag)
+
+        self.end_headers()
+
+        self.wfile.write(output.getvalue())
+
+    def _write_304(self, etag, location=None, max_age=None):
+        # Write 304 header information and finish response.
+        #
+        # Regarding to
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/304
+        # following headers hast to be set in 304 again if 
+        # previously added to the 200-response
+        # Cache-Control, Content-Location, Date (is already included),
+        # ETag, Expires (overwritten by max-age, but still required?!)
+        # and Vary.
+        self.send_response(304)
+        self.send_header('ETag', etag)
+        if max_age:
+            self.send_header('Cache-Control', f'max-age={max_age}, public ')
+        # self.send_header('Vary', 'User-Agent')
+        if location:
+            self.send_header('Content-Location', location)
+        self.end_headers()
+        return None
+
+    def write_index(self):
+        # session_user = self.session.get_logged_in("user")
+
+        # Even set if user is not logged in
+        # Used to prefill form input fields in template, etc
+        user = self.session.get("user")
+        location='/index.html'
+
+        etag = self.get_etag(location)
+        browser_etag = self.headers.get("If-None-Match", "")
+        logger.debug("\n\nETag of index page: {}".format(etag))
+        logger.debug("\nETag from client:   {}\n\n".format(browser_etag))
+
+        if etag == browser_etag and not self.save_session:
+            return self._write_304(etag, location='/index.html')
+
+        # Generate (new) page content
         self.context.update({
             "host": self.headers.get("HOST", ""),
             "protocol": "https://" if settings.SSL else "http://",
-            "session_user": session_user,
+            "session_user": self.session_user,
             "user": user,
             "CONFIG_FILE": settings.get_settings_path(),
             "FAVORITES_FILE": settings.get_favorites_path(user),
@@ -602,46 +683,23 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         html = self.server.html_renderer.run("index.html", self.context)
 
-        output = BytesIO()
-        output.write(html.encode('utf-8'))
-        output.seek(0, os.SEEK_END)  # As reminder…
-
-        # Etag
-        etag = '"{}"'.format( hashlib.sha1(output.getvalue()).hexdigest())
-        browser_etag = self.headers.get("If-None-Match", "")
-
-        # logger.debug("\n\nETag of index page: {}".format(etag))
-        # logger.debug("ETag from client:   {}\n\n".format(browser_etag))
-
-        if etag == browser_etag and not self.save_session:
-            self.send_response(304)
-            self.send_header('ETag', etag)
-            # self.send_header('Cache-Control', 'public, max-age=10, ')
-            self.send_header('Cache-Control', 'max-age=0, public ')
-                            # "must-revalidate, post-check=0, pre-check=0")
-            self.send_header('Content-Location', '/index.html')
-            self.send_header('Vary', 'User-Agent')
-            # self.send_header('Expires', "Wed, 21 Oct 2021 07:28:00 GMT")
-            self.end_headers()
-            return None
-
         self.send_response(200)
+        self.send_header('Content-type', 'text/html')
 
-        # Preparation for 304 replys....
-        # Note that this currently only works with Chromium, but not FF
-        #
-        # Regarding to
-        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/304
-        # Following headers are required in the 200-response
-        # Cache-Control, Content-Location, Date (is already included),
-        # ETag, Expires (overwritten by max-age, but still required?!)
-        # and Vary.
+        #  DO NOT set max-age Cache-Control for index page
+        #  This is BAD for redirects on '/' because the browser 
+        #  will show the outdated version from it's cache.
+        #  Example: Changing the css stlye will still showing the old one.
+        # self.send_header('Cache-Control', 'max-age=60, public')
 
-        self.send_header('ETag', etag)
+        # self.send_header('Vary', 'User-Agent')
+
+        if self.save_session:
+            self.session.save()
+
+        # Test of adding several other headers...
         # self.send_header('Cache-Control', 'public')
-        self.send_header('Cache-Control', 'max-age=60, public')
-        self.send_header('Content-Location', '/index.html')
-        #self.send_header('Content-Location', '/{}.html'.format(etag))
+        # self.send_header('Content-Location', '/{}.html'.format(etag))
 
         # tmp_date = datetime.utcnow()
         # Das führt zu doppeltem Date-Header!
@@ -650,7 +708,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         # tmp_date += timedelta(seconds=1000060)
         # self.send_header('Expires', tmp_date.strftime(DATE_HEADER_FORMAT))
         #... Expires ignored if max-age is given. Added to check effect on ETag feature
-        self.send_header('Vary', 'User-Agent')
 
         # For Safari
         # tmp_date += timedelta(seconds=-120)
@@ -658,17 +715,19 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         # self.send_header('Cache-Control', 'max-age=0, must-revalidate')
         # self.send_header('Expires', '-1')
 
-        if self.save_session:
-            self.session.save()
+        # End headers and write page content
+        self._write_1_1(html, etag=True, location='/index.html')
 
-        # Other headers
-        self.send_header('Content-Length', output.tell())
-        self.send_header('Content-type', 'text/html')
-        self.end_headers()
 
-        self.wfile.write(output.getvalue())
+
 
     def show_msg(self, msg, error=False, minimal=False):
+        """ Sends msg/error as html page.
+
+        - error: Inform template it's an error message
+        - minimal: Just prints message without header/footer.
+        """
+
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
 
@@ -676,9 +735,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             "msg": msg,
         })
 
-        self.context["session_user"] = self.session.get_logged_in("user")
+        self.context["session_user"] = self.session_user
 
-        output = BytesIO()
         if error:
             self.context["msg_type"] = _("Error")
         else:
@@ -689,19 +747,12 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         else:
             html = self.server.html_renderer.run("message.html", self.context)
 
-        output.write(html.encode('utf-8'))
-        output.seek(0, os.SEEK_END)
-        self.send_header('Content-Length', output.tell())
-        self.end_headers()
-
-        self.wfile.write(output.getvalue())
+        self._write_1_1(html)
 
     def show_login(self, user=None, msg=None, error=False,
             display_settings=True, redirect_url=None):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
-
-        output = BytesIO()
 
         if user is None:
             user = self.session.get("user")
@@ -709,7 +760,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         self.context.update({"user": user,
                "msg": msg})
 
-        self.context["session_user"] = self.session.get_logged_in("user")
+        self.context["session_user"] = self.session_user
         self.context["user"] = self.session.get("user")
         self.context["display_login_settings"] = display_settings
         self.context["redirect_url"] = redirect_url
@@ -720,24 +771,15 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             self.context["msg_type"] = _("Info")
 
         html = self.server.html_renderer.run("login.html", self.context)
-
-        output.write(html.encode('utf-8'))
-        output.seek(0, os.SEEK_END)
-        self.send_header('Content-Length', output.tell())
-        self.end_headers()
-
-        self.wfile.write(output.getvalue())
+        self._write_1_1(html)
 
     def show_extras(self, msg=None, error=False):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
 
         self.send_header('ETag', "extras_const_etag")
-        # self.send_header('Cache-Control', 'public')
         self.send_header('Cache-Control', 'max-age=60, public')
-        self.send_header('Content-Location', '/extras')
-
-        output = BytesIO()
+        # self.send_header('Content-Location', '/extras')
 
         self.context["session_user"] = self.session.get_logged_in("user")
         self.context["msg"] = msg
@@ -747,63 +789,59 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             self.context["msg_type"] = _("Info")
 
         html = self.server.html_renderer.run("extras/extras.html", self.context)
-
-        output.write(html.encode('utf-8'))
-        output.seek(0, os.SEEK_END)
-        self.send_header('Content-Length', output.tell())
-        self.end_headers()
-
-        self.wfile.write(output.getvalue())
+        self._write_1_1(html)
 
     def save_feed_change(self, feed):
         # Re-write file where this feed was read.
-        session_user = self.session.get_logged_in("user")
+        # session_user = self.session.get_logged_in("user")
         hist = self.get_history()
         favs = self.get_favorites()
         if feed in hist:
             save_history(hist, settings.get_config_folder(),
-                         settings.get_history_filename(session_user))
+                         settings.get_history_filename(self.session_user))
         else:
             update_favorites(favs,
                              settings.get_config_folder(),
-                             settings.get_favorites_filename(session_user))
+                             settings.get_favorites_filename(self.session_user))
 
     def handle_change_css_style(self, query_components):
+        css_style = qget(query_components, "css_style", None)
+        if not css_style in CSS_STYLES:  # for "None" and wrong values
+            css_style = None
+
+        if css_style == "default.css":
+            # Do not save the style in cookie/renderer if it's already
+            # the value which will provided anyway.
+            css_style = None
+
+        if settings._LOGIN_TYPE is LoginType.NONE:
+            # Note: This saves not the values permanently, but for this
+            # instance. It will be used if no user cookie overwrites the value.
+            self.server.html_renderer.extra_context["system_css_style"] = \
+                    css_style
+
+        # Use value in this request
+        self.context["user_css_style"] = css_style
+        # Note: This had no effect if redirect-response is invoked.
+        #       Updating the session cookies is more important
+        #       but the first rendering using still the old css style?!
+
+        # Store value in Cookie for further requests
+        self.session.c["css_style"] = css_style
         try:
-            css_style = qget(query_components, "css_style", None)
-            if not css_style in CSS_STYLES:  # for "None" and wrong values
-                css_style = None
+            self.session.c["css_style"]["samesite"] = "Strict"
+        except cookies.CookieError:
+            pass  # Requires Python >= 3.8
 
-            if css_style == "default.css":
-                # Do not save the style in cookie/renderer if it's already
-                # the value which will provided anyway.
-                css_style = None
+        if not css_style:
+            self.session.c["css_style"]["max-age"] = -1
+        self.save_session = True
 
-            if settings._LOGIN_TYPE is LoginType.NONE:
-                # Note: This saves not the values permanently, but for this
-                # instance. It will be used if no user cookie overwrites the value.
-                self.server.html_renderer.extra_context["system_css_style"] = \
-                        css_style
-
-            # Use value in this request
-            self.context["user_css_style"] = css_style
-
-            # Store value in Cookie for further requests
-            self.session.c["css_style"] = css_style
-            try:
-                self.session.c["css_style"]["samesite"] = "Strict"
-            except cookies.CookieError:
-                pass  # Requires Python >= 3.8
-
-            if not css_style:
-                self.session.c["css_style"]["max-age"] = -1
-            self.save_session = True
-
-        except KeyError:
-                raise Exception("CSS style with this name not defined")
+        # Reset eTags of user to avoid 304-replys with old style
+        self.server.latest_etags[self.session_user] = {}
 
     def handle_show_feed(self, query_components):
-        session_user = self.session.get_logged_in("user", "")
+        # session_user = self.session.get_logged_in("user", "")
 
         feed_key = qget(query_components, "feed")  # key, url or feed title
         bUseCache = (qget(query_components, "cache", "1") != "0")
@@ -839,24 +877,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     error_msg = _('No feed found for this URI arguments.')
                 return self.show_msg(error_msg, True)
 
+
             # Parse 'page' uri argument (affects etag!)
             page = int(query_components.setdefault("page", ['1'])[-1])
-
-            # Generate etag
-            etag = '"{}p{}"'.format(cEl.hash(), page)
-            #logger.debug("Eval ETag '{}'".format(etag))
-            #logger.debug("Browser ETag '{}'".format(self.headers.get("If-None-Match", "")))
-            # logger.debug("Received headers:\n{}".format(self.headers))
-
-            # If feed is unchanged and tags match return nothing, but 304.
-            if code == 304 and self.headers.get("If-None-Match", "") == etag:
-                self.send_response(304)
-                self.send_header('ETag', etag)
-                self.send_header('Cache-Control', "public, max-age=10, ")
-                        # "must-revalidate, post-check=0, pre-check=0")
-                self.send_header('Vary', "ETag, User-Agent")
-                self.end_headers()
-                return None
 
             if not feed:
                 feed = Feed("", feed_url)
@@ -864,6 +887,26 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             else:
                 bNew = False
 
+            etag_location = None
+            browser_etag = self.headers.get("If-None-Match", "")
+            location = f"/feed/{feed.get_uid()}"
+            if code == 304:
+                # Our data hasn't changed. Check if users etag is already
+                # the current one.
+                etag_location = self.get_etag(location)
+
+            if not etag_location:
+                # Generate etag
+                etag_location = cEl.hash()  # Same for all pages of feed.
+
+            etag = '"{}p{}"'.format(etag_location, page)
+
+            if browser_etag == etag:
+                # External feed source not changed and already send
+                # current state to user. Just send 304.
+                return self._write_304(etag, max_age=10)
+
+            # Generate new output page
             if code == 304 and len(feed.context)>0:
                 logger.debug("Skip parsing of feed and re-use previous")
             else:
@@ -912,7 +955,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 })
 
             res["nocache_link"] = True
-            res["session_user"] = session_user
+            res["session_user"] = self.session_user
 
             # Replace stored url, if newer value is given.
             if feed and url_update and res["href"]:
@@ -935,11 +978,15 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         except:
             raise
         else:
-            return self.show_feed(html)
+            # Set etag manually because it is the same for all feed pages
+            # (_write_1_1(...) method can not set value because
+            # etag != # etag_location.)
+            self.set_etag(location, etag_location)
+            return self.show_feed(html, etag=etag)
 
 
     def handle_show_feed_from_file(self, query_components):
-        session_user = self.session.get_logged_in("user", "")
+        # session_user = self.session.get_logged_in("user", "")
 
         filepath = qget(query_components, "file")  # From 'open with' dialog
         # No cache read in this variant
@@ -986,7 +1033,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
             self.update_cache_filepath(feed_new, byte_str)
             res["nocache_link"] = res["title"]
-            res["session_user"] = session_user
+            res["session_user"] = self.session_user
 
             context = {}
             context.update(self.context)
@@ -1004,23 +1051,13 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
     def show_feed(self, html, etag=None):
         self.send_response(200)
-        self.send_header('Content-type', 'text/html')
-        self.send_header('Cache-Control', "public, max-age=10, ")
-        if etag:
-            # logger.debug("Add ETag '{}'".format(etag))
-            self.send_header('ETag', etag)
-            self.send_header('Vary', "ETag, User-Agent")
+        # self.send_header('Content-type', 'text/html')
 
         if self.save_session:
             self.session.save()
 
-        output = BytesIO()
-        output.write(html.encode('utf-8'))
-        output.seek(0, os.SEEK_END)
-        self.send_header('Content-Length', output.tell())
-        self.end_headers()
-
-        self.wfile.write(output.getvalue())
+        # self._write_1_1(html, etag=etag, max_age=10)
+        self._write_compressed(html, 'text/html', etag=etag, max_age=10)
 
     def system_icon(self):
         image = icon_searcher.get_cached_file(self.path)
@@ -1034,26 +1071,19 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         else:
             self.send_header('Content-type', 'image')
 
-        self.send_header('Cache-Control', "public, max-age=86000, ")
+        #self.send_header('Cache-Control', "public, max-age=86000, ")
         # self.send_header('last-modified', self.date_time_string())
         self.send_header('Last-Modified', "Wed, 21 Oct 2019 07:28:00 GMT")
-        self.send_header('Vary', "User-Agent")
         # TODO: Image not cached :-(
 
-        output = BytesIO()
-        output.write(image)
-        output.seek(0, os.SEEK_END)
-        self.send_header('Content-Length', output.tell())
-        self.end_headers()
-
-        self.wfile.write(output.getvalue())
+        self._write_1_1(image, max_age=860000)
 
 
     def login_required_for_page(self, view):
         if settings._LOGIN_TYPE is LoginType.NONE:
             return False  # No restrictions
 
-        session_user = self.session.get_logged_in("user", "")
+        
         _no_login_required = [
             ViewType.INDEX_PAGE,
             ViewType.PROVIDE_FILE,
@@ -1069,7 +1099,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             ViewType.SHOW_EXTRAS,
             ViewType.YT_SCRIPT,
         ]
-        if session_user == "" and view not in _no_login_required:
+        if self.session_user == "" and view not in _no_login_required:
             return True
 
         return False
@@ -1173,7 +1203,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             error_msg = _('Running of handler for "{action_name}" failed. ' \
                           'Exception was: "{e}".')\
                     .format(action_name=action, e=e)
-            print(error_msg)
+            self.log_message("%s", error_msg)
             return self.show_msg(error_msg, True, minimal)
 
 
@@ -1229,7 +1259,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             error_msg = _('Running of handler for "{action_name}" failed. ' \
                           'Exception was: "{e}".')\
                     .format(action_name="yt", e=e)
-            print(error_msg)
+            self.log_message("%s", error_msg)
             return self.show_msg(error_msg, True, minimal)
 
         msg = "Youtube command send."
@@ -1406,30 +1436,21 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         self.send_header('Content-Length', 0)
         self.send_header('Location', location)  # Last header!
-
-        """
-        output = BytesIO()
-        output.write(html.encode('utf-8'))
-        output.seek(0, os.SEEK_END)
-        self.send_header('Content-Length', output.tell())
-        """
         self.end_headers()
-
-        # self.wfile.write(output.getvalue())
 
     def update_cache_feed(self, feed_new, bNew):
         """ Update cache and history """
 
         res = feed_new.context
         if bNew:
-            session_user = self.session.get_logged_in("user")
+            # session_user = self.session.get_logged_in("user")
             # Add this (new) url to feed history.
             hist = self.get_history()
             # feed_title = res["title"]
             # hist.append(Feed(feed_title, feed.url, feed_title))
             hist.append(feed_new)
             save_history(hist, settings.get_config_folder(),
-                         settings.get_history_filename(session_user))
+                         settings.get_history_filename(self.session_user))
 
 
     def update_cache_filepath(self, feed_new, byte_str):
@@ -1475,11 +1496,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
             # A new feed can not be found in favorites.
             # Save it into the history file.
-            session_user = self.session.get_logged_in("user")
+            # session_user = self.session.get_logged_in("user")
             hist = self.get_history()
             hist.append(feed)
             save_history(hist, settings.get_config_folder(),
-                         settings.get_history_filename(session_user))
+                         settings.get_history_filename(self.session_user))
 
         # 3. Write changes in cache.
         # Note that this clears saved headers for this feed.

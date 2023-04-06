@@ -43,10 +43,9 @@ def action_icon_dummy_classes(handler):
     if etag == browser_etag:
         handler.send_response(304)
         handler.send_header('ETag', etag)
-        handler.send_header('Cache-Control', "public, max-age=0, ")
-        handler.send_header('Content-Location', "/css/action_icons.css")
-        handler.send_header('Vary', "ETag, User-Agent")
-        handler.send_header('Keep-Alive', 'timeout=0, max=0')
+        handler.send_header('Cache-Control', 'max-age=60, public')
+        # handler.send_header('Content-Location', "/css/action_icons.css")
+        # handler.send_header('Vary', "ETag, User-Agent")
         handler.end_headers()
         return None
 
@@ -55,14 +54,24 @@ def action_icon_dummy_classes(handler):
     # Preparation for 304 replys....
     # Note that this currently only works with Chromium, but not FF
     handler.send_header('ETag', etag)
-    handler.send_header('Cache-Control', "public, max-age=10, ")
-    handler.send_header('Content-Location', "/index.html")
-    handler.send_header('Vary', "ETag, User-Agent")
+
+    # Add Cache-Control-Header to avoid request for X seconds.
+    handler.send_header('Cache-Control', 'max-age=60, public')
+    # handler.send_header('Content-Location', "/css/action_icons.css")
+    # handler.send_header('Vary', "ETag, User-Agent")
+
+    """
+    from datetime import datetime, timedelta, timezone
+    TIMEZONE = str(datetime.now(timezone(timedelta(0))).astimezone().tzinfo)
+    DATE_HEADER_FORMAT = "%a, %d %h %Y %T {}".format(TIMEZONE)
+    tmp_date = datetime.utcnow()
+    tmp_date += timedelta(seconds=-120)
+    handler.send_header('Last-Modified', tmp_date.strftime(DATE_HEADER_FORMAT))
+    """
 
     # Other headers
     handler.send_header('Content-Length', output.tell())
     handler.send_header('Content-type', 'text/css')
-    handler.send_header('Keep-Alive', 'timeout=0, max=0')
     handler.end_headers()
 
     # Push content

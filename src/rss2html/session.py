@@ -140,8 +140,7 @@ class Session():
 
     def save(self):
         logger.debug("Session Type: " + str(type(self)))
-        logger.debug("Save cookies")
-        logger.debug(self.c.output())
+        logger.debug("Save cookies\n"+self.c.output())
         self.request.send_header(
             "Set-Cookie", self.c.output(header="",
                                         sep="\r\nSet-Cookie:"))

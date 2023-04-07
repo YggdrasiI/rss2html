@@ -310,7 +310,7 @@ class HTTPCompressionRequestHandler(SimpleHTTPRequestHandler):
                 #    Expires, and Vary.
                 self.send_response(HTTPStatus.NOT_MODIFIED)
                 self.send_header("ETag", etag)
-                # self.send_header('Cache-Control', 'max-age=60, public')
+                # self.send_header('Cache-Control', 'max-age=60, public, stale-while-revalidate=86400')
                 self.end_headers()
                 f.close()
                 return None
@@ -320,7 +320,7 @@ class HTTPCompressionRequestHandler(SimpleHTTPRequestHandler):
             self.send_header("Last-Modified",
                              self.date_time_string(fs.st_mtime))
             self.send_header("ETag", etag)
-            # self.send_header('Cache-Control', 'max-age=60, public')
+            # self.send_header('Cache-Control', 'max-age=60, public, stale-while-revalidate=86400')
 
             if ctype not in self.compressed_types:
                 self.send_header("Content-Length", str(content_length))
@@ -403,7 +403,7 @@ class HTTPCompressionRequestHandler(SimpleHTTPRequestHandler):
 
     def _write_compressed(self, s, ctype, etag=None, location=None, max_age=None):
         """ Helper method for rss_server to send compressed data for 
-        non-static content. 
+        non-static content, e.g. index page 
         """
         output = BytesIO()
         output.write(s.encode('utf-8'))
@@ -412,14 +412,14 @@ class HTTPCompressionRequestHandler(SimpleHTTPRequestHandler):
         output.seek(0)
 
         if max_age:
-            self.send_header('Cache-Control', f'max-age={max_age}, public ')
+            self.send_header('Cache-Control', f'max-age={max_age}, private, stale-while-revalidate=86400')
         if location:
             self.send_header('Content-Location', location)
 
         # Preparation for 304 replys....
         if etag:
             if etag is True:
-                etag = '"{}"'.format( hashlib.sha1(output.getvalue()).hexdigest())
+                etag = '"{}"'.format( sha1(output.getvalue()).hexdigest())
             self.send_header('ETag', etag)
 
             # Update etag for this user

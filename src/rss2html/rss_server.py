@@ -424,7 +424,7 @@ class MyHandler(HTTPCompressionRequestHandler):
                 if False:
                     self.send_response(304)
                     self.send_header('ETag', "extras_const_etag")
-                    self.send_header('Cache-Control', 'max-age=0, public ')
+                    self.send_header('Cache-Control', 'max-age=0, private, stale-while-revalidate=86400')
                     self.send_header('Content-Location', '/extras')
                     # self.send_header('Vary', 'User-Agent')
                     self.end_headers()
@@ -613,7 +613,7 @@ class MyHandler(HTTPCompressionRequestHandler):
         output.seek(0, os.SEEK_END)
         self.send_header('Content-Length', output.tell())
         if max_age:
-            self.send_header('Cache-Control', f'max-age={max_age}, public ')
+            self.send_header('Cache-Control', f'max-age={max_age}, private, stale-while-revalidate=86400')
         if location:
             self.send_header('Content-Location', location)
 
@@ -644,7 +644,7 @@ class MyHandler(HTTPCompressionRequestHandler):
         self.send_response(304)
         self.send_header('ETag', etag)
         if max_age:
-            self.send_header('Cache-Control', f'max-age={max_age}, public ')
+            self.send_header('Cache-Control', f'max-age={max_age}, private, stale-while-revalidate=86400')
         # self.send_header('Vary', 'User-Agent')
         if location:
             self.send_header('Content-Location', location)
@@ -684,24 +684,16 @@ class MyHandler(HTTPCompressionRequestHandler):
         html = self.server.html_renderer.run("index.html", self.context)
 
         self.send_response(200)
-        self.send_header('Content-type', 'text/html')
-
         #  DO NOT set max-age Cache-Control for index page
         #  This is BAD for redirects on '/' because the browser 
         #  will show the outdated version from it's cache.
         #  Example: Changing the css style will still showing the old one.
-        # self.send_header('Cache-Control', 'max-age=60, public')
+        # self.send_header('Cache-Control', 'max-age=60, private')
 
         # self.send_header('Vary', 'User-Agent')
 
-        if self.save_session:
-            self.session.save()
-
         # Test of adding several other headers...
-        # self.send_header('Cache-Control', 'public')
-        # self.send_header('Content-Location', '/{}.html'.format(etag))
-
-        # tmp_date = datetime.utcnow()
+        #tmp_date = datetime.utcnow()
         # Das führt zu doppeltem Date-Header!
         # self.send_header('Date', tmp_date.strftime(DATE_HEADER_FORMAT))
 
@@ -715,11 +707,16 @@ class MyHandler(HTTPCompressionRequestHandler):
         # self.send_header('Cache-Control', 'max-age=0, must-revalidate')
         # self.send_header('Expires', '-1')
 
+        if self.save_session:
+            self.session.save()
+
         # End headers and write page content
-        self._write_1_1(html, etag=True, location=location)
-
-
-
+        if False:
+            self.send_header('Content-type', 'text/html')
+            self._write_1_1(html, etag=True, location=location)
+        else:
+            self._write_compressed(html, 'text/html'
+                    , etag=True, location=location)
 
     def show_msg(self, msg, error=False, minimal=False):
         """ Sends msg/error as html page.
@@ -778,7 +775,7 @@ class MyHandler(HTTPCompressionRequestHandler):
         self.send_header('Content-type', 'text/html')
 
         self.send_header('ETag', "extras_const_etag")
-        self.send_header('Cache-Control', 'max-age=60, public')
+        self.send_header('Cache-Control', 'max-age=60, private')
         # self.send_header('Content-Location', '/extras')
 
         self.context["session_user"] = self.session.get_logged_in("user")
@@ -862,7 +859,7 @@ class MyHandler(HTTPCompressionRequestHandler):
                 if self.session.is_logged_in():
                     return self.show_msg(error_msg, True)
                 else:
-                    return self.show_login(session_user, error_msg,
+                    return self.show_login(self.session_user, error_msg,
                             error=True, display_settings=False,
                             redirect_url=self.path)
 
@@ -1071,8 +1068,8 @@ class MyHandler(HTTPCompressionRequestHandler):
         else:
             self.send_header('Content-type', 'image')
 
-        #self.send_header('Cache-Control', "public, max-age=86000, ")
-        # self.send_header('last-modified', self.date_time_string())
+        #self.send_header('Cache-Control', "public, max-age=86000, stale-while-revalidate=86400 ")
+        # self.send_header('Last-Modified', self.date_time_string())
         self.send_header('Last-Modified', "Wed, 21 Oct 2019 07:28:00 GMT")
         # TODO: Image not cached :-(
 

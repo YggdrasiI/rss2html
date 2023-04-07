@@ -43,7 +43,7 @@ def action_icon_dummy_classes(handler):
     if etag == browser_etag:
         handler.send_response(304)
         handler.send_header('ETag', etag)
-        handler.send_header('Cache-Control', 'max-age=60, public')
+        handler.send_header('Cache-Control', 'max-age=3600, public')
         # handler.send_header('Content-Location', "/css/action_icons.css")
         # handler.send_header('Vary', "ETag, User-Agent")
         handler.end_headers()
@@ -56,7 +56,7 @@ def action_icon_dummy_classes(handler):
     handler.send_header('ETag', etag)
 
     # Add Cache-Control-Header to avoid request for X seconds.
-    handler.send_header('Cache-Control', 'max-age=60, public')
+    handler.send_header('Cache-Control', 'max-age=3600, public')
     # handler.send_header('Content-Location', "/css/action_icons.css")
     # handler.send_header('Vary', "ETag, User-Agent")
 

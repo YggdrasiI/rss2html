@@ -217,7 +217,13 @@ def load_users(main_globals):
         try:
             user_fav_module = import_module(user_module_name)
             if hasattr(user_fav_module, attrname):
-                feed_dict[username] = getattr(user_fav_module, attrname)
+                attr = getattr(user_fav_module, attrname)
+                # Normalise old form [Feed1, ...] to new form [Group1(name1, [Feed1, …]), …)
+                if attrname == "FAVORITES":
+                    if len(attr) > 0 and isinstance(attr[0], Feed):
+                        attr = [Group("Favorites", attr)]
+
+                feed_dict[username] = attr
 
         except ImportError as e:
             logger.warn("Import of '{}' failed: {}".format(filename, e))
@@ -289,7 +295,7 @@ def all_feeds(settings, *extra_feed_lists):
         for l in lists:
             for group in l:
                 if isinstance(group, Group):
-                    for feed in group:
+                    for feed in group.feeds:
                         yield feed
                 else:
                     yield group

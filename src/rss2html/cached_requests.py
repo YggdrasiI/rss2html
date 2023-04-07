@@ -393,23 +393,6 @@ def fetch_file(url, no_lookup_for_fresh=True, local_dir="rss_server-page/"):
         except ValueError:
             pass
 
-    # old urllib approach
-    # except HTTPError as e:
-    #     if e.code == 304:  # Not modified => Return cached value
-    #         logger.debug("Extern server replies: No new data available. Return cached value")
-    #         if cEl:
-    #             return (cEl, 304)
-
-    #     logger.debug('The server couldn\'t fulfill the request.'
-    #             'Error code: {} '.format(e.code))
-
-    # except URLError as e:
-    #     logger.debug('We failed to reach a server.'
-    #             'Reason: {}'.format(e.reason))
-    #     if cEl:
-    #         return (cEl, 304)
-    #
-
     # urllib3
     except (TimeoutError, MaxRetryError, ResponseError, SSLError) as e:
         logger.debug('{}: {}'.format(type(e).__name__, str(e)))
@@ -444,7 +427,7 @@ def fetch_file(url, no_lookup_for_fresh=True, local_dir="rss_server-page/"):
 
         response.release_conn()  # preload_content=False requires this
 
-        # Check needed for responses without Content-Length header
+        # This check is required for responses without Content-Length header
         # and responses with wrong header vaules.
         if len(cEl.byte_str) > settings.MAX_FEED_BYTE_SIZE:
             raise Exception("Feed file exceedes maximal size. {0} > {1}"
@@ -453,11 +436,14 @@ def fetch_file(url, no_lookup_for_fresh=True, local_dir="rss_server-page/"):
 
         update_cache(filename, cEl)
 
-        if settings.CACHE_DIR and False:
-            # Write file to disk
+        # Write file to disk
+        # It is commented out because storing cache element at programm end
+        # or full cache is sufficient and guarantee faster replys.
+        """
+        if settings.CACHE_DIR:
             feed = Feed(url, url)
             store_cache([feed])
-
+        """
 
         return (cEl, 200)
 

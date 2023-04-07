@@ -496,12 +496,12 @@ class MyHandler(HTTPCompressionRequestHandler):
         if view == ViewType.ADD_FAVS:
             add_favs = query_components.get("add_fav", [])  # List!
             self.do_add_favs(add_favs)
-            self.set_etag('index.html', None)
+            self.set_etag('/index.html', None)
             return self.session_redirect('/')
         if view == ViewType.REMOVE_FEED:
             to_rm = query_components.get("rm", [])          # List!
             self.do_rm_feed(to_rm)
-            self.set_etag('index.html', None)
+            self.set_etag('/index.html', None)
             return self.session_redirect('/')
         elif view == ViewType.RELOAD:
             self.reload_favs()
@@ -534,10 +534,10 @@ class MyHandler(HTTPCompressionRequestHandler):
             return self.handle_youtube(query_components)
         elif view == ViewType.PROVIDE_FILE:
             # self.path = MyHandler.directory + self.path  # for Python 3.4
-            self.log_message("SUPER %s", self.path)
+            self.log_message("Provide %s", self.path)
             return super().do_GET()
         else:
-            self.log_message("%s", self.path)
+            self.log_message("Skip %s", self.path)
             # return super().do_GET()
             return self.send_error(404)
 
@@ -657,15 +657,15 @@ class MyHandler(HTTPCompressionRequestHandler):
         # Even set if user is not logged in
         # Used to prefill form input fields in template, etc
         user = self.session.get("user")
-        location='/index.html'
 
+        location='/index.html'
         etag = self.get_etag(location)
         browser_etag = self.headers.get("If-None-Match", "")
         logger.debug("\n\nETag of index page: {}".format(etag))
         logger.debug("\nETag from client:   {}\n\n".format(browser_etag))
 
         if etag == browser_etag and not self.save_session:
-            return self._write_304(etag, location='/index.html')
+            return self._write_304(etag, location=location)
 
         # Generate (new) page content
         self.context.update({
@@ -689,7 +689,7 @@ class MyHandler(HTTPCompressionRequestHandler):
         #  DO NOT set max-age Cache-Control for index page
         #  This is BAD for redirects on '/' because the browser 
         #  will show the outdated version from it's cache.
-        #  Example: Changing the css stlye will still showing the old one.
+        #  Example: Changing the css style will still showing the old one.
         # self.send_header('Cache-Control', 'max-age=60, public')
 
         # self.send_header('Vary', 'User-Agent')
@@ -716,7 +716,7 @@ class MyHandler(HTTPCompressionRequestHandler):
         # self.send_header('Expires', '-1')
 
         # End headers and write page content
-        self._write_1_1(html, etag=True, location='/index.html')
+        self._write_1_1(html, etag=True, location=location)
 
 
 
@@ -1419,13 +1419,9 @@ class MyHandler(HTTPCompressionRequestHandler):
                 self.save_history()
         settings_mutex.release()
 
-        output = BytesIO()
-        output.write("Sorted".encode('utf-8'))
-        output.seek(0, os.SEEK_END)
-        self.send_header('Content-Length', output.tell())
-        self.end_headers()
-
-        self.wfile.write(output.getvalue())
+        # Reset 304/etag evaluation on start page
+        self.set_etag('/index.html', None)
+        self._write_1_1("Sorted")
 
     def session_redirect(self, location):
         # Saves login session cookies

@@ -178,6 +178,12 @@ def genMyHTTPServer():
             # Saves user etags for some pages for 304 messages
             self.latest_etags = {}
 
+            # Dict for  path != '/{form_name}' case
+            self._other_forms = {
+                    "yt": "/extras/yt",
+                    }
+
+
 
         def server_bind(self):
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -413,7 +419,7 @@ class MyHandler(HTTPCompressionRequestHandler):
                         "Request includes unsupported content type"\
                         "{content_type}")
             return self.show_msg("Unsupported content_type", True, True)
-            
+
         form_id = qget(query_components, "form_id")
         if not form_id is None:
             if form_id in self.server.form_ids:
@@ -442,30 +448,35 @@ class MyHandler(HTTPCompressionRequestHandler):
             if len(self.server.form_ids) > 20:
                 self.server.form_ids[:10] = []
 
-        if self.path == "/login" or \
-           "login" in query_components.get("form_name", []):
+        # Check for explicit given login credentials if formular needs login.
+        form_name = qget(query_components, "form_name")
+        path = self.form_name_to_path(self.path, form_name)
+        view = self.eval_view(path, {})
+        if self.login_required_for_page(view, query_components):
+            error_msg = _('Login required.')
+            return self.show_msg(error_msg, True, True)
+
+        if path == "/login":
             return self.handle_login(query_components)
 
-        if self.path == "/logout" or \
-           "logout" in query_components.get("form_name", []):
+        if path == "/logout":
             return self.handle_logout(query_components)
 
-        if self.path == "/change_feed_order" or \
-           "change_feed_order" in query_components.get("form_name", []):
+        if path == "/change_feed_order":
             return self.handle_change_feed_order(query_components)
 
-        if self.path == "/" or \
-                "feed" == qget(query_components, "form_name"):
+        if path == "/feed":
             # Hm, using POST-method for feed will invoke
             # requests if using back/forward in browser ?!
             # With GET browser will use it's cache.
             return self.handle_show_feed(query_components)
 
-        if self.path == "/extras/yt" or \
-                "yt" == qget(query_components, "form_name"):
-            return self.handle_youtube(query_components)
+        if settings.ENABLE_EXTRAS:
+            if path == "/extras/yt":
+                return self.handle_youtube(query_components)
 
-        msg = 'Post values: {}'.format(str(query_components))
+        # msg = 'Post values: {}'.format(str(query_components))  # Input not validated
+        msg = f'Post values invalid {path} {query_components}'
         return self.show_msg(msg)
 
     def do_GET(self):
@@ -487,9 +498,12 @@ class MyHandler(HTTPCompressionRequestHandler):
         query_components = parse_qs(urlparse(self.path).query)
         view = self.eval_view(self.path, query_components)
 
-        if self.login_required_for_page(view):
+        if self.login_required_for_page(view, query_components):
             error_msg = _('Login required.')
-            return self.show_msg(error_msg, True)
+            # return self.show_msg(error_msg, True)
+            return self.show_login(self.session_user, error_msg,
+                    error=True, display_settings=False,
+                    redirect_url=self.path)
 
         if view == ViewType.QUIT:
             return self.handle_quit()
@@ -540,6 +554,27 @@ class MyHandler(HTTPCompressionRequestHandler):
             self.log_message("Skip %s", self.path)
             # return super().do_GET()
             return self.send_error(404)
+
+    def form_name_to_path(self, path, form_name):
+        """ Forms can be identified by its form name
+        or explicit matching uri. This method translates the form_name
+        variant into '/{matching_uri}'.
+
+        The path will not be alterted if it's alreade != '/'.
+        """
+        if form_name is None:
+            # logger.error(f"Form name mismatch! Path: '{path}', Form name: '{form_name}'")
+            return path
+
+        #if path not in ["/", "/extras"]:
+        #    return path
+
+        if form_name in self.server._other_forms:
+            return self.server._other_forms[form_name]
+
+        canonical_path = "/{}".format(form_name)
+        return canonical_path
+
 
     def eval_view(self, path, query_components):
         # eval handler for do_GET operation
@@ -774,12 +809,13 @@ class MyHandler(HTTPCompressionRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
 
-        self.send_header('ETag', "extras_const_etag")
-        self.send_header('Cache-Control', 'max-age=60, private')
+        # self.send_header('ETag', "extras_const_etag")
+        # self.send_header('Cache-Control', 'max-age=60, private')
         # self.send_header('Content-Location', '/extras')
 
         self.context["session_user"] = self.session.get_logged_in("user")
         self.context["msg"] = msg
+        self.context["redirect_url"] = "/extras"
         if error:
             self.context["msg_type"] = _("Error")
         else:
@@ -1076,7 +1112,7 @@ class MyHandler(HTTPCompressionRequestHandler):
         self._write_1_1(image, max_age=860000)
 
 
-    def login_required_for_page(self, view):
+    def login_required_for_page(self, view, query_components):
         if settings._LOGIN_TYPE is LoginType.NONE:
             return False  # No restrictions
 
@@ -1093,10 +1129,14 @@ class MyHandler(HTTPCompressionRequestHandler):
             ViewType.CHANGE_STYLE,
             ViewType.ACTION_ICONS_CSS,
             ViewType.SYSTEM_ICON,
-            ViewType.SHOW_EXTRAS,
-            ViewType.YT_SCRIPT,
+            # ViewType.SHOW_EXTRAS,
+            # ViewType.YT_SCRIPT,
         ]
         if self.session_user == "" and view not in _no_login_required:
+            # User is not logged in.
+            # Check uri/post values for login credentials
+            if self.verify_user(query_components):
+                return False
             return True
 
         return False
@@ -1265,19 +1305,26 @@ class MyHandler(HTTPCompressionRequestHandler):
             return self.show_msg(msg, False, minimal)
         return self.show_extras(msg, False)
 
-    def handle_login(self, query_components):
+    def verify_user(self, query_components):
         user = qget(query_components, "user", "")
         password = qget(query_components, "password", "")
-        redirect_url = qget(query_components, "redirect_url")
         logger.debug("User: '{}'".format(user))
 
         if self.session.init(user, password=password, settings=settings):
+            return True
+        else:
+            return False
+
+    def handle_login(self, query_components):
+        if self.verify_user(query_components):
             # Omit display of double entries
             if self.get_history() != settings.HISTORY:
                 clear_history(self.get_favorites(), self.get_history())
 
+            redirect_url = qget(query_components, "redirect_url")
             return self.session_redirect(redirect_url or '/')
         else:
+            user = qget(query_components, "user", "")
             error_msg = _('Login has failed.')
             return self.show_login(user, error_msg, True)
 

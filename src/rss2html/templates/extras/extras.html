@@ -12,12 +12,12 @@
     </div>
   </div>
   <div id="feedContent">
-    {% if not session_user  %}
+    {% if not session_user %}
     <h2>{{ _('Login required') }}</h2>
     <p>{{ _('RSS Viewer') }}</p>
     <h2>{{ _('Login') }}</h2>
     <div class="clearfix">
-    {{ macros.login_form(user) }}
+    {{ macros.login_form(user, redirect_url) }}
     </div>
     {% else %}
     {% if msg %}

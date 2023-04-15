@@ -23,7 +23,7 @@
     <br />
     {{ _("It converts a 2.0 RSS feed into html page (similar looking to FF's version).") }}
     </p>
-    {% if session_user or login_type == "single_user" %}
+    {% if session_user or login_type in ["single_user", None] %}
 		{#<h2 class="feedSubtitleText">{{ _('Favorites') }}</h2>#}
 		{% for fav_group in favorites %}
 		<h2 class="feedSubtitleText">{{ _(fav_group.name) }}</h2>

@@ -151,6 +151,10 @@ clean:
 install: pyproject.toml poetry.toml
 	$(POETRY) install
 
+# Update dependencies
+update: $(POETRY_VENV)
+	$(POETRY) update
+
 $(POETRY_VENV):
 	make install
 

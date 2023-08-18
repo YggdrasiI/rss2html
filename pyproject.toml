@@ -13,7 +13,7 @@ Jinja2 = "^3.0"
 httplib2 = "^0.20.4"
 babel = "^2.6"
 urllib3 = "^1.26.12"
-certifi = "^2022.12.7"
+certifi = "^2023.7.22"
 psutil = "^5.9.2"
 defusedxml = "^0.7"
 

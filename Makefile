@@ -147,11 +147,11 @@ clean:
 		&& test -n "$${RSS_READER_CLEAN}" -a "$${RSS_READER_CLEAN}" != "no" \
 		&& git clean -f -d .
 
-# Install everything in virtual environment
+# Install everything in virtual environment (depending on poetry.lock)
 install: pyproject.toml poetry.toml
-	$(POETRY) install
+	$(POETRY) install --no-root
 
-# Update dependencies
+# Update dependencies (changing poetry.lock)
 update: $(POETRY_VENV)
 	$(POETRY) update
 
